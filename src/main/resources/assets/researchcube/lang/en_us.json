@@ -5,5 +5,7 @@
   "item.researchcube.metadata_enhanced": "§9Metadata (Enhanced)",
   "item.researchcube.metadata_reclaimed": "§aMetadata (Reclaimed)",
   "item.researchcube.metadata_unstable": "§fMetadata (Unstable)",
-  "item.researchcube.metadata_irrecoverable": "§7Metadata (Irrecoverable)"
+  "item.researchcube.metadata_irrecoverable": "§7Metadata (Irrecoverable)",
+
+  "itemGroup.researchcubetab": "Research Cube"
 }
