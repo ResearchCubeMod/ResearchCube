@@ -12,7 +12,13 @@ public class ModItems {
     public static final DeferredRegister<Item> ITEMS =
             DeferredRegister.create(ForgeRegistries.ITEMS, ResearchCube.MOD_ID);
 
+    public static final RegistryObject<Item> METADATA_IRRECOVERABLE = ITEMS.register("metadata_irrecoverable", () -> new Item(new Item.Properties().tab(CreativeModeTab.TAB_MISC)));
     public static final RegistryObject<Item> METADATA_UNSTABLE = ITEMS.register("metadata_unstable", () -> new Item(new Item.Properties().tab(CreativeModeTab.TAB_MISC)));
+    public static final RegistryObject<Item> METADATA_RECLAIMED = ITEMS.register("metadata_reclaimed", () -> new Item(new Item.Properties().tab(CreativeModeTab.TAB_MISC)));
+    public static final RegistryObject<Item> METADATA_ENHANCED = ITEMS.register("metadata_enhanced", () -> new Item(new Item.Properties().tab(CreativeModeTab.TAB_MISC)));
+    public static final RegistryObject<Item> METADATA_ELABORATE = ITEMS.register("metadata_elaborate", () -> new Item(new Item.Properties().tab(CreativeModeTab.TAB_MISC)));
+    public static final RegistryObject<Item> METADATA_CYBERNETIC = ITEMS.register("metadata_cybernetic", () -> new Item(new Item.Properties().tab(CreativeModeTab.TAB_MISC)));
+    public static final RegistryObject<Item> METADATA_SELF_AWARE = ITEMS.register("metadata_self_aware", () -> new Item(new Item.Properties().tab(CreativeModeTab.TAB_MISC)));
 
 
 
