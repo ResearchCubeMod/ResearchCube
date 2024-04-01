@@ -1,9 +1,14 @@
-package com.mrsilly.researchcube.block.entity.custom;
+package net.mrsilly.researchcube.block.entity.custom;
 
+
+import net.mrsilly.researchcube.block.entity.ModBlockEntities;
+import net.mrsilly.researchcube.item.ModItems;
+import net.mrsilly.researchcube.screen.ResearchStationMenu;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.TextComponent;
 import net.minecraft.world.Containers;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.SimpleContainer;
@@ -11,7 +16,6 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.util.LazyOptional;
@@ -23,31 +27,29 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.Nonnull;
 
-public class ResearchTableBlockEntity extends BlockEntity implements MenuProvider {
-    private final ItemStackHandler ItemHandler = new ItemStackHandler(6){
+public class ResearchStationBlockEntity extends BlockEntity implements MenuProvider {
+    private final ItemStackHandler itemHandler = new ItemStackHandler(4) {
         @Override
         protected void onContentsChanged(int slot) {
             setChanged();
         }
     };
 
-    private LazyOptional<IItemHandler> handler = LazyOptional.empty();
+    private LazyOptional<IItemHandler> lazyItemHandler = LazyOptional.empty();
 
-
-
-    public ResearchTableBlockEntity(BlockEntityType<?> pType, BlockPos pPos, BlockState pBlockState) {
-        super(pType, pPos, pBlockState);
+    public ResearchStationBlockEntity(BlockPos pWorldPosition, BlockState pBlockState) {
+        super(ModBlockEntities.RESEARCH_STATION_BLOCK_ENTITY.get(), pWorldPosition, pBlockState);
     }
 
     @Override
     public Component getDisplayName() {
-            return null;
+        return new TextComponent("Research Station");
     }
 
     @Nullable
     @Override
-    public AbstractContainerMenu createMenu(int i, Inventory inventory, Player player) {
-        return null;
+    public AbstractContainerMenu createMenu(int pContainerId, Inventory pInventory, Player pPlayer) {
+        return new ResearchStationMenu(pContainerId, pInventory, this);
     }
 
     @Nonnull

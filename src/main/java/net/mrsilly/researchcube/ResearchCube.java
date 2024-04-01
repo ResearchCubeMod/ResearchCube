@@ -1,6 +1,8 @@
 package net.mrsilly.researchcube;
 
 import com.mojang.logging.LogUtils;
+import net.minecraft.client.renderer.ItemBlockRenderTypes;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraftforge.common.MinecraftForge;
@@ -16,6 +18,10 @@ import net.minecraftforge.event.server.ServerStartingEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.mrsilly.researchcube.block.ModBlocks;
 import net.mrsilly.researchcube.item.ModItems;
+import net.mrsilly.researchcube.block.entity.ModBlockEntities;
+import net.mrsilly.researchcube.screen.ModMenuTypes;
+import net.mrsilly.researchcube.screen.ResearchStationScreen;
+import net.minecraft.client.gui.screens.MenuScreens;
 import org.slf4j.Logger;
 
 import java.util.stream.Collectors;
@@ -35,11 +41,24 @@ public class ResearchCube {
         ModItems.register(eventBus);
         ModBlocks.register(eventBus);
 
+        ModBlockEntities.register(eventBus);
+        ModMenuTypes.register(eventBus);
+
+        eventBus.addListener(this::setup);
+        eventBus.addListener(this::clientSetup);
+
         eventBus.addListener(this::setup);
 
 
         // Register ourselves for server and other game events we are interested in
         MinecraftForge.EVENT_BUS.register(this);
+    }
+
+    private void clientSetup(final FMLCommonSetupEvent event) {
+        ItemBlockRenderTypes.setRenderLayer(ModBlocks.RESEARCH_STATION.get(), RenderType.translucent());
+
+
+        MenuScreens.register(ModMenuTypes.RESEARCH_STATION_MENU.get(), ResearchStationScreen::new);
     }
 
     private void setup(final FMLCommonSetupEvent event) {
