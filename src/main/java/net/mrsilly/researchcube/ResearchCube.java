@@ -1,6 +1,8 @@
 package net.mrsilly.researchcube;
 
 import com.mojang.logging.LogUtils;
+import net.minecraft.client.renderer.ItemBlockRenderTypes;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraftforge.common.MinecraftForge;
@@ -41,6 +43,7 @@ public class ResearchCube {
         // Register ourselves for server and other game events we are interested in
         MinecraftForge.EVENT_BUS.register(this);
     }
+
 
     private void setup(final FMLCommonSetupEvent event) {
         // some preinit code

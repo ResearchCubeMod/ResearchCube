@@ -7,5 +7,6 @@
   "item.researchcube.metadata_unstable": "§fMetadata (Unstable)",
   "item.researchcube.metadata_irrecoverable": "§7Metadata (Irrecoverable)",
 
-  "itemGroup.researchcubetab": "Research Cube"
+  "itemGroup.researchcubetab": "Research Cube",
+  "block.researchcube.research_station": "Research Station"
 }
