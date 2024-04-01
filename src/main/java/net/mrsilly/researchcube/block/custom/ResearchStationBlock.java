@@ -13,9 +13,9 @@ import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
-public class ResearchStation extends Block{
+public class ResearchStationBlock extends Block{
     public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
-    public ResearchStation(Properties properties) {
+    public ResearchStationBlock(Properties properties) {
         super(properties);
     }
     private static final VoxelShape SHAPE =  Block.box(0, 0, 0, 32, 16, 16);

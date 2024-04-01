@@ -6,14 +6,13 @@ import net.minecraft.world.item.*;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.SaplingBlock;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 import net.mrsilly.researchcube.ResearchCube;
-import net.mrsilly.researchcube.block.custom.ResearchStation;
+import net.mrsilly.researchcube.block.custom.ResearchStationBlock;
 import net.mrsilly.researchcube.item.ModCreativeModeTab;
 import net.mrsilly.researchcube.item.ModItems;
 
@@ -27,7 +26,7 @@ public class ModBlocks {
 
     //put new blocks here
     public static final RegistryObject<Block> RESEARCH_STATION = registerBlock("research_station",
-            () -> new ResearchStation(BlockBehaviour.Properties.copy(Blocks.IRON_BLOCK).noOcclusion()),
+            () -> new ResearchStationBlock(BlockBehaviour.Properties.copy(Blocks.IRON_BLOCK).noOcclusion()),
             ModCreativeModeTab.RESEACHCUBE_TAB);
     //register blocks as items
     private static <T extends Block> RegistryObject<T> registerBlockWithoutBlockItem(String name, Supplier<T> block) {
