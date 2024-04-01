@@ -61,6 +61,7 @@ public class ResearchCube {
         MenuScreens.register(ModMenuTypes.RESEARCH_STATION_MENU.get(), ResearchStationScreen::new);
     }
 
+
     private void setup(final FMLCommonSetupEvent event) {
         // some preinit code
         LOGGER.info("HELLO FROM PREINIT");

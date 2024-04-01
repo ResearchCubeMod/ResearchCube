@@ -15,10 +15,16 @@ import net.minecraft.world.level.block.*;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
+
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Mirror;
+import net.minecraft.world.level.block.Rotation;
+
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
+
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
@@ -31,13 +37,12 @@ public class ResearchStationBlock extends BaseEntityBlock {
     public ResearchStationBlock(Properties properties) {
         super(properties);
     }
+    private static final VoxelShape SHAPE =  Block.box(0, 0, 0, 32, 16, 16);
 
-    //private static final VoxelShape SHAPE =  Block.box(0, 0, 0, 16, 8, 16);
-
-//    @Override
-//    public VoxelShape getShape(BlockState pState, BlockGetter pLevel, BlockPos pPos, CollisionContext pContext) {
-//        return SHAPE;
-//    }
+    @Override
+    public VoxelShape getShape(BlockState pState, BlockGetter pLevel, BlockPos pPos, CollisionContext pContext) {
+        return SHAPE;
+    }
 
     /* FACING */
 
@@ -106,3 +111,4 @@ public class ResearchStationBlock extends BaseEntityBlock {
 //                ResearchStationBlockEntity::tick);
 //    }
 }
+

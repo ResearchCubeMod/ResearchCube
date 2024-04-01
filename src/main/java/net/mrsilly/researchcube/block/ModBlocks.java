@@ -1,5 +1,6 @@
 package net.mrsilly.researchcube.block;
 
+
 import net.mrsilly.researchcube.ResearchCube;
 import net.mrsilly.researchcube.block.custom.*;
 import net.mrsilly.researchcube.item.ModCreativeModeTab;
@@ -11,21 +12,18 @@ import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.util.valueproviders.UniformInt;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.item.*;
-import net.minecraft.world.level.BlockGetter;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.*;
-import net.minecraft.world.level.block.state.BlockBehaviour;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.material.Material;
+import net.minecraft.world.level.*;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.TranslatableComponent;
+
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
-import org.jetbrains.annotations.Nullable;
 
+
+import javax.annotation.Nullable;
 import java.util.List;
-import java.util.function.Supplier;
-
 import java.util.function.Supplier;
 
 public class ModBlocks {
@@ -34,9 +32,11 @@ public class ModBlocks {
 
     //put new blocks here
 
+
     public static final RegistryObject<Block> RESEARCH_STATION = registerBlock("research_station",
             () -> new ResearchStationBlock(BlockBehaviour.Properties.copy(Blocks.IRON_BLOCK).noOcclusion()),
             ModCreativeModeTab.RESEACHCUBE_TAB);
+
 
     private static <T extends Block> RegistryObject<T> registerBlockWithoutBlockItem(String name, Supplier<T> block) {
         return BLOCKS.register(name, block);
