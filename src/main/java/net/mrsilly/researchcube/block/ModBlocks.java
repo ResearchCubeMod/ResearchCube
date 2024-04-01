@@ -1,20 +1,26 @@
 package net.mrsilly.researchcube.block;
 
+
+import net.mrsilly.researchcube.ResearchCube;
+import net.mrsilly.researchcube.block.custom.*;
+import net.mrsilly.researchcube.item.ModCreativeModeTab;
+import net.mrsilly.researchcube.item.ModItems;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.TranslatableComponent;
+import net.minecraft.util.valueproviders.UniformInt;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.item.*;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.*;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.TranslatableComponent;
+
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
-import net.mrsilly.researchcube.ResearchCube;
-import net.mrsilly.researchcube.block.custom.ResearchStationBlock;
-import net.mrsilly.researchcube.item.ModCreativeModeTab;
-import net.mrsilly.researchcube.item.ModItems;
+
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -25,10 +31,13 @@ public class ModBlocks {
             DeferredRegister.create(ForgeRegistries.BLOCKS, ResearchCube.MOD_ID);
 
     //put new blocks here
+
+
     public static final RegistryObject<Block> RESEARCH_STATION = registerBlock("research_station",
             () -> new ResearchStationBlock(BlockBehaviour.Properties.copy(Blocks.IRON_BLOCK).noOcclusion()),
             ModCreativeModeTab.RESEACHCUBE_TAB);
-    //register blocks as items
+
+
     private static <T extends Block> RegistryObject<T> registerBlockWithoutBlockItem(String name, Supplier<T> block) {
         return BLOCKS.register(name, block);
     }
@@ -66,4 +75,5 @@ public class ModBlocks {
     public static void register(IEventBus eventBus) {
         BLOCKS.register(eventBus);
     }
+
 }
