@@ -23,6 +23,7 @@ import net.mrsilly.researchcube.screen.ModMenuTypes;
 import net.mrsilly.researchcube.screen.ResearchStationScreen;
 import net.minecraft.client.gui.screens.MenuScreens;
 import org.slf4j.Logger;
+import software.bernie.geckolib3.GeckoLib;
 
 import java.util.stream.Collectors;
 
@@ -49,6 +50,7 @@ public class ResearchCube {
 
         eventBus.addListener(this::setup);
 
+        GeckoLib.initialize();
 
         // Register ourselves for server and other game events we are interested in
         MinecraftForge.EVENT_BUS.register(this);

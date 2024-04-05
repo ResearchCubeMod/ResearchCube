@@ -6,7 +6,10 @@
   "item.researchcube.metadata_reclaimed": "§aMetadata (Reclaimed)",
   "item.researchcube.metadata_unstable": "§fMetadata (Unstable)",
   "item.researchcube.metadata_irrecoverable": "§7Metadata (Irrecoverable)",
+  "item.researchcube.research_station_item": "Research Station",
+
 
   "itemGroup.researchcubetab": "Research Cube",
   "block.researchcube.research_station": "Research Station"
+
 }

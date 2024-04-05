@@ -37,7 +37,7 @@ public class ResearchStationBlock extends BaseEntityBlock {
     public ResearchStationBlock(Properties properties) {
         super(properties);
     }
-    private static final VoxelShape SHAPE =  Block.box(0, 0, 0, 32, 16, 16);
+    private static final VoxelShape SHAPE =  Block.box(0, 0, 0, 16, 16, 16);
 
     @Override
     public VoxelShape getShape(BlockState pState, BlockGetter pLevel, BlockPos pPos, CollisionContext pContext) {
@@ -69,7 +69,7 @@ public class ResearchStationBlock extends BaseEntityBlock {
 
     @Override
     public RenderShape getRenderShape(BlockState pState) {
-        return RenderShape.MODEL;
+        return RenderShape.ENTITYBLOCK_ANIMATED;
     }
 
     @Override
@@ -101,7 +101,7 @@ public class ResearchStationBlock extends BaseEntityBlock {
     @Nullable
     @Override
     public BlockEntity newBlockEntity(BlockPos pPos, BlockState pState) {
-        return new ResearchStationBlockEntity(pPos, pState);
+        return ModBlockEntities.RESEARCH_STATION_BLOCK_ENTITY.get().create(pPos, pState);
     }
 
 //    @Nullable

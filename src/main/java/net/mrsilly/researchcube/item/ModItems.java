@@ -7,6 +7,8 @@ import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 import net.mrsilly.researchcube.ResearchCube;
+import net.mrsilly.researchcube.block.ModBlocks;
+import net.mrsilly.researchcube.item.custom.ResearchStationBlockItem;
 
 public class ModItems {
     public static final DeferredRegister<Item> ITEMS =
@@ -20,6 +22,7 @@ public class ModItems {
     public static final RegistryObject<Item> METADATA_CYBERNETIC = ITEMS.register("metadata_cybernetic", () -> new Item(new Item.Properties().tab(ModCreativeModeTab.RESEACHCUBE_TAB)));
     public static final RegistryObject<Item> METADATA_SELF_AWARE = ITEMS.register("metadata_self_aware", () -> new Item(new Item.Properties().tab(ModCreativeModeTab.RESEACHCUBE_TAB)));
 
+    public static final RegistryObject<Item> RESEARCH_STATION_BLOCK_ITEM = ITEMS.register("research_station_block", () -> new ResearchStationBlockItem(ModBlocks.RESEARCH_STATION.get(),new Item.Properties().tab(ModCreativeModeTab.RESEACHCUBE_TAB)));
 
 
     public static void register(IEventBus eventBus) {

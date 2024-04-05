@@ -24,10 +24,19 @@ import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.ItemStackHandler;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import software.bernie.geckolib3.core.IAnimatable;
+import software.bernie.geckolib3.core.PlayState;
+import software.bernie.geckolib3.core.builder.AnimationBuilder;
+import software.bernie.geckolib3.core.controller.AnimationController;
+import software.bernie.geckolib3.core.event.predicate.AnimationEvent;
+import software.bernie.geckolib3.core.manager.AnimationData;
+import software.bernie.geckolib3.core.manager.AnimationFactory;
 
 import javax.annotation.Nonnull;
 
-public class ResearchStationBlockEntity extends BlockEntity implements MenuProvider {
+public class ResearchStationBlockEntity extends BlockEntity implements MenuProvider, IAnimatable {
+
+    private AnimationFactory factory = new AnimationFactory(this);
     private final ItemStackHandler itemHandler = new ItemStackHandler(4) {
         @Override
         protected void onContentsChanged(int slot) {
@@ -95,4 +104,16 @@ public class ResearchStationBlockEntity extends BlockEntity implements MenuProvi
         Containers.dropContents(this.level, this.worldPosition, inventory);
     }
 
+    @Override
+    public void registerControllers(AnimationData data) {
+        data.addAnimationController(new AnimationController<ResearchStationBlockEntity>(this, "controller", 0, this::predicate));
+    }
+    private <E extends IAnimatable> PlayState predicate(AnimationEvent<E> event) {
+        event.getController().setAnimation(new AnimationBuilder().addAnimation("animation.researchstation.idle", true));
+        return PlayState.CONTINUE;
+    }
+    @Override
+    public AnimationFactory getFactory() {
+        return this.factory;
+    }
 }

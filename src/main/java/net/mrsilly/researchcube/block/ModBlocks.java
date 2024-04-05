@@ -1,6 +1,9 @@
 package net.mrsilly.researchcube.block;
 
 
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.mrsilly.researchcube.ResearchCube;
 import net.mrsilly.researchcube.block.custom.*;
 import net.mrsilly.researchcube.item.ModCreativeModeTab;
@@ -33,9 +36,8 @@ public class ModBlocks {
     //put new blocks here
 
 
-    public static final RegistryObject<Block> RESEARCH_STATION = registerBlock("research_station",
-            () -> new ResearchStationBlock(BlockBehaviour.Properties.copy(Blocks.IRON_BLOCK).noOcclusion()),
-            ModCreativeModeTab.RESEACHCUBE_TAB);
+    public static final RegistryObject<Block> RESEARCH_STATION = registerBlockWithoutBlockItem("research_station",
+            () -> new ResearchStationBlock(BlockBehaviour.Properties.copy(Blocks.IRON_BLOCK).noOcclusion()));
 
 
     private static <T extends Block> RegistryObject<T> registerBlockWithoutBlockItem(String name, Supplier<T> block) {

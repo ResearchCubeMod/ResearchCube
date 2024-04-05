@@ -15,7 +15,7 @@ public class ModBlockEntities {
             DeferredRegister.create(ForgeRegistries.BLOCK_ENTITIES, ResearchCube.MOD_ID);
 
     public static final RegistryObject<BlockEntityType<ResearchStationBlockEntity>> RESEARCH_STATION_BLOCK_ENTITY =
-            BLOCK_ENTITIES.register("gem_cutting_station_block_entity", () ->
+            BLOCK_ENTITIES.register("research_station_block_entity", () ->
                     BlockEntityType.Builder.of(ResearchStationBlockEntity::new,
                             ModBlocks.RESEARCH_STATION.get()).build(null));
 
