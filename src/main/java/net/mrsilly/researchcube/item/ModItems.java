@@ -22,7 +22,7 @@ public class ModItems {
     public static final RegistryObject<Item> METADATA_CYBERNETIC = ITEMS.register("metadata_cybernetic", () -> new Item(new Item.Properties().tab(ModCreativeModeTab.RESEACHCUBE_TAB)));
     public static final RegistryObject<Item> METADATA_SELF_AWARE = ITEMS.register("metadata_self_aware", () -> new Item(new Item.Properties().tab(ModCreativeModeTab.RESEACHCUBE_TAB)));
 
-    public static final RegistryObject<Item> RESEARCH_STATION_BLOCK_ITEM = ITEMS.register("research_station_block", () -> new ResearchStationBlockItem(ModBlocks.RESEARCH_STATION.get(),new Item.Properties().tab(ModCreativeModeTab.RESEACHCUBE_TAB)));
+    public static final RegistryObject<Item> RESEARCH_STATION_ITEM = ITEMS.register("research_station", () -> new ResearchStationBlockItem(ModBlocks.RESEARCH_STATION.get(),new Item.Properties().tab(ModCreativeModeTab.RESEACHCUBE_TAB)));
 
 
     public static void register(IEventBus eventBus) {
