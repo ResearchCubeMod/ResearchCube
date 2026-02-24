@@ -1,0 +1,12 @@
+{
+  "tier": "BASIC",
+  "duration": 2400,
+  "prerequisites": "researchcube:basic_circuit",
+  "item_costs": [
+    { "item": "minecraft:redstone", "count": 16 },
+    { "item": "minecraft:gold_ingot", "count": 4 }
+  ],
+  "recipe_pool": [
+    "researchcube:energy_handling_recipe_1"
+  ]
+}

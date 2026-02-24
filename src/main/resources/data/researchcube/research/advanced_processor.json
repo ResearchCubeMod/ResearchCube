@@ -1,0 +1,19 @@
+{
+  "tier": "ADVANCED",
+  "duration": 6000,
+  "prerequisites": {
+    "type": "AND",
+    "values": [
+      "researchcube:basic_circuit",
+      "researchcube:energy_handling"
+    ]
+  },
+  "item_costs": [
+    { "item": "minecraft:redstone", "count": 16 },
+    { "item": "minecraft:diamond", "count": 2 }
+  ],
+  "recipe_pool": [
+    "researchcube:processor_recipe_1",
+    "researchcube:processor_recipe_2"
+  ]
+}

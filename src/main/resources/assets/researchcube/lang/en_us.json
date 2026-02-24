@@ -1,15 +1,21 @@
 {
-  "item.researchcube.metadata_self_aware": "§cMetadata (Self-Aware)",
-  "item.researchcube.metadata_cybernetic": "§6Metadata (Cybernetic)",
-  "item.researchcube.metadata_elaborate": "§5Metadata (Elaborate)",
-  "item.researchcube.metadata_enhanced": "§9Metadata (Enhanced)",
-  "item.researchcube.metadata_reclaimed": "§aMetadata (Reclaimed)",
-  "item.researchcube.metadata_unstable": "§fMetadata (Unstable)",
-  "item.researchcube.metadata_irrecoverable": "§7Metadata (Irrecoverable)",
-  "item.researchcube.research_station_item": "Research Station",
+  "item.researchcube.metadata_self_aware": "§cDrive (Self-Aware)",
+  "item.researchcube.metadata_cybernetic": "§6Drive (Cybernetic)",
+  "item.researchcube.metadata_elaborate": "§5Drive (Elaborate)",
+  "item.researchcube.metadata_enhanced": "§9Drive (Enhanced)",
+  "item.researchcube.metadata_reclaimed": "§aDrive (Reclaimed)",
+  "item.researchcube.metadata_unstable": "§fDrive (Unstable)",
+  "item.researchcube.metadata_irrecoverable": "§7Drive (Irrecoverable)",
 
+  "item.researchcube.cube_unstable": "§fCube (Unstable)",
+  "item.researchcube.cube_basic": "§aCube (Basic)",
+  "item.researchcube.cube_advanced": "§9Cube (Advanced)",
+  "item.researchcube.cube_precise": "§6Cube (Precise)",
+  "item.researchcube.cube_flawless": "§5Cube (Flawless)",
+  "item.researchcube.cube_self_aware": "§cCube (Self-Aware)",
+
+  "item.researchcube.research_station_item": "Research Station",
 
   "itemGroup.researchcubetab": "Research Cube",
   "block.researchcube.research_station": "Research Station"
-
 }
