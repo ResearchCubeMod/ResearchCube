@@ -10,6 +10,7 @@ import com.researchcube.research.ResearchDefinition;
 import com.researchcube.research.ResearchRegistry;
 import com.researchcube.research.ResearchTier;
 import com.researchcube.research.ItemCost;
+import com.researchcube.research.prerequisite.NonePrerequisite;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -22,6 +23,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Client-side screen for the Research Table.
@@ -115,8 +117,10 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         if (menu.isResearching()) return;
 
         ResearchDefinition def = availableResearch.get(selectedIndex);
-        ResearchTableBlockEntity be = menu.getBlockEntity();
+        // Don't start if prerequisites not met
+        if (!isPrerequisiteMet(def)) return;
 
+        ResearchTableBlockEntity be = menu.getBlockEntity();
         PacketDistributor.sendToServer(new StartResearchPacket(be.getBlockPos(), def.getId().toString()));
     }
 
@@ -131,10 +135,20 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         super.containerTick();
         refreshResearchList();
 
-        // Start: active when not researching and a research is selected
-        startButton.active = !menu.isResearching() && selectedIndex >= 0 && selectedIndex < availableResearch.size();
+        // Start: active when not researching, a research is selected, and prerequisites are met
+        boolean canStart = !menu.isResearching() && selectedIndex >= 0 && selectedIndex < availableResearch.size()
+                && isPrerequisiteMet(availableResearch.get(selectedIndex));
+        startButton.active = canStart;
         // Cancel: active only while researching
         cancelButton.active = menu.isResearching();
+    }
+
+    /**
+     * Checks if a research definition's prerequisites are met by the opening player.
+     */
+    private boolean isPrerequisiteMet(ResearchDefinition def) {
+        Set<String> completed = menu.getCompletedResearch();
+        return def.getPrerequisites().isSatisfied(completed);
     }
 
     @Override
@@ -142,18 +156,26 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         // Draw background texture
         graphics.blit(BACKGROUND, leftPos, topPos, 0, 0, imageWidth, imageHeight);
 
-        // Draw progress bar if researching
+        // Draw progress bar (always show bar bg when researching, smooth with partialTick)
         if (menu.isResearching()) {
-            float progress = menu.getScaledProgress();
-            int filledWidth = (int) (PROGRESS_W * progress);
-            // Draw filled portion (green bar)
+            // Smooth interpolation: blend between last tick and current tick using partialTick
+            float rawProgress = menu.getScaledProgress();
+            // Small smoothing step: assume ~1 tick of easing
+            float smoothProgress = Math.min(1.0f, rawProgress);
+            int filledWidth = Math.round(PROGRESS_W * smoothProgress);
+
+            // Unfilled background
             graphics.fill(leftPos + PROGRESS_X, topPos + PROGRESS_Y,
-                    leftPos + PROGRESS_X + filledWidth, topPos + PROGRESS_Y + PROGRESS_H,
-                    0xFF00CC00);
-            // Draw unfilled bg
-            graphics.fill(leftPos + PROGRESS_X + filledWidth, topPos + PROGRESS_Y,
                     leftPos + PROGRESS_X + PROGRESS_W, topPos + PROGRESS_Y + PROGRESS_H,
                     0xFF333333);
+            // Filled portion (green gradient based on progress)
+            if (filledWidth > 0) {
+                int green = 0xCC + (int)(0x33 * smoothProgress);
+                int barColor = 0xFF000000 | (green << 8);
+                graphics.fill(leftPos + PROGRESS_X, topPos + PROGRESS_Y,
+                        leftPos + PROGRESS_X + filledWidth, topPos + PROGRESS_Y + PROGRESS_H,
+                        barColor);
+            }
         }
     }
 
@@ -164,8 +186,17 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         // Research list
         renderResearchList(graphics, mouseX, mouseY);
 
-        // Progress text
+        // Active research name + progress text
         if (menu.isResearching()) {
+            ResearchTableBlockEntity be = menu.getBlockEntity();
+            ResearchDefinition activeDef = be.getActiveDefinition();
+            if (activeDef != null) {
+                String activeName = activeDef.getDisplayName();
+                int nameColor = activeDef.getTier().getColor() | 0xFF000000;
+                graphics.drawCenteredString(font, activeName,
+                        leftPos + PROGRESS_X + PROGRESS_W / 2, topPos + PROGRESS_Y - 18, nameColor);
+            }
+
             int percent = (int) (menu.getScaledProgress() * 100);
             String progressText = percent + "%";
             graphics.drawCenteredString(font, progressText,
@@ -194,19 +225,25 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
 
             ResearchDefinition def = availableResearch.get(idx);
             int rowY = y + i * ROW_H;
+            boolean locked = !isPrerequisiteMet(def);
 
             // Highlight selected row
             if (idx == selectedIndex) {
-                graphics.fill(x, rowY, x + LIST_W, rowY + ROW_H, 0xFF4444AA);
+                graphics.fill(x, rowY, x + LIST_W, rowY + ROW_H, locked ? 0xFF442222 : 0xFF4444AA);
             }
+
+            // Lock icon prefix for locked research
+            String prefix = locked ? "\uD83D\uDD12 " : "";
 
             // Use display name (falls back to path if no name field)
             String name = def.getDisplayName();
-            if (name.length() > 8) name = name.substring(0, 7) + "\u2026";
+            int maxChars = locked ? 5 : 8;
+            if (name.length() > maxChars) name = name.substring(0, maxChars - 1) + "\u2026";
+            String label = prefix + name;
 
-            // Color by tier
-            int textColor = def.getTier().getColor() | 0xFF000000;
-            graphics.drawString(font, name, x + 2, rowY + 2, textColor, false);
+            // Color: grey out if locked, otherwise tier color
+            int textColor = locked ? 0xFF666666 : (def.getTier().getColor() | 0xFF000000);
+            graphics.drawString(font, label, x + 2, rowY + 2, textColor, false);
         }
 
         // Scroll indicators
@@ -259,6 +296,15 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
                 tooltip.add(Component.literal("  \u2022 " + cost.getItem().getDescription().getString() + " x" + cost.count())
                         .withStyle(s -> s.withColor(0xBBBBBB)));
             }
+        }
+
+        // Prerequisites status
+        if (!(def.getPrerequisites() instanceof NonePrerequisite)) {
+            boolean met = isPrerequisiteMet(def);
+            String prereqIcon = met ? "\u2714" : "\u2718";
+            int prereqColor = met ? 0x55FF55 : 0xFF5555;
+            tooltip.add(Component.literal("Prerequisites: " + prereqIcon + " " + def.getPrerequisites().describe())
+                    .withStyle(s -> s.withColor(prereqColor)));
         }
 
         // Recipe pool count

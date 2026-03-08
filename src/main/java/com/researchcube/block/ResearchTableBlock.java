@@ -1,9 +1,12 @@
 package com.researchcube.block;
 
 import com.researchcube.registry.ModBlockEntities;
+import com.researchcube.research.ResearchSavedData;
 import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.MenuProvider;
@@ -18,6 +21,8 @@ import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
+
+import java.util.Set;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -54,6 +59,11 @@ public class ResearchTableBlock extends BaseEntityBlock {
         if (!level.isClientSide() && player instanceof ServerPlayer serverPlayer) {
             BlockEntity be = level.getBlockEntity(pos);
             if (be instanceof ResearchTableBlockEntity rtbe) {
+                // Collect completed research for this player to send to client
+                Set<ResourceLocation> completed = (level instanceof ServerLevel sl)
+                        ? ResearchSavedData.get(sl).getCompletedResearch(serverPlayer.getUUID())
+                        : Set.of();
+
                 serverPlayer.openMenu(new MenuProvider() {
                     @Override
                     public Component getDisplayName() {
@@ -65,7 +75,10 @@ public class ResearchTableBlock extends BaseEntityBlock {
                     public AbstractContainerMenu createMenu(int containerId, Inventory playerInv, Player player) {
                         return new com.researchcube.menu.ResearchTableMenu(containerId, playerInv, rtbe);
                     }
-                }, pos);
+                }, buf -> {
+                    buf.writeBlockPos(pos);
+                    buf.writeCollection(completed, (b, rl) -> b.writeResourceLocation(rl));
+                });
             }
         }
         return InteractionResult.sidedSuccess(level.isClientSide());

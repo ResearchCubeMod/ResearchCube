@@ -10,6 +10,9 @@ import com.researchcube.util.TierUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.Containers;
@@ -103,11 +106,14 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
      */
     public boolean tryStartResearch(String researchId, Set<String> completedResearch, UUID playerUUID) {
         if (level == null || level.isClientSide()) return false;
-        if (isResearching()) return false;
+        if (isResearching()) {
+            ResearchCubeMod.LOGGER.warn("[ResearchCube] Cannot start '{}': already researching '{}'", researchId, activeResearchId);
+            return false;
+        }
 
         ResearchDefinition definition = ResearchRegistry.get(researchId);
         if (definition == null) {
-            ResearchCubeMod.LOGGER.warn("Cannot start unknown research: {}", researchId);
+            ResearchCubeMod.LOGGER.warn("[ResearchCube] Cannot start unknown research: {}", researchId);
             return false;
         }
 
@@ -115,27 +121,37 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
         ItemStack driveStack = inventory.getStackInSlot(SLOT_DRIVE);
         ItemStack cubeStack = inventory.getStackInSlot(SLOT_CUBE);
 
-        if (driveStack.isEmpty() || !(driveStack.getItem() instanceof DriveItem drive)) return false;
-        if (cubeStack.isEmpty() || !(cubeStack.getItem() instanceof CubeItem cube)) return false;
+        if (driveStack.isEmpty() || !(driveStack.getItem() instanceof DriveItem drive)) {
+            ResearchCubeMod.LOGGER.warn("[ResearchCube] Cannot start '{}': no drive in drive slot", researchId);
+            return false;
+        }
+        if (cubeStack.isEmpty() || !(cubeStack.getItem() instanceof CubeItem cube)) {
+            ResearchCubeMod.LOGGER.warn("[ResearchCube] Cannot start '{}': no cube in cube slot", researchId);
+            return false;
+        }
 
         // Tier rules: cube.tier >= research.tier && drive.tier == research.tier
         if (!TierUtil.canResearch(cube.getTier(), drive.getTier(), definition.getTier())) {
+            ResearchCubeMod.LOGGER.warn("[ResearchCube] Cannot start '{}': tier mismatch. cube={}, drive={}, required={}",
+                    researchId, cube.getTier(), drive.getTier(), definition.getTier());
             return false;
         }
 
         // Check drive capacity
         if (drive.isFull(driveStack)) {
-            ResearchCubeMod.LOGGER.debug("Drive is full, cannot start research '{}'", researchId);
+            ResearchCubeMod.LOGGER.warn("[ResearchCube] Cannot start '{}': drive is full", researchId);
             return false;
         }
 
         // Prerequisites
         if (!definition.getPrerequisites().isSatisfied(completedResearch)) {
+            ResearchCubeMod.LOGGER.warn("[ResearchCube] Cannot start '{}': prerequisites not met. completed={}", researchId, completedResearch);
             return false;
         }
 
         // Validate item costs (check availability before consuming)
         if (!validateItemCosts(definition.getItemCosts())) {
+            ResearchCubeMod.LOGGER.warn("[ResearchCube] Cannot start '{}': item costs not met. required={}", researchId, definition.getItemCosts());
             return false;
         }
 
@@ -149,7 +165,7 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
         this.researcherUUID = playerUUID;
         setChanged();
 
-        ResearchCubeMod.LOGGER.debug("Started research '{}' at tick {} for player {}", researchId, startTime, playerUUID);
+        ResearchCubeMod.LOGGER.info("[ResearchCube] Started research '{}' for player {}", researchId, playerUUID);
         return true;
     }
 
@@ -376,6 +392,20 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
         }
         // consumedCosts are not persisted — on reload, cancel will not refund (acceptable tradeoff)
         consumedCosts = null;
+    }
+
+    // ── Client Sync ──
+
+    @Override
+    public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
+        CompoundTag tag = super.getUpdateTag(registries);
+        saveAdditional(tag, registries);
+        return tag;
+    }
+
+    @Override
+    public Packet<ClientGamePacketListener> getUpdatePacket() {
+        return ClientboundBlockEntityDataPacket.create(this);
     }
 
     // ── GeckoLib Animation ──

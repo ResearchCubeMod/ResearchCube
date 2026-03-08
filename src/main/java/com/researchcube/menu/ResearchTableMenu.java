@@ -5,6 +5,7 @@ import com.researchcube.item.CubeItem;
 import com.researchcube.item.DriveItem;
 import com.researchcube.registry.ModMenus;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.*;
@@ -13,6 +14,10 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.neoforge.items.ItemStackHandler;
 import net.neoforged.neoforge.items.SlotItemHandler;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.HashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Menu (container) for the Research Table.
@@ -33,32 +38,48 @@ public class ResearchTableMenu extends AbstractContainerMenu {
     // Data slots for syncing BE state to client
     private final ContainerData data;
 
+    /** Player's completed research IDs (synced to client via menu buffer). */
+    private final Set<String> completedResearch;
+
     public static final int DATA_PROGRESS = 0;     // 0-1000 (progress * 1000)
     public static final int DATA_IS_RESEARCHING = 1; // 0 or 1
     public static final int DATA_COUNT = 2;
 
     // ── Constructor from server (block entity available) ──
     public ResearchTableMenu(int containerId, Inventory playerInv, ResearchTableBlockEntity be) {
+        this(containerId, playerInv, be, Set.of());
+    }
+
+    // ── Base constructor (shared by server and client) ──
+    private ResearchTableMenu(int containerId, Inventory playerInv, ResearchTableBlockEntity be, Set<String> completed) {
         super(ModMenus.RESEARCH_TABLE.get(), containerId);
         this.blockEntity = be;
         this.access = ContainerLevelAccess.create(be.getLevel(), be.getBlockPos());
+        this.completedResearch = completed;
 
         ItemStackHandler inv = be.getInventory();
 
         // Data sync
+        // SimpleContainerData stores received values so the client actually sees them.
+        // On the server the anonymous subclass overrides get() to read live BE state each tick.
+        SimpleContainerData storage = new SimpleContainerData(DATA_COUNT);
         this.data = new ContainerData() {
             @Override
             public int get(int index) {
-                return switch (index) {
-                    case DATA_PROGRESS -> (int) (be.getProgress() * 1000);
-                    case DATA_IS_RESEARCHING -> be.isResearching() ? 1 : 0;
-                    default -> 0;
-                };
+                // Server reads live values; client reads whatever set() stored
+                if (be.getLevel() != null && !be.getLevel().isClientSide()) {
+                    return switch (index) {
+                        case DATA_PROGRESS -> (int) (be.getProgress() * 1000);
+                        case DATA_IS_RESEARCHING -> be.isResearching() ? 1 : 0;
+                        default -> 0;
+                    };
+                }
+                return storage.get(index);
             }
 
             @Override
             public void set(int index, int value) {
-                // Read-only from client side
+                storage.set(index, value); // client stores the synced values here
             }
 
             @Override
@@ -109,7 +130,12 @@ public class ResearchTableMenu extends AbstractContainerMenu {
 
     // ── Constructor from client (FriendlyByteBuf) ──
     public ResearchTableMenu(int containerId, Inventory playerInv, FriendlyByteBuf buf) {
-        this(containerId, playerInv, getBlockEntity(playerInv, buf));
+        this(containerId, playerInv, getBlockEntity(playerInv, buf),
+             readCompletedResearch(buf));
+    }
+
+    private static Set<String> readCompletedResearch(FriendlyByteBuf buf) {
+        return buf.readCollection(HashSet::new, b -> b.readResourceLocation().toString());
     }
 
     private static ResearchTableBlockEntity getBlockEntity(Inventory playerInv, FriendlyByteBuf buf) {
@@ -122,6 +148,14 @@ public class ResearchTableMenu extends AbstractContainerMenu {
 
     public ResearchTableBlockEntity getBlockEntity() {
         return blockEntity;
+    }
+
+    /**
+     * Returns the set of completed research IDs (as strings) for the opening player.
+     * Populated on the client from the menu buffer. Empty on the server.
+     */
+    public Set<String> getCompletedResearch() {
+        return completedResearch;
     }
 
     /**

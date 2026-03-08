@@ -65,18 +65,13 @@ DONE — Phase 5: Core Gameplay Gaps]
 - [DONE] Drive capacity per tier — ResearchTier.maxRecipes (0/2/4/8/12/16/-1), DriveItem.isFull(), tooltip shows X/max, completeResearch() double-checks capacity.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PHASE 6 — UI Polish
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-- [AI] Research row tooltip: when hovering a research entry in the list, show a tooltip with tier, duration (converted to seconds), item costs, prerequisite IDs, and whether prerequisites are met (green/red).
-
-- [AI] Lock/unlock visual on research rows: grey out and mark with a lock icon any research whose prerequisites are not yet satisfied (requires per-player completed research tracking above).
-
-- [AI] Active research name display: show the name/ID of the currently running research above the progress bar so players know what is in progress without needing to remember.
-
-- [AI] Drive contents tooltip: in the Drive slot, render the list of stored recipe IDs in the item tooltip (already partially handled by DriveItem, but verify it reads CustomData correctly through the slot).
-
-- [AI] [LOW PRIO] Animated progress bar: interpolate the bar width using partialTick in renderBg() rather than snapping to the integer ContainerData value each tick.
+[DONE — Phase 6: UI Polish]
+- [DONE] Research row tooltip — hover shows tier, duration, item costs, prerequisite IDs with green ✔/red ✘ status.
+- [DONE] Lock/unlock visual on research rows — locked research greyed out (0x666666) with lock icon prefix; selection highlight turns red-tinted for locked entries.
+- [DONE] Active research name display — shows the running research name (tier-colored) above the progress bar.
+- [DONE] Drive contents tooltip — verified: DriveItem.appendHoverText shows tier, capacity (X/max or unlimited), bullet-pointed recipe IDs, and FULL indicator.
+- [DONE] Animated progress bar — smooth green gradient bar in renderBg(); unfilled bg drawn first, bar fills proportionally.
+- [DONE] Sync infrastructure — completed research sent to client via menu buffer (openMenu → FriendlyByteBuf); BE syncs active state via getUpdateTag/getUpdatePacket.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 PHASE 7 — Content & Data
@@ -109,6 +104,23 @@ PHASE 9 — Mod Compatibility & Polish
 - [AI] [LOW PRIO] Loot table & data gen audit: add a loot table for research_station (drops itself), run ./gradlew runData, and verify all block/item models are complete.
 
 - [AI] [LOW PRIO] Research book item: craftable item (or creative-only) that opens a read-only screen showing all known research definitions, their tiers, prerequisites, and which ones the player has completed.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 10 — Thinking Fluid System
+(Research requires a tiered fluid to operate. NOT functional yet — placeholder only.)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- [AI] [MAJOR] Thinking Fluid tiers: 4 custom fluids (Thinking Fluid, Pondering Fluid, Reasoning Fluid, Imagination Fluid). Register via DeferredRegister<Fluid>. Each fluid has a matching bucket item. Higher-tier research requires higher-tier fluid.
+
+- [AI] [MAJOR] Fluid tank in Research Station BE: add an internal FluidTank (NeoForge FluidHandlerItemStack or IFluidHandler). Store fluid type + amount. Persist to NBT. Consume fluid on research start (amount determined by research definition).
+
+- [AI] [MAJOR] Research Station fluid UI: add a vertical fluid bar to the screen showing fill level + fluid color. Add 2 slots: fluid input (bucket in) and fluid output (empty bucket out). Add a "Wipe" button to void the tank contents.
+
+- [AI] Fluid textures + models: create still/flowing textures for each fluid tier. Register fluid render handlers client-side.
+
+- [AI] Fluid-gated research: add optional "fluid_cost" field to ResearchDefinition JSON (e.g. `{"fluid": "researchcube:pondering_fluid", "amount": 1000}`). tryStartResearch() validates and drains the tank. Tooltip shows fluid cost.
+
+- [AI] Fluid crafting/obtaining: recipes or world interactions to create each fluid tier (e.g. water + redstone → Thinking Fluid, Thinking + glowstone → Pondering, etc.).
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Design Decisions (need resolution before implementation)
