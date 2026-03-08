@@ -1,0 +1,14 @@
+{
+  "type": "researchcube:drive_crafting",
+  "recipe_id": "researchcube:transcendent_logic_recipe_2",
+  "ingredients": [
+    { "item": "minecraft:nether_star" },
+    { "item": "minecraft:netherite_ingot" },
+    { "item": "minecraft:netherite_ingot" },
+    { "item": "minecraft:diamond_block" }
+  ],
+  "result": {
+    "id": "minecraft:enchanted_golden_apple",
+    "count": 4
+  }
+}

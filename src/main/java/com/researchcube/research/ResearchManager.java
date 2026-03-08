@@ -93,17 +93,26 @@ public class ResearchManager extends SimpleJsonResourceReloadListener {
             }
         }
 
-        // Recipe pool (optional but expected)
-        List<ResourceLocation> recipePool = new ArrayList<>();
+        // Recipe pool (optional but expected) — supports weighted entries
+        List<WeightedRecipe> weightedRecipePool = new ArrayList<>();
         if (json.has("recipe_pool")) {
             JsonArray poolArray = json.getAsJsonArray("recipe_pool");
             for (JsonElement poolElement : poolArray) {
-                recipePool.add(ResourceLocation.parse(poolElement.getAsString()));
+                if (poolElement.isJsonPrimitive()) {
+                    // Plain string: "researchcube:some_recipe" → weight 1
+                    weightedRecipePool.add(new WeightedRecipe(ResourceLocation.parse(poolElement.getAsString()), 1));
+                } else if (poolElement.isJsonObject()) {
+                    // Object: {"id": "researchcube:some_recipe", "weight": 3}
+                    JsonObject obj = poolElement.getAsJsonObject();
+                    ResourceLocation recipeId = ResourceLocation.parse(obj.get("id").getAsString());
+                    int weight = obj.has("weight") ? obj.get("weight").getAsInt() : 1;
+                    weightedRecipePool.add(new WeightedRecipe(recipeId, weight));
+                }
             }
         }
 
-        return new ResearchDefinition(id, tier, duration, prerequisites, itemCosts, recipePool,
-                parseName(json), parseDescription(json));
+        return new ResearchDefinition(id, tier, duration, prerequisites, itemCosts, weightedRecipePool,
+                parseName(json), parseDescription(json), parseCategory(json));
     }
 
     @Nullable
@@ -114,5 +123,10 @@ public class ResearchManager extends SimpleJsonResourceReloadListener {
     @Nullable
     private String parseDescription(JsonObject json) {
         return json.has("description") ? json.get("description").getAsString() : null;
+    }
+
+    @Nullable
+    private String parseCategory(JsonObject json) {
+        return json.has("category") ? json.get("category").getAsString() : null;
     }
 }

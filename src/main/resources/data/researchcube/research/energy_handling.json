@@ -1,6 +1,7 @@
 {
   "name": "Energy Handling",
   "description": "Techniques for storing and transferring energy efficiently.",
+  "category": "energy",
   "tier": "BASIC",
   "duration": 2400,
   "prerequisites": "researchcube:basic_circuit",

@@ -1,0 +1,17 @@
+{
+  "name": "Neural Interface",
+  "description": "Bridge biological signals with digital processors for rudimentary AI.",
+  "category": "computing",
+  "tier": "ADVANCED",
+  "duration": 6000,
+  "prerequisites": "researchcube:advanced_processor",
+  "item_costs": [
+    { "item": "minecraft:diamond", "count": 2 },
+    { "item": "minecraft:redstone", "count": 16 },
+    { "item": "minecraft:spider_eye", "count": 4 }
+  ],
+  "recipe_pool": [
+    "researchcube:neural_interface_recipe_1",
+    "researchcube:neural_interface_recipe_2"
+  ]
+}

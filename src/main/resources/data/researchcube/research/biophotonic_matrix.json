@@ -1,0 +1,23 @@
+{
+  "name": "Biophotonic Matrix",
+  "description": "Merge living tissue optics with neural processing for organic computing.",
+  "category": "optics",
+  "tier": "PRECISE",
+  "duration": 12000,
+  "prerequisites": {
+    "type": "AND",
+    "values": [
+      "researchcube:photonic_amplifier",
+      "researchcube:neural_interface"
+    ]
+  },
+  "item_costs": [
+    { "item": "minecraft:glowstone", "count": 16 },
+    { "item": "minecraft:spider_eye", "count": 8 },
+    { "item": "minecraft:prismarine_crystals", "count": 4 }
+  ],
+  "recipe_pool": [
+    "researchcube:biophotonic_matrix_recipe_1",
+    { "id": "researchcube:biophotonic_matrix_recipe_2", "weight": 2 }
+  ]
+}

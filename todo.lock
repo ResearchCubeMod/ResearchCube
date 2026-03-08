@@ -58,6 +58,14 @@ Current Bugs
 - (none confirmed — build is green and client runs cleanly)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Resolved Decision Backlog (implement before Phase 10/11)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- [DONE] Drive recipe stripping: updated DriveCraftingRecipe to return a copy of the drive with the matched recipe_id removed from its CustomData NBT instead of consuming the item entirely. Added NbtUtil.removeRecipe() helper. Updated DriveItem and recipe javadoc.
+
+- [DONE] Per-team research sharing: refactored ResearchSavedData from UUID-keyed (Map<UUID, Set<ResourceLocation>>) to String-keyed map. Key = \"team:<teamname>\" for players in a scoreboard team, otherwise UUID string. Added static getResearchKey(ServerPlayer) helper. Updated all call-sites: ResearchTableBlock, StartResearchPacket, ResearchTableBlockEntity (stores researchKey instead of UUID, with backwards-compat loading of legacy ResearcherUUID NBT), and ResearchBookItem.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 DONE — Phase 5: Core Gameplay Gaps]
 - [DONE] Per-player completed research tracking — ResearchSavedData (SavedData) stores Map<UUID, Set<ResourceLocation>>. StartResearchPacket & completeResearch() wired. Prerequisite enforcement works.
 - [DONE] CancelResearchPacket — client→server packet, cancelResearchWithRefund() refunds consumedCosts into cost slots, Cancel button in screen active while isResearching.
@@ -74,65 +82,83 @@ DONE — Phase 5: Core Gameplay Gaps]
 - [DONE] Sync infrastructure — completed research sent to client via menu buffer (openMenu → FriendlyByteBuf); BE syncs active state via getUpdateTag/getUpdatePacket.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PHASE 7 — Content & Data
+[DONE — Phase 7: Content & Data]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-- [AI] Full research tree: design and add a complete set of research JSON files covering all 7 tiers (IRRECOVERABLE through SELF_AWARE) with a coherent prerequisite graph. Currently only 3 BASIC/ADVANCED examples exist.
+- [DONE] Full research tree: 21 research definitions across all functional tiers (UNSTABLE→SELF_AWARE) with coherent prerequisite graph, 7 categories (signals, circuits, energy, materials, optics, computing, temporal, convergence).
+  - UNSTABLE: unstable_signal, fragmented_data
+  - BASIC: basic_circuit, energy_handling, material_synthesis, basic_optics
+  - ADVANCED: advanced_processor, quantum_resonance, alloy_fabrication, photonic_amplifier, neural_interface
+  - PRECISE: precision_engineering, waveform_analysis, nanostructures, temporal_calibration, biophotonic_matrix
+  - FLAWLESS: dimensional_folding, molecular_assembly, cognitive_framework, zero_point_energy
+  - SELF_AWARE: singularity_core, transcendent_logic, omniscient_matrix
 
-- [AI] Full recipe set: add drive_crafting recipe JSONs for every entry in the research tree above so the unlock loop is actually completable.
+- [DONE] Full recipe set: 35 drive_crafting recipe JSONs covering every recipe pool entry in the research tree, scaling from basic vanilla items (repeaters, chains) up through endgame rewards (elytra, dragon egg, nether stars).
 
-- [AI] Research categories field: add an optional "category" string to ResearchDefinition JSON so entries can be grouped in the UI (e.g. "circuits", "energy", "materials"). The screen can show category headers in the list.
+- [DONE] Research categories field: optional "category" string in ResearchDefinition JSON, parsed by ResearchManager. Screen groups entries by category with collapsible-style headers (▸ category). Tooltip shows category. Categories: signals, circuits, energy, materials, optics, computing, temporal, convergence.
 
-- [AI] Weighted recipe pool: extend the recipe_pool JSON to support `{"id": "...", "weight": 3}` entries. Update ResearchDefinition + ResearchManager to parse weights and use a weighted random pick in completeResearch().
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PHASE 8 — Audio / Visual Feedback
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-- [AI] [LOW PRIO] Research complete sound: play a custom or vanilla sound (e.g. entity.player.levelup) at the block when research finishes. Fire a LevelEvent server-side; subscribe client-side to spawn particles.
-
-- [AI] [LOW PRIO] Research start sound: play a subtle click/buzz when research successfully starts.
-
-- [AI] [LOW PRIO] Block ambient sound: add a looping hum sound while research is active using a client-side tick listener on the block entity.
+- [DONE] Weighted recipe pool: recipe_pool supports both plain string ("id") and object ({"id": "...", "weight": 3}) entries. WeightedRecipe record added. ResearchDefinition.pickWeightedRecipe() uses weighted random selection. Block entity completeResearch() calls pickWeightedRecipe() instead of uniform random.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PHASE 9 — Mod Compatibility & Polish
+[DONE — Phase 8: Audio / Visual Feedback]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-- [AI] [LOW PRIO] JEI/REI integration: add a compileOnly JEI dependency and implement IModPlugin exposing drive_crafting recipes and (optionally) research definitions as info pages.
+- [DONE] Research complete sound: plays SoundEvents.PLAYER_LEVELUP at the block when research finishes (server-side). Spawns HAPPY_VILLAGER + COMPOSTER particles via ServerLevel.sendParticles(). Implemented in ResearchTableBlockEntity.completeResearch().
 
-- [AI] [LOW PRIO] Loot table & data gen audit: add a loot table for research_station (drops itself), run ./gradlew runData, and verify all block/item models are complete.
+- [DONE] Research start sound: plays SoundEvents.UI_BUTTON_CLICK at the block when research successfully starts (server-side). Implemented in ResearchTableBlockEntity.tryStartResearch().
 
-- [AI] [LOW PRIO] Research book item: craftable item (or creative-only) that opens a read-only screen showing all known research definitions, their tiers, prerequisites, and which ones the player has completed.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PHASE 10 — Thinking Fluid System
-(Research requires a tiered fluid to operate. NOT functional yet — placeholder only.)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-- [AI] [MAJOR] Thinking Fluid tiers: 4 custom fluids (Thinking Fluid, Pondering Fluid, Reasoning Fluid, Imagination Fluid). Register via DeferredRegister<Fluid>. Each fluid has a matching bucket item. Higher-tier research requires higher-tier fluid.
-
-- [AI] [MAJOR] Fluid tank in Research Station BE: add an internal FluidTank (NeoForge FluidHandlerItemStack or IFluidHandler). Store fluid type + amount. Persist to NBT. Consume fluid on research start (amount determined by research definition).
-
-- [AI] [MAJOR] Research Station fluid UI: add a vertical fluid bar to the screen showing fill level + fluid color. Add 2 slots: fluid input (bucket in) and fluid output (empty bucket out). Add a "Wipe" button to void the tank contents.
-
-- [AI] Fluid textures + models: create still/flowing textures for each fluid tier. Register fluid render handlers client-side.
-
-- [AI] Fluid-gated research: add optional "fluid_cost" field to ResearchDefinition JSON (e.g. `{"fluid": "researchcube:pondering_fluid", "amount": 1000}`). tryStartResearch() validates and drains the tank. Tooltip shows fluid cost.
-
-- [AI] Fluid crafting/obtaining: recipes or world interactions to create each fluid tier (e.g. water + redstone → Thinking Fluid, Thinking + glowstone → Pondering, etc.).
+- [DONE] Block ambient sound: ResearchStationSoundInstance (extends AbstractTickableSoundInstance) plays a looping beacon hum (SoundEvents.BEACON_AMBIENT, vol 0.25, pitch 0.6) at the block while research is active. ClientSoundHandler (subscribes to LevelTickEvent.Post) scans nearby block entities every 40 ticks and starts/stops instances automatically.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Design Decisions (need resolution before implementation)
+[DONE — Phase 9: Mod Compatibility & Polish]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- [DONE] JEI/REI integration: compileOnly JEI dependency (mezz.jei 19.21.0.247, 1.21.1 NeoForge API). DriveCraftingCategory shows drive + ingredients → result with tooltip showing required recipe_id. ResearchCubeJEIPlugin (@JeiPlugin) registers the category, loads all drive_crafting recipes, adds Research Station info page and recipe catalyst. Located in compat/jei/ package.
+
+- [DONE] Loot table & data gen audit: added loot table at data/researchcube/loot_table/blocks/research_station.json (drops itself with survives_explosion condition). All blockstates, block models, item models, and item textures verified complete and present.
+
+- [DONE] Research book item: ResearchBookItem (creative tab, stacksTo(1)) opens a read-only ResearchBookScreen. Server sends OpenResearchBookPacket (server→client) with player's completed research set. Screen shows all research grouped by tier with ✔/✘ completion status, hover tooltips with full details (description, costs, prerequisites, recipes). Uses vanilla knowledge_book texture. Registered in ModItems, ModCreativeTabs, ModNetworking, and en_us.json.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Design Decisions (resolve before implementing dependent phases)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 - [RESOLVED] Completed research scope: implemented as per-player via ResearchSavedData (SavedData). Each player UUID has their own Set<ResourceLocation> of completed research.
 
-- [DECISION] Drive reusability: should a drive be consumable on recipe craft (current behaviour — drive is consumed by DriveCraftingRecipe) or should it persist with the recipe removed from its NBT? Consuming is simpler but makes drives feel disposable at high tier.
+- [RESOLVED] Drive reusability: drive PERSISTS after a drive_crafting recipe is used. The specific recipe ID is stripped from the drive's NBT on craft — that slot is single-use for crafting but other stored recipes remain. DriveCraftingRecipe must be updated to remove the recipe ID rather than consuming the whole item.
 
-- [DECISION] Research failure / risk: should IRRECOVERABLE-tier research have a chance to corrupt/consume the drive on failure? Would add risk/reward but needs a RNG check hook in completeResearch().
+- [RESOLVED] Research failure / risk: no risk system. IRRECOVERABLE-tier research always completes cleanly with no corruption or destruction chance.
 
-- [DECISION] [MAJOR] Multi-player research sharing: should completed research be shared across all players on a server (single SavedData map) or isolated per-player? Affects SavedData design significantly.
+- [RESOLVED] [MAJOR] Multi-player research sharing: per-team. Players in the same Minecraft scoreboard team share one completed-research pool. ResearchSavedData must be refactored from UUID-keyed to team-name-keyed (with UUID fallback for players not in a team). Requires design + implementation approval before touching.
 
-- [DECISION] [MAJOR] Multi-tier Research Stations: if different station tiers are added (Basic / Advanced Station), significant changes to block registration, TierUtil, and recipes are needed — requires design approval before any implementation.
+- [RESOLVED] Multi-tier Research Stations: one universal Research Station handles all tiers forever. No tiered station blocks will be added.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 10 — UI & Visual Improvements
+(Self-contained improvements; no new systems required. Do non-MAJOR items first.)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- [DONE] Bigger Research Station UI: expanded screen from 176×166 to 280×222. Research list now 130px wide with 8 visible rows (was 50px/3 rows). Progress bar widened to 106px. Start/Stop buttons are full-sized. Programmatic background rendering with bevelled panels replaces texture dependency. Slot positions updated in both Menu and Screen. Player inventory centered in the wider layout.
+
+- [DONE] Research Station dynamic GeckoLib visuals per cube tier: ResearchStationRenderer overrides renderRecursively() to detect Brain bone hierarchy (Brain, center, b1–b8). When a CubeItem is in the cube slot, the brain bones are tinted with the tier's RGB color (ARGB packed) and rendered at full brightness (LightTexture.FULL_BRIGHT) for an emissive glow effect. A subtle pulsing sine wave (0.7–1.0 amplitude, ~800ms period) modulates the color brightness. ResearchTableBlockEntity.getCubeTier() reads the cube slot client-side (synced via getUpdateTag). No cube → default rendering; each tier (UNSTABLE→SELF_AWARE) shows its distinct color accent on the floating brain.
+
+- [AI] [MAJOR] Custom Drive Crafting Table block: a dedicated crafting station (new block + block entity + screen) that exposes a standard crafting grid alongside a dedicated Drive input slot. The player inserts a Drive (containing a researched recipe ID) to unlock and execute the matching drive_crafting recipe. Replaces/supplements the vanilla crafting table workflow.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 11 — Thinking Fluid System
+(Research requires a tiered fluid to operate. NOT functional yet — placeholder only.
+All tasks here are MAJOR or depend on a MAJOR task; implement in order top-to-bottom.)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- [AI] [MAJOR] Thinking Fluid tiers: 4 custom fluids (Thinking Fluid, Pondering Fluid, Reasoning Fluid, Imagination Fluid). Register via DeferredRegister<Fluid>. Each fluid has a matching bucket item. Higher-tier research requires higher-tier fluid. (Foundation — everything below depends on this.)
+
+- [AI] Fluid textures + models: create still/flowing textures for each fluid tier. Register fluid render handlers client-side. (Assets only; can be done in parallel with tank work.)
+
+- [AI] [MAJOR] Fluid tank in Research Station BE: add an internal FluidTank (NeoForge FluidHandlerItemStack or IFluidHandler). Store fluid type + amount. Persist to NBT. Consume fluid on research start (amount determined by research definition). (Depends on: Fluid tiers.)
+
+- [AI] [MAJOR] Research Station fluid UI: add a vertical fluid bar to the screen showing fill level + fluid color. Add 2 slots: fluid input (bucket in) and fluid output (empty bucket out). Add a "Wipe" button to void the tank contents. (Depends on: Fluid tank.)
+
+- [AI] Fluid-gated research: add optional "fluid_cost" field to ResearchDefinition JSON (e.g. `{"fluid": "researchcube:pondering_fluid", "amount": 1000}`). tryStartResearch() validates and drains the tank. Tooltip shows fluid cost. (Depends on: Fluid tank.)
+
+- [AI] Fluid crafting/obtaining: recipes or world interactions to create each fluid tier (e.g. water + redstone → Thinking Fluid, Thinking + glowstone → Pondering, etc.). (Depends on: Fluid tiers + fluid-gated research.)
 

@@ -43,11 +43,12 @@ public record StartResearchPacket(BlockPos pos, String researchId) implements Cu
             if (!(context.player() instanceof ServerPlayer player)) return;
 
             if (player.level().getBlockEntity(packet.pos()) instanceof ResearchTableBlockEntity be) {
-                // Look up per-player completed research from SavedData
+                // Look up completed research using team-aware key from SavedData
                 ResearchSavedData savedData = ResearchSavedData.get(player.serverLevel());
-                Set<String> completed = savedData.getCompletedResearchStrings(player.getUUID());
+                String researchKey = ResearchSavedData.getResearchKey(player);
+                Set<String> completed = savedData.getCompletedResearchStrings(researchKey);
 
-                boolean started = be.tryStartResearch(packet.researchId(), completed, player.getUUID());
+                boolean started = be.tryStartResearch(packet.researchId(), completed, researchKey);
                 if (started) {
                     ResearchCubeMod.LOGGER.debug("Player {} started research '{}'",
                             player.getName().getString(), packet.researchId());

@@ -1,0 +1,14 @@
+{
+  "name": "Material Synthesis",
+  "description": "Fundamental techniques for combining raw materials into useful compounds.",
+  "category": "materials",
+  "tier": "BASIC",
+  "duration": 1200,
+  "item_costs": [
+    { "item": "minecraft:iron_ingot", "count": 8 },
+    { "item": "minecraft:coal", "count": 4 }
+  ],
+  "recipe_pool": [
+    "researchcube:material_synthesis_recipe_1"
+  ]
+}

@@ -18,7 +18,7 @@ import java.util.List;
  *   - A Drive item in the crafting grid containing a specific recipe_id in its NBT
  *   - Standard shapeless ingredients
  *
- * The Drive is consumed during crafting.
+ * The Drive persists after crafting — only the matched recipe_id is removed from its NBT.
  *
  * JSON format:
  * {
@@ -137,13 +137,26 @@ public class DriveCraftingRecipe implements CraftingRecipe {
     }
 
     /**
-     * Override to make the drive get consumed (not leave remainders).
-     * By default, DriveItem doesn't have a crafting remainder, so this is fine.
+     * The drive is NOT consumed — instead, the matched recipe_id is stripped from
+     * its NBT, and the drive is returned as a remainder. All other items are consumed normally.
      */
     @Override
     public NonNullList<ItemStack> getRemainingItems(CraftingInput input) {
         NonNullList<ItemStack> remaining = NonNullList.withSize(input.size(), ItemStack.EMPTY);
-        // All items including the drive are consumed — return empty stacks
+
+        boolean driveHandled = false;
+        for (int i = 0; i < input.size(); i++) {
+            ItemStack stack = input.getItem(i);
+            if (!driveHandled && stack.getItem() instanceof DriveItem && NbtUtil.hasRecipe(stack, recipeId)) {
+                // Return a copy of the drive with the used recipe ID removed
+                ItemStack driveCopy = stack.copy();
+                NbtUtil.removeRecipe(driveCopy, recipeId);
+                remaining.set(i, driveCopy);
+                driveHandled = true;
+            }
+            // Non-drive items: remain EMPTY (consumed)
+        }
+
         return remaining;
     }
 }

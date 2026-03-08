@@ -73,6 +73,19 @@ public final class NbtUtil {
         return readRecipes(stack).contains(recipeId);
     }
 
+    /**
+     * Removes a single recipe ID from the stack's custom data.
+     * Returns true if the recipe was found and removed.
+     */
+    public static boolean removeRecipe(ItemStack stack, String recipeId) {
+        List<String> existing = readRecipes(stack);
+        if (existing.remove(recipeId)) {
+            writeRecipes(stack, existing);
+            return true;
+        }
+        return false;
+    }
+
     // ── Internal helpers ──
 
     private static CompoundTag getCustomData(ItemStack stack) {

@@ -18,6 +18,13 @@ repositories {
             includeGroup("software.bernie.geckolib")
         }
     }
+    maven {
+        name = 'JEI'
+        url = 'https://maven.blamejared.com'
+        content {
+            includeGroup("mezz.jei")
+        }
+    }
 }
 
 base {
@@ -63,6 +70,12 @@ sourceSets.main.resources { srcDir 'src/generated/resources' }
 
 dependencies {
     implementation "software.bernie.geckolib:geckolib-neoforge-1.21.1:${geckolib_version}"
+
+    // JEI — compileOnly so the mod doesn't hard-depend on JEI at runtime
+    compileOnly "mezz.jei:jei-1.21.1-common-api:${jei_version}"
+    compileOnly "mezz.jei:jei-1.21.1-neoforge-api:${jei_version}"
+    // Uncomment for in-dev JEI testing:
+    // runtimeOnly "mezz.jei:jei-1.21.1-neoforge:${jei_version}"
 }
 
 tasks.withType(ProcessResources).configureEach {

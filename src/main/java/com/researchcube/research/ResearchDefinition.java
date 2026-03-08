@@ -3,6 +3,7 @@ package com.researchcube.research;
 import com.researchcube.research.prerequisite.Prerequisite;
 import com.researchcube.research.prerequisite.NonePrerequisite;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.RandomSource;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -14,9 +15,10 @@ import java.util.List;
  * {
  *   "tier": "ADVANCED",
  *   "duration": 6000,
+ *   "category": "circuits",
  *   "prerequisites": { "type": "AND", "values": [...] },
  *   "item_costs": [ { "item": "minecraft:redstone", "count": 16 } ],
- *   "recipe_pool": [ "researchcube:processor_recipe_1", "researchcube:processor_recipe_2" ]
+ *   "recipe_pool": [ "researchcube:processor_recipe_1", {"id": "researchcube:processor_recipe_2", "weight": 3} ]
  * }
  *
  * The "id" is derived from the datapack file path (e.g., data/researchcube/research/advanced_processor.json
@@ -30,32 +32,40 @@ public class ResearchDefinition {
     private final Prerequisite prerequisites;
     private final List<ItemCost> itemCosts;
     private final List<ResourceLocation> recipePool;
+    private final List<WeightedRecipe> weightedRecipePool;
     @Nullable
     private final String name;        // human-readable display name (optional)
     @Nullable
     private final String description;  // short description (optional)
+    @Nullable
+    private final String category;     // optional grouping category (e.g., "circuits", "energy")
 
     public ResearchDefinition(ResourceLocation id, ResearchTier tier, int duration,
                               Prerequisite prerequisites, List<ItemCost> itemCosts,
-                              List<ResourceLocation> recipePool,
-                              @Nullable String name, @Nullable String description) {
+                              List<WeightedRecipe> weightedRecipePool,
+                              @Nullable String name, @Nullable String description,
+                              @Nullable String category) {
         this.id = id;
         this.tier = tier;
         this.duration = duration;
         this.prerequisites = prerequisites != null ? prerequisites : NonePrerequisite.INSTANCE;
         this.itemCosts = itemCosts != null ? List.copyOf(itemCosts) : List.of();
-        this.recipePool = recipePool != null ? List.copyOf(recipePool) : List.of();
+        this.weightedRecipePool = weightedRecipePool != null ? List.copyOf(weightedRecipePool) : List.of();
+        this.recipePool = this.weightedRecipePool.stream().map(WeightedRecipe::id).toList();
         this.name = name;
         this.description = description;
+        this.category = category;
     }
 
     /**
-     * Backwards-compatible constructor (no name/description).
+     * Backwards-compatible constructor (no name/description/category, plain ResourceLocation pool).
      */
     public ResearchDefinition(ResourceLocation id, ResearchTier tier, int duration,
                               Prerequisite prerequisites, List<ItemCost> itemCosts,
                               List<ResourceLocation> recipePool) {
-        this(id, tier, duration, prerequisites, itemCosts, recipePool, null, null);
+        this(id, tier, duration, prerequisites, itemCosts,
+                recipePool.stream().map(rl -> new WeightedRecipe(rl, 1)).toList(),
+                null, null, null);
     }
 
     public ResourceLocation getId() {
@@ -86,10 +96,39 @@ public class ResearchDefinition {
     }
 
     /**
-     * Pool of recipe ResourceLocations. On completion, one is chosen uniformly at random.
+     * Pool of recipe ResourceLocations. On completion, one is chosen via weighted random.
      */
     public List<ResourceLocation> getRecipePool() {
         return recipePool;
+    }
+
+    /**
+     * Pool of weighted recipe entries for weighted random selection.
+     */
+    public List<WeightedRecipe> getWeightedRecipePool() {
+        return weightedRecipePool;
+    }
+
+    /**
+     * Select a recipe from the pool using weighted random selection.
+     * Returns null if the pool is empty.
+     */
+    @Nullable
+    public ResourceLocation pickWeightedRecipe(RandomSource random) {
+        if (weightedRecipePool.isEmpty()) return null;
+        int totalWeight = 0;
+        for (WeightedRecipe wr : weightedRecipePool) {
+            totalWeight += wr.weight();
+        }
+        int roll = random.nextInt(totalWeight);
+        for (WeightedRecipe wr : weightedRecipePool) {
+            roll -= wr.weight();
+            if (roll < 0) {
+                return wr.id();
+            }
+        }
+        // Fallback (should never happen)
+        return weightedRecipePool.getLast().id();
     }
 
     /**
@@ -116,6 +155,14 @@ public class ResearchDefinition {
     }
 
     /**
+     * Optional category for grouping in the UI (e.g., "circuits", "energy").
+     */
+    @Nullable
+    public String getCategory() {
+        return category;
+    }
+
+    /**
      * Returns duration as human-readable seconds.
      */
     public float getDurationSeconds() {
@@ -132,6 +179,6 @@ public class ResearchDefinition {
     @Override
     public String toString() {
         return "ResearchDefinition{" + id + ", tier=" + tier + ", duration=" + duration +
-                ", costs=" + itemCosts.size() + ", recipes=" + recipePool.size() + "}";
+                ", category=" + category + ", costs=" + itemCosts.size() + ", recipes=" + recipePool.size() + "}";
     }
 }

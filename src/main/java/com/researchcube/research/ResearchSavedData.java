@@ -9,38 +9,61 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.saveddata.SavedData;
+import net.minecraft.world.scores.PlayerTeam;
 
 import java.util.*;
 
 /**
- * Server-side per-player research progress tracker.
- * Stores which research each player (by UUID) has completed.
+ * Server-side research progress tracker.
+ * Stores which research each "research key" has completed.
+ *
+ * A research key is:
+ *   - The player's scoreboard team name, if they are on a team (shared progress)
+ *   - The player's UUID as a string, if they are not on a team (solo progress)
+ *
  * Persisted to the world's data folder.
  */
 public class ResearchSavedData extends SavedData {
 
     private static final String DATA_NAME = ResearchCubeMod.MOD_ID + "_research";
 
-    private final Map<UUID, Set<ResourceLocation>> completedResearch = new HashMap<>();
+    /** Map from research key (team name or UUID string) to completed research IDs. */
+    private final Map<String, Set<ResourceLocation>> completedResearch = new HashMap<>();
 
     public ResearchSavedData() {
+    }
+
+    // ── Key Resolution ──
+
+    /**
+     * Resolve the research key for a player.
+     * If the player is on a scoreboard team, returns the team name (shared pool).
+     * Otherwise, returns the player's UUID as a string (isolated pool).
+     */
+    public static String getResearchKey(ServerPlayer player) {
+        PlayerTeam team = player.getTeam() instanceof PlayerTeam pt ? pt : null;
+        if (team != null) {
+            return "team:" + team.getName();
+        }
+        return player.getUUID().toString();
     }
 
     // ── Query ──
 
     /**
-     * Get the set of completed research IDs for a player.
+     * Get the set of completed research IDs for a research key.
      */
-    public Set<ResourceLocation> getCompletedResearch(UUID playerUUID) {
-        return completedResearch.getOrDefault(playerUUID, Collections.emptySet());
+    public Set<ResourceLocation> getCompletedResearch(String researchKey) {
+        return completedResearch.getOrDefault(researchKey, Collections.emptySet());
     }
 
     /**
      * Get completed research as string set (for Prerequisite.isSatisfied).
      */
-    public Set<String> getCompletedResearchStrings(UUID playerUUID) {
-        Set<ResourceLocation> completed = getCompletedResearch(playerUUID);
+    public Set<String> getCompletedResearchStrings(String researchKey) {
+        Set<ResourceLocation> completed = getCompletedResearch(researchKey);
         Set<String> result = new HashSet<>(completed.size());
         for (ResourceLocation rl : completed) {
             result.add(rl.toString());
@@ -49,41 +72,41 @@ public class ResearchSavedData extends SavedData {
     }
 
     /**
-     * Check if a player has completed a specific research.
+     * Check if a research key has completed a specific research.
      */
-    public boolean hasCompleted(UUID playerUUID, ResourceLocation researchId) {
-        return getCompletedResearch(playerUUID).contains(researchId);
+    public boolean hasCompleted(String researchKey, ResourceLocation researchId) {
+        return getCompletedResearch(researchKey).contains(researchId);
     }
 
     // ── Mutation ──
 
     /**
-     * Mark a research as completed for a player.
+     * Mark a research as completed for a research key.
      */
-    public void addCompleted(UUID playerUUID, ResourceLocation researchId) {
-        completedResearch.computeIfAbsent(playerUUID, k -> new HashSet<>()).add(researchId);
+    public void addCompleted(String researchKey, ResourceLocation researchId) {
+        completedResearch.computeIfAbsent(researchKey, k -> new HashSet<>()).add(researchId);
         setDirty();
     }
 
     /**
      * Remove a completed research entry (for admin/debug use).
      */
-    public void removeCompleted(UUID playerUUID, ResourceLocation researchId) {
-        Set<ResourceLocation> set = completedResearch.get(playerUUID);
+    public void removeCompleted(String researchKey, ResourceLocation researchId) {
+        Set<ResourceLocation> set = completedResearch.get(researchKey);
         if (set != null) {
             set.remove(researchId);
             if (set.isEmpty()) {
-                completedResearch.remove(playerUUID);
+                completedResearch.remove(researchKey);
             }
             setDirty();
         }
     }
 
     /**
-     * Clear all completed research for a player.
+     * Clear all completed research for a research key.
      */
-    public void clearPlayer(UUID playerUUID) {
-        if (completedResearch.remove(playerUUID) != null) {
+    public void clearKey(String researchKey) {
+        if (completedResearch.remove(researchKey) != null) {
             setDirty();
         }
     }
@@ -92,32 +115,31 @@ public class ResearchSavedData extends SavedData {
 
     @Override
     public CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
-        CompoundTag players = new CompoundTag();
-        for (Map.Entry<UUID, Set<ResourceLocation>> entry : completedResearch.entrySet()) {
+        CompoundTag keys = new CompoundTag();
+        for (Map.Entry<String, Set<ResourceLocation>> entry : completedResearch.entrySet()) {
             ListTag list = new ListTag();
             for (ResourceLocation rl : entry.getValue()) {
                 list.add(StringTag.valueOf(rl.toString()));
             }
-            players.put(entry.getKey().toString(), list);
+            keys.put(entry.getKey(), list);
         }
-        tag.put("Players", players);
+        tag.put("Players", keys);
         return tag;
     }
 
     private static ResearchSavedData load(CompoundTag tag, HolderLookup.Provider registries) {
         ResearchSavedData data = new ResearchSavedData();
-        CompoundTag players = tag.getCompound("Players");
-        for (String uuidStr : players.getAllKeys()) {
+        CompoundTag keys = tag.getCompound("Players");
+        for (String key : keys.getAllKeys()) {
             try {
-                UUID uuid = UUID.fromString(uuidStr);
-                ListTag list = players.getList(uuidStr, Tag.TAG_STRING);
+                ListTag list = keys.getList(key, Tag.TAG_STRING);
                 Set<ResourceLocation> set = new HashSet<>();
                 for (int i = 0; i < list.size(); i++) {
                     set.add(ResourceLocation.parse(list.getString(i)));
                 }
-                data.completedResearch.put(uuid, set);
+                data.completedResearch.put(key, set);
             } catch (Exception e) {
-                ResearchCubeMod.LOGGER.warn("Failed to parse research data for UUID '{}': {}", uuidStr, e.getMessage());
+                ResearchCubeMod.LOGGER.warn("Failed to parse research data for key '{}': {}", key, e.getMessage());
             }
         }
         return data;

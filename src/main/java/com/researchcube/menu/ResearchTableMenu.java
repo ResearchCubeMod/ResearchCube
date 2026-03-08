@@ -92,7 +92,7 @@ public class ResearchTableMenu extends AbstractContainerMenu {
         // ── Block Entity Slots ──
 
         // Slot 0: Drive
-        addSlot(new SlotItemHandler(inv, ResearchTableBlockEntity.SLOT_DRIVE, 17, 20) {
+        addSlot(new SlotItemHandler(inv, ResearchTableBlockEntity.SLOT_DRIVE, 15, 25) {
             @Override
             public boolean mayPlace(ItemStack stack) {
                 return stack.getItem() instanceof DriveItem;
@@ -100,7 +100,7 @@ public class ResearchTableMenu extends AbstractContainerMenu {
         });
 
         // Slot 1: Cube
-        addSlot(new SlotItemHandler(inv, ResearchTableBlockEntity.SLOT_CUBE, 17, 50) {
+        addSlot(new SlotItemHandler(inv, ResearchTableBlockEntity.SLOT_CUBE, 15, 59) {
             @Override
             public boolean mayPlace(ItemStack stack) {
                 return stack.getItem() instanceof CubeItem;
@@ -111,20 +111,20 @@ public class ResearchTableMenu extends AbstractContainerMenu {
         for (int row = 0; row < 2; row++) {
             for (int col = 0; col < 3; col++) {
                 int slotIndex = ResearchTableBlockEntity.COST_SLOT_START + row * 3 + col;
-                addSlot(new SlotItemHandler(inv, slotIndex, 62 + col * 18, 20 + row * 18));
+                addSlot(new SlotItemHandler(inv, slotIndex, 48 + col * 18, 25 + row * 18));
             }
         }
 
         // ── Player Inventory (27 slots) ──
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
-                addSlot(new Slot(playerInv, col + row * 9 + 9, 8 + col * 18, 84 + row * 18));
+                addSlot(new Slot(playerInv, col + row * 9 + 9, 59 + col * 18, 140 + row * 18));
             }
         }
 
         // ── Player Hotbar (9 slots) ──
         for (int col = 0; col < 9; col++) {
-            addSlot(new Slot(playerInv, col, 8 + col * 18, 142));
+            addSlot(new Slot(playerInv, col, 59 + col * 18, 198));
         }
     }
 

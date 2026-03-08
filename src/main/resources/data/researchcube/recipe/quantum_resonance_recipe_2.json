@@ -1,0 +1,14 @@
+{
+  "type": "researchcube:drive_crafting",
+  "recipe_id": "researchcube:quantum_resonance_recipe_2",
+  "ingredients": [
+    { "item": "minecraft:quartz_block" },
+    { "item": "minecraft:redstone" },
+    { "item": "minecraft:redstone" },
+    { "item": "minecraft:amethyst_shard" }
+  ],
+  "result": {
+    "id": "minecraft:calibrated_sculk_sensor",
+    "count": 1
+  }
+}

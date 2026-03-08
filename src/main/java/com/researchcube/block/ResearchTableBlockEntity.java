@@ -9,12 +9,15 @@ import com.researchcube.util.NbtUtil;
 import com.researchcube.util.TierUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.Containers;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -29,7 +32,6 @@ import software.bernie.geckolib.util.GeckoLibUtil;
 
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 
 /**
  * BlockEntity for the Research Table.
@@ -67,7 +69,7 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
     private String activeResearchId = null;
     private long startTime = -1;
     @Nullable
-    private UUID researcherUUID = null; // player who started the current research
+    private String researchKey = null; // team name or UUID string of the researcher
     // Snapshot of item costs consumed when research started (for refund on cancel)
     @Nullable
     private List<ItemCost> consumedCosts = null;
@@ -83,6 +85,19 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
     @Nullable
     public String getActiveResearchId() {
         return activeResearchId;
+    }
+
+    /**
+     * Returns the ResearchTier of the cube currently in the cube slot, or null if empty/invalid.
+     * Works on both client and server since inventory is synced via getUpdateTag.
+     */
+    @Nullable
+    public ResearchTier getCubeTier() {
+        ItemStack cubeStack = inventory.getStackInSlot(SLOT_CUBE);
+        if (!cubeStack.isEmpty() && cubeStack.getItem() instanceof CubeItem cube) {
+            return cube.getTier();
+        }
+        return null;
     }
 
     public long getStartTime() {
@@ -101,10 +116,10 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
      *
      * @param researchId        the research definition ID to start
      * @param completedResearch set of research IDs the player has already completed (for prereqs)
-     * @param playerUUID        UUID of the player starting the research
+     * @param researchKey       the research key (team name or UUID string) for progress tracking
      * @return true if research was started, false if validation failed
      */
-    public boolean tryStartResearch(String researchId, Set<String> completedResearch, UUID playerUUID) {
+    public boolean tryStartResearch(String researchId, Set<String> completedResearch, String researchKey) {
         if (level == null || level.isClientSide()) return false;
         if (isResearching()) {
             ResearchCubeMod.LOGGER.warn("[ResearchCube] Cannot start '{}': already researching '{}'", researchId, activeResearchId);
@@ -162,10 +177,13 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
         // Start research
         this.activeResearchId = researchId;
         this.startTime = level.getGameTime();
-        this.researcherUUID = playerUUID;
+        this.researchKey = researchKey;
         setChanged();
 
-        ResearchCubeMod.LOGGER.info("[ResearchCube] Started research '{}' for player {}", researchId, playerUUID);
+        // Play start sound (subtle click/buzz)
+        level.playSound(null, worldPosition, SoundEvents.UI_BUTTON_CLICK.value(), SoundSource.BLOCKS, 0.6f, 1.2f);
+
+        ResearchCubeMod.LOGGER.info("[ResearchCube] Started research '{}' for key {}", researchId, researchKey);
         return true;
     }
 
@@ -223,25 +241,40 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
         }
 
         if (definition.hasRecipePool()) {
-            // Uniform random selection from recipe pool
-            List<ResourceLocation> pool = definition.getRecipePool();
-            ResourceLocation selectedRecipe = pool.get(level.random.nextInt(pool.size()));
+            // Weighted random selection from recipe pool
+            ResourceLocation selectedRecipe = definition.pickWeightedRecipe(level.random);
 
-            // Imprint recipe into drive
-            NbtUtil.addRecipe(driveStack, selectedRecipe.toString());
+            if (selectedRecipe != null) {
+                // Imprint recipe into drive
+                NbtUtil.addRecipe(driveStack, selectedRecipe.toString());
 
-            ResearchCubeMod.LOGGER.debug("Research '{}' complete. Imprinted recipe: {}",
-                    definition.getId(), selectedRecipe);
+                ResearchCubeMod.LOGGER.debug("Research '{}' complete. Imprinted recipe: {}",
+                        definition.getId(), selectedRecipe);
+            } else {
+                ResearchCubeMod.LOGGER.warn("Research '{}' weighted pick returned null.", definition.getId());
+            }
         } else {
             ResearchCubeMod.LOGGER.warn("Research '{}' completed but has no recipe pool.", definition.getId());
         }
 
-        // Record completed research in per-player SavedData
-        if (researcherUUID != null && level instanceof ServerLevel serverLevel) {
+        // Record completed research in SavedData (keyed by team or player UUID)
+        if (researchKey != null && level instanceof ServerLevel serverLevel) {
             ResearchSavedData savedData = ResearchSavedData.get(serverLevel);
-            savedData.addCompleted(researcherUUID, definition.getId());
-            ResearchCubeMod.LOGGER.debug("Recorded research '{}' as completed for player {}",
-                    definition.getId(), researcherUUID);
+            savedData.addCompleted(researchKey, definition.getId());
+            ResearchCubeMod.LOGGER.debug("Recorded research '{}' as completed for key {}",
+                    definition.getId(), researchKey);
+        }
+
+        // Play completion sound and spawn particles
+        BlockPos pos = worldPosition;
+        level.playSound(null, pos, SoundEvents.PLAYER_LEVELUP, SoundSource.BLOCKS, 1.0f, 1.0f);
+        if (level instanceof ServerLevel sl) {
+            sl.sendParticles(ParticleTypes.HAPPY_VILLAGER,
+                    pos.getX() + 0.5, pos.getY() + 1.2, pos.getZ() + 0.5,
+                    20, 0.5, 0.5, 0.5, 0.02);
+            sl.sendParticles(ParticleTypes.COMPOSTER,
+                    pos.getX() + 0.5, pos.getY() + 1.0, pos.getZ() + 0.5,
+                    10, 0.3, 0.3, 0.3, 0.05);
         }
 
         clearResearch();
@@ -319,7 +352,7 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
     public void clearResearch() {
         this.activeResearchId = null;
         this.startTime = -1;
-        this.researcherUUID = null;
+        this.researchKey = null;
         this.consumedCosts = null;
         setChanged();
     }
@@ -371,8 +404,8 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
         if (activeResearchId != null) {
             tag.putString("ActiveResearch", activeResearchId);
             tag.putLong("StartTime", startTime);
-            if (researcherUUID != null) {
-                tag.putUUID("ResearcherUUID", researcherUUID);
+            if (researchKey != null) {
+                tag.putString("ResearchKey", researchKey);
             }
         }
     }
@@ -384,11 +417,18 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
         if (tag.contains("ActiveResearch")) {
             activeResearchId = tag.getString("ActiveResearch");
             startTime = tag.getLong("StartTime");
-            researcherUUID = tag.hasUUID("ResearcherUUID") ? tag.getUUID("ResearcherUUID") : null;
+            // Support both new "ResearchKey" and legacy "ResearcherUUID" fields
+            if (tag.contains("ResearchKey")) {
+                researchKey = tag.getString("ResearchKey");
+            } else if (tag.hasUUID("ResearcherUUID")) {
+                researchKey = tag.getUUID("ResearcherUUID").toString();
+            } else {
+                researchKey = null;
+            }
         } else {
             activeResearchId = null;
             startTime = -1;
-            researcherUUID = null;
+            researchKey = null;
         }
         // consumedCosts are not persisted — on reload, cancel will not refund (acceptable tradeoff)
         consumedCosts = null;

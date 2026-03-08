@@ -1,0 +1,14 @@
+{
+  "type": "researchcube:drive_crafting",
+  "recipe_id": "researchcube:molecular_assembly_recipe_1",
+  "ingredients": [
+    { "item": "minecraft:diamond_block" },
+    { "item": "minecraft:netherite_scrap" },
+    { "item": "minecraft:gold_ingot" },
+    { "item": "minecraft:gold_ingot" }
+  ],
+  "result": {
+    "id": "minecraft:netherite_ingot",
+    "count": 1
+  }
+}

@@ -59,9 +59,10 @@ public class ResearchTableBlock extends BaseEntityBlock {
         if (!level.isClientSide() && player instanceof ServerPlayer serverPlayer) {
             BlockEntity be = level.getBlockEntity(pos);
             if (be instanceof ResearchTableBlockEntity rtbe) {
-                // Collect completed research for this player to send to client
+                // Collect completed research for this player's team/solo key to send to client
+                String researchKey = ResearchSavedData.getResearchKey(serverPlayer);
                 Set<ResourceLocation> completed = (level instanceof ServerLevel sl)
-                        ? ResearchSavedData.get(sl).getCompletedResearch(serverPlayer.getUUID())
+                        ? ResearchSavedData.get(sl).getCompletedResearch(researchKey)
                         : Set.of();
 
                 serverPlayer.openMenu(new MenuProvider() {

@@ -1,0 +1,23 @@
+{
+  "name": "Singularity Core",
+  "description": "A self-sustaining matter-energy nexus that defies conventional physics.",
+  "category": "convergence",
+  "tier": "SELF_AWARE",
+  "duration": 36000,
+  "prerequisites": {
+    "type": "AND",
+    "values": [
+      "researchcube:molecular_assembly",
+      "researchcube:zero_point_energy"
+    ]
+  },
+  "item_costs": [
+    { "item": "minecraft:nether_star", "count": 2 },
+    { "item": "minecraft:netherite_ingot", "count": 2 },
+    { "item": "minecraft:diamond_block", "count": 4 }
+  ],
+  "recipe_pool": [
+    "researchcube:singularity_core_recipe_1",
+    { "id": "researchcube:singularity_core_recipe_2", "weight": 3 }
+  ]
+}

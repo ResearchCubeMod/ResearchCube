@@ -35,6 +35,8 @@ public class ModCreativeTabs {
                         output.accept(ModItems.CUBE_SELF_AWARE.get());
                         // Research Station
                         output.accept(ModItems.RESEARCH_STATION_ITEM.get());
+                        // Research Book
+                        output.accept(ModItems.RESEARCH_BOOK.get());
                     })
                     .build());
 }

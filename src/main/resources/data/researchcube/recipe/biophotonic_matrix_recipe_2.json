@@ -1,0 +1,14 @@
+{
+  "type": "researchcube:drive_crafting",
+  "recipe_id": "researchcube:biophotonic_matrix_recipe_2",
+  "ingredients": [
+    { "item": "minecraft:glowstone" },
+    { "item": "minecraft:glowstone" },
+    { "item": "minecraft:prismarine_crystals" },
+    { "item": "minecraft:ender_pearl" }
+  ],
+  "result": {
+    "id": "minecraft:conduit",
+    "count": 1
+  }
+}

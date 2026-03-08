@@ -1,0 +1,23 @@
+{
+  "name": "Cognitive Framework",
+  "description": "A self-learning architecture that mimics higher-order reasoning.",
+  "category": "computing",
+  "tier": "FLAWLESS",
+  "duration": 20000,
+  "prerequisites": {
+    "type": "AND",
+    "values": [
+      "researchcube:neural_interface",
+      "researchcube:biophotonic_matrix"
+    ]
+  },
+  "item_costs": [
+    { "item": "minecraft:diamond", "count": 8 },
+    { "item": "minecraft:ender_eye", "count": 4 },
+    { "item": "minecraft:golden_apple", "count": 2 }
+  ],
+  "recipe_pool": [
+    "researchcube:cognitive_framework_recipe_1",
+    { "id": "researchcube:cognitive_framework_recipe_2", "weight": 2 }
+  ]
+}

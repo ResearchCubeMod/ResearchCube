@@ -13,7 +13,7 @@ import java.util.List;
 /**
  * A Drive item that belongs to a specific research tier.
  * Drives store recipe IDs in their custom data (NBT).
- * Drives are consumed during crafting.
+ * Drives persist after crafting — the used recipe ID is stripped from the drive's NBT.
  * IRRECOVERABLE tier drives are decorative only.
  */
 public class DriveItem extends Item {

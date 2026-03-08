@@ -48,4 +48,8 @@ public class ModItems {
     // ── Research Station block item ──
     public static final DeferredItem<BlockItem> RESEARCH_STATION_ITEM = ITEMS.register("research_station_item",
             () -> new BlockItem(ModBlocks.RESEARCH_STATION.get(), new Item.Properties()));
+
+    // ── Research Book ──
+    public static final DeferredItem<com.researchcube.item.ResearchBookItem> RESEARCH_BOOK = ITEMS.register("research_book",
+            () -> new com.researchcube.item.ResearchBookItem(new Item.Properties().stacksTo(1)));
 }

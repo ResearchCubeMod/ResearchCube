@@ -27,5 +27,11 @@ public class ModNetworking {
                 CancelResearchPacket.STREAM_CODEC,
                 CancelResearchPacket::handle
         );
+
+        registrar.playToClient(
+                OpenResearchBookPacket.TYPE,
+                OpenResearchBookPacket.STREAM_CODEC,
+                OpenResearchBookPacket::handle
+        );
     }
 }

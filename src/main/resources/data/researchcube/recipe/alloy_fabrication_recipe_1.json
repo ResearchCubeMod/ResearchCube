@@ -1,0 +1,14 @@
+{
+  "type": "researchcube:drive_crafting",
+  "recipe_id": "researchcube:alloy_fabrication_recipe_1",
+  "ingredients": [
+    { "item": "minecraft:iron_ingot" },
+    { "item": "minecraft:iron_ingot" },
+    { "item": "minecraft:gold_ingot" },
+    { "item": "minecraft:coal_block" }
+  ],
+  "result": {
+    "id": "minecraft:anvil",
+    "count": 1
+  }
+}
