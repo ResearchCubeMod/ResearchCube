@@ -37,6 +37,21 @@ public class DriveItem extends Item {
     }
 
     /**
+     * Returns true if this drive is at max recipe capacity.
+     */
+    public boolean isFull(ItemStack stack) {
+        if (!tier.hasRecipeLimit()) return false;
+        return NbtUtil.readRecipes(stack).size() >= tier.getMaxRecipes();
+    }
+
+    /**
+     * Returns the max number of recipes this drive can hold, or -1 for unlimited.
+     */
+    public int getMaxRecipes() {
+        return tier.getMaxRecipes();
+    }
+
+    /**
      * Returns true if this drive is functional (not broken/IRRECOVERABLE).
      */
     public boolean isFunctional() {
@@ -61,8 +76,20 @@ public class DriveItem extends Item {
             tooltipComponents.add(Component.literal("Empty")
                     .withStyle(ChatFormatting.DARK_GRAY));
         } else {
-            tooltipComponents.add(Component.literal("Stored Recipes: " + recipes.size())
+            String capacityStr = tier.hasRecipeLimit()
+                    ? recipes.size() + "/" + tier.getMaxRecipes()
+                    : recipes.size() + " (unlimited)";
+            tooltipComponents.add(Component.literal("Stored Recipes: " + capacityStr)
                     .withStyle(ChatFormatting.AQUA));
+            for (String recipe : recipes) {
+                tooltipComponents.add(Component.literal("  • " + recipe)
+                        .withStyle(ChatFormatting.GRAY));
+            }
+        }
+
+        if (isFull(stack)) {
+            tooltipComponents.add(Component.literal("FULL")
+                    .withStyle(ChatFormatting.RED));
         }
     }
 

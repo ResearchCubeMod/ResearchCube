@@ -21,5 +21,11 @@ public class ModNetworking {
                 StartResearchPacket.STREAM_CODEC,
                 StartResearchPacket::handle
         );
+
+        registrar.playToServer(
+                CancelResearchPacket.TYPE,
+                CancelResearchPacket.STREAM_CODEC,
+                CancelResearchPacket::handle
+        );
     }
 }

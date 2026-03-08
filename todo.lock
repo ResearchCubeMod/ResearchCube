@@ -1,0 +1,126 @@
+[AI INSTRUCTIONS]
+This is the TODO tracker for this project. The content below shows the current tasks and their statuses.
+Prefer fixing bugs before moving on to new features.
+Tasks prefixed with [MAJOR] or [DANGER] should only be touched after explicit approval.
+Tasks prefixed with [LOW PRIO] or similar can be deferred if necessary.
+Tasks marked as [DONE] have been completed and should not be suggested for new work.
+[END AI INSTRUCTIONS]
+
+
+[DONE — Phase 1: Foundation]
+- [DONE] Build system: build.gradle, settings.gradle, gradle.properties, neoforge.mods.toml, pack.mcmeta
+- [DONE] ResearchTier enum (7 values: IRRECOVERABLE → SELF_AWARE), StringRepresentable
+- [DONE] DriveItem — tiered, CustomData recipe storage, foil effect, tooltip
+- [DONE] CubeItem — tiered, tooltip
+- [DONE] ModItems — 7 Drives (metadata_*), 6 Cubes, research_station_item
+- [DONE] ModBlocks — ResearchTableBlock
+- [DONE] ModBlockEntities — RESEARCH_STATION type
+- [DONE] ModCreativeTabs — ResearchCube tab with all items
+- [DONE] NbtUtil — CustomData helpers for tier/recipe read/write
+- [DONE] TierUtil — canResearch() validation
+- [DONE] Item model JSONs for all cube_* items and research_station_item
+- [DONE] Item textures (PNG) generated for all cube_* items and research_station_item
+
+[DONE — Phase 2: Research System]
+- [DONE] Prerequisite interface + AndPrerequisite, OrPrerequisite, SinglePrerequisite, NonePrerequisite
+- [DONE] PrerequisiteParser — recursive JSON → Prerequisite tree (string, AND/OR objects)
+- [DONE] ResearchDefinition record (id, tier, duration, prerequisites, itemCosts, recipePool)
+- [DONE] ItemCost record (itemId, count, getItem())
+- [DONE] ResearchRegistry — static Map with get/getAll/getByTier/getUpToTier
+- [DONE] ResearchManager — SimpleJsonResourceReloadListener scanning data/{ns}/research/*.json
+- [DONE] ModServerEvents — AddReloadListenerEvent registration
+- [DONE] ResearchTableBlockEntity — 8 slots, tryStartResearch(), serverTick(), completeResearch(), getProgress(), NBT persistence
+- [DONE] Example research datapacks: basic_circuit.json, energy_handling.json, advanced_processor.json
+
+[DONE — Phase 3: Custom Recipe System]
+- [DONE] DriveCraftingRecipe — CraftingRecipe checking drive NBT + shapeless ingredients, drive consumed
+- [DONE] DriveCraftingRecipeSerializer — MapCodec + StreamCodec
+- [DONE] ModRecipeTypes, ModRecipeSerializers registered in ResearchCubeMod
+- [DONE] Example recipe JSONs: basic_circuit_recipe_1, energy_handling_recipe_1, processor_recipe_1, processor_recipe_2
+
+[DONE — Phase 4: Menu, Screen, Networking, GeckoLib]
+- [DONE] ResearchTableMenu — 8 BE slots + player inventory, ContainerData syncing progress (×1000) and isResearching flag
+- [DONE] ModMenus — RESEARCH_TABLE MenuType via IMenuTypeExtension
+- [DONE] ResearchTableScreen — scrollable research list (filtered by cube tier), row selection, Start button, green progress bar with % text, mouseScrolled support
+- [DONE] GUI texture: assets/researchcube/textures/gui/research_table.png (256×256)
+- [DONE] StartResearchPacket — client→server, BlockPos + researchId, StreamCodec
+- [DONE] ModNetworking — RegisterPayloadHandlersEvent, playToServer registration
+- [DONE] ResearchTableBlock.useWithoutItem() — opens menu via ServerPlayer.openMenu with pos buffer
+- [DONE] ResearchTableBlockEntity implements GeoBlockEntity — AnimatableInstanceCache, idle animation controller
+- [DONE] ResearchStationModel — geo/texture/animation ResourceLocations
+- [DONE] ResearchStationRenderer — GeoBlockRenderer subclass
+- [DONE] ModClientEvents — registers screen + block entity renderer (Dist.CLIENT, MOD bus)
+
+
+[TODO LIST]
+
+Current Bugs
+- (none confirmed — build is green and client runs cleanly)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DONE — Phase 5: Core Gameplay Gaps]
+- [DONE] Per-player completed research tracking — ResearchSavedData (SavedData) stores Map<UUID, Set<ResourceLocation>>. StartResearchPacket & completeResearch() wired. Prerequisite enforcement works.
+- [DONE] CancelResearchPacket — client→server packet, cancelResearchWithRefund() refunds consumedCosts into cost slots, Cancel button in screen active while isResearching.
+- [DONE] Research name/description in JSON — optional "name" + "description" fields in ResearchDefinition; ResearchManager parses them; screen uses getDisplayName(); all example JSONs updated.
+- [DONE] Drive capacity per tier — ResearchTier.maxRecipes (0/2/4/8/12/16/-1), DriveItem.isFull(), tooltip shows X/max, completeResearch() double-checks capacity.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 6 — UI Polish
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- [AI] Research row tooltip: when hovering a research entry in the list, show a tooltip with tier, duration (converted to seconds), item costs, prerequisite IDs, and whether prerequisites are met (green/red).
+
+- [AI] Lock/unlock visual on research rows: grey out and mark with a lock icon any research whose prerequisites are not yet satisfied (requires per-player completed research tracking above).
+
+- [AI] Active research name display: show the name/ID of the currently running research above the progress bar so players know what is in progress without needing to remember.
+
+- [AI] Drive contents tooltip: in the Drive slot, render the list of stored recipe IDs in the item tooltip (already partially handled by DriveItem, but verify it reads CustomData correctly through the slot).
+
+- [AI] [LOW PRIO] Animated progress bar: interpolate the bar width using partialTick in renderBg() rather than snapping to the integer ContainerData value each tick.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 7 — Content & Data
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- [AI] Full research tree: design and add a complete set of research JSON files covering all 7 tiers (IRRECOVERABLE through SELF_AWARE) with a coherent prerequisite graph. Currently only 3 BASIC/ADVANCED examples exist.
+
+- [AI] Full recipe set: add drive_crafting recipe JSONs for every entry in the research tree above so the unlock loop is actually completable.
+
+- [AI] Research categories field: add an optional "category" string to ResearchDefinition JSON so entries can be grouped in the UI (e.g. "circuits", "energy", "materials"). The screen can show category headers in the list.
+
+- [AI] Weighted recipe pool: extend the recipe_pool JSON to support `{"id": "...", "weight": 3}` entries. Update ResearchDefinition + ResearchManager to parse weights and use a weighted random pick in completeResearch().
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 8 — Audio / Visual Feedback
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- [AI] [LOW PRIO] Research complete sound: play a custom or vanilla sound (e.g. entity.player.levelup) at the block when research finishes. Fire a LevelEvent server-side; subscribe client-side to spawn particles.
+
+- [AI] [LOW PRIO] Research start sound: play a subtle click/buzz when research successfully starts.
+
+- [AI] [LOW PRIO] Block ambient sound: add a looping hum sound while research is active using a client-side tick listener on the block entity.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 9 — Mod Compatibility & Polish
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- [AI] [LOW PRIO] JEI/REI integration: add a compileOnly JEI dependency and implement IModPlugin exposing drive_crafting recipes and (optionally) research definitions as info pages.
+
+- [AI] [LOW PRIO] Loot table & data gen audit: add a loot table for research_station (drops itself), run ./gradlew runData, and verify all block/item models are complete.
+
+- [AI] [LOW PRIO] Research book item: craftable item (or creative-only) that opens a read-only screen showing all known research definitions, their tiers, prerequisites, and which ones the player has completed.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Design Decisions (need resolution before implementation)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- [RESOLVED] Completed research scope: implemented as per-player via ResearchSavedData (SavedData). Each player UUID has their own Set<ResourceLocation> of completed research.
+
+- [DECISION] Drive reusability: should a drive be consumable on recipe craft (current behaviour — drive is consumed by DriveCraftingRecipe) or should it persist with the recipe removed from its NBT? Consuming is simpler but makes drives feel disposable at high tier.
+
+- [DECISION] Research failure / risk: should IRRECOVERABLE-tier research have a chance to corrupt/consume the drive on failure? Would add risk/reward but needs a RNG check hook in completeResearch().
+
+- [DECISION] [MAJOR] Multi-player research sharing: should completed research be shared across all players on a server (single SavedData map) or isolated per-player? Affects SavedData design significantly.
+
+- [DECISION] [MAJOR] Multi-tier Research Stations: if different station tiers are added (Basic / Advanced Station), significant changes to block registration, TierUtil, and recipes are needed — requires design approval before any implementation.
+

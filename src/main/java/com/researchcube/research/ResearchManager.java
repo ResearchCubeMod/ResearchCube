@@ -12,6 +12,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 import net.minecraft.util.profiling.ProfilerFiller;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -101,6 +102,17 @@ public class ResearchManager extends SimpleJsonResourceReloadListener {
             }
         }
 
-        return new ResearchDefinition(id, tier, duration, prerequisites, itemCosts, recipePool);
+        return new ResearchDefinition(id, tier, duration, prerequisites, itemCosts, recipePool,
+                parseName(json), parseDescription(json));
+    }
+
+    @Nullable
+    private String parseName(JsonObject json) {
+        return json.has("name") ? json.get("name").getAsString() : null;
+    }
+
+    @Nullable
+    private String parseDescription(JsonObject json) {
+        return json.has("description") ? json.get("description").getAsString() : null;
     }
 }

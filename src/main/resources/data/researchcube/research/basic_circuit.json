@@ -1,4 +1,6 @@
 {
+  "name": "Basic Circuit",
+  "description": "Fundamental circuit design - the building block of all electronics.",
   "tier": "BASIC",
   "duration": 1200,
   "item_costs": [

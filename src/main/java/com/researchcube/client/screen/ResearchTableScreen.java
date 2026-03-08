@@ -4,10 +4,12 @@ import com.researchcube.ResearchCubeMod;
 import com.researchcube.block.ResearchTableBlockEntity;
 import com.researchcube.item.CubeItem;
 import com.researchcube.menu.ResearchTableMenu;
+import com.researchcube.network.CancelResearchPacket;
 import com.researchcube.network.StartResearchPacket;
 import com.researchcube.research.ResearchDefinition;
 import com.researchcube.research.ResearchRegistry;
 import com.researchcube.research.ResearchTier;
+import com.researchcube.research.ItemCost;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -19,6 +21,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Client-side screen for the Research Table.
@@ -26,7 +29,7 @@ import java.util.List;
  * Layout (176x166 standard container background):
  *   Left column: Drive slot (0), Cube slot (1)
  *   Center: 3x2 grid for cost inputs (slots 2-7)
- *   Right panel: Research list (scrollable), Start button, progress bar
+ *   Right panel: Research list (scrollable), Start/Cancel button, progress bar
  *   Bottom: Player inventory + hotbar
  */
 public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMenu> {
@@ -37,6 +40,7 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
     // Research list state
     private List<ResearchDefinition> availableResearch = new ArrayList<>();
     private int selectedIndex = -1;
+    private ResourceLocation selectedId = null; // persists across refreshes
     private int scrollOffset = 0;
     private static final int VISIBLE_ROWS = 3;
     private static final int LIST_X = 120;
@@ -51,6 +55,7 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
     private static final int PROGRESS_H = 6;
 
     private Button startButton;
+    private Button cancelButton;
 
     public ResearchTableScreen(ResearchTableMenu menu, Inventory playerInv, Component title) {
         super(menu, playerInv, title);
@@ -65,16 +70,21 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
 
         // Start Research button
         startButton = Button.builder(Component.literal("Start"), btn -> onStartResearch())
-                .bounds(leftPos + 120, topPos + 58, 50, 16)
+                .bounds(leftPos + 120, topPos + 58, 24, 16)
                 .build();
         addRenderableWidget(startButton);
+
+        // Cancel Research button
+        cancelButton = Button.builder(Component.literal("Stop"), btn -> onCancelResearch())
+                .bounds(leftPos + 146, topPos + 58, 24, 16)
+                .build();
+        addRenderableWidget(cancelButton);
 
         refreshResearchList();
     }
 
     private void refreshResearchList() {
         availableResearch.clear();
-        selectedIndex = -1;
 
         // Get cube tier from the block entity to filter research
         ResearchTableBlockEntity be = menu.getBlockEntity();
@@ -86,6 +96,17 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         } else {
             // No cube — show all research as reference
             availableResearch = new ArrayList<>(ResearchRegistry.getAll());
+        }
+
+        // Restore selection by ID so it survives per-tick refreshes
+        selectedIndex = -1;
+        if (selectedId != null) {
+            for (int i = 0; i < availableResearch.size(); i++) {
+                if (availableResearch.get(i).getId().equals(selectedId)) {
+                    selectedIndex = i;
+                    break;
+                }
+            }
         }
     }
 
@@ -99,13 +120,21 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         PacketDistributor.sendToServer(new StartResearchPacket(be.getBlockPos(), def.getId().toString()));
     }
 
+    private void onCancelResearch() {
+        if (!menu.isResearching()) return;
+        ResearchTableBlockEntity be = menu.getBlockEntity();
+        PacketDistributor.sendToServer(new CancelResearchPacket(be.getBlockPos()));
+    }
+
     @Override
     public void containerTick() {
         super.containerTick();
         refreshResearchList();
 
-        // Disable start button when researching or no selection
+        // Start: active when not researching and a research is selected
         startButton.active = !menu.isResearching() && selectedIndex >= 0 && selectedIndex < availableResearch.size();
+        // Cancel: active only while researching
+        cancelButton.active = menu.isResearching();
     }
 
     @Override
@@ -143,6 +172,9 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
                     leftPos + PROGRESS_X + PROGRESS_W / 2, topPos + PROGRESS_Y - 10, 0xFFFFFF);
         }
 
+        // Research row tooltip (hover)
+        renderResearchTooltip(graphics, mouseX, mouseY);
+
         renderTooltip(graphics, mouseX, mouseY);
     }
 
@@ -168,19 +200,74 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
                 graphics.fill(x, rowY, x + LIST_W, rowY + ROW_H, 0xFF4444AA);
             }
 
-            // Trim name to fit
-            String name = def.getId().getPath();
-            if (name.length() > 8) name = name.substring(0, 7) + "…";
-            graphics.drawString(font, name, x + 2, rowY + 2, 0xCCCCCC, false);
+            // Use display name (falls back to path if no name field)
+            String name = def.getDisplayName();
+            if (name.length() > 8) name = name.substring(0, 7) + "\u2026";
+
+            // Color by tier
+            int textColor = def.getTier().getColor() | 0xFF000000;
+            graphics.drawString(font, name, x + 2, rowY + 2, textColor, false);
         }
 
         // Scroll indicators
         if (scrollOffset > 0) {
-            graphics.drawString(font, "▲", x + LIST_W - 8, y - 10, 0xAAAAAA, false);
+            graphics.drawString(font, "\u25B2", x + LIST_W - 8, y - 10, 0xAAAAAA, false);
         }
         if (scrollOffset + VISIBLE_ROWS < availableResearch.size()) {
-            graphics.drawString(font, "▼", x + LIST_W - 8, y + VISIBLE_ROWS * ROW_H + 2, 0xAAAAAA, false);
+            graphics.drawString(font, "\u25BC", x + LIST_W - 8, y + VISIBLE_ROWS * ROW_H + 2, 0xAAAAAA, false);
         }
+    }
+
+    /**
+     * Renders a tooltip when hovering over a research list entry showing
+     * tier, duration, item costs, and description.
+     */
+    private void renderResearchTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
+        int x = leftPos + LIST_X;
+        int y = topPos + LIST_Y;
+
+        if (mouseX < x || mouseX >= x + LIST_W || mouseY < y || mouseY >= y + VISIBLE_ROWS * ROW_H) {
+            return;
+        }
+
+        int row = (mouseY - y) / ROW_H;
+        int idx = scrollOffset + row;
+        if (idx < 0 || idx >= availableResearch.size()) return;
+
+        ResearchDefinition def = availableResearch.get(idx);
+        List<Component> tooltip = new ArrayList<>();
+
+        // Name
+        tooltip.add(Component.literal(def.getDisplayName())
+                .withStyle(s -> s.withColor(def.getTier().getColor())));
+
+        // Description
+        if (def.getDescription() != null) {
+            tooltip.add(Component.literal(def.getDescription())
+                    .withStyle(s -> s.withColor(0xAAAAAA).withItalic(true)));
+        }
+
+        // Tier + Duration
+        tooltip.add(Component.literal("Tier: " + def.getTier().getDisplayName()
+                + "  |  " + String.format("%.0fs", def.getDurationSeconds()))
+                .withStyle(s -> s.withColor(0x888888)));
+
+        // Item costs
+        if (!def.getItemCosts().isEmpty()) {
+            tooltip.add(Component.literal("Costs:").withStyle(s -> s.withColor(0xCCCC00)));
+            for (ItemCost cost : def.getItemCosts()) {
+                tooltip.add(Component.literal("  \u2022 " + cost.getItem().getDescription().getString() + " x" + cost.count())
+                        .withStyle(s -> s.withColor(0xBBBBBB)));
+            }
+        }
+
+        // Recipe pool count
+        if (def.hasRecipePool()) {
+            tooltip.add(Component.literal("Recipes: " + def.getRecipePool().size() + " possible")
+                    .withStyle(s -> s.withColor(0x55FFFF)));
+        }
+
+        graphics.renderTooltip(font, tooltip, Optional.empty(), mouseX, mouseY);
     }
 
     @Override
@@ -194,6 +281,7 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
             int idx = scrollOffset + row;
             if (idx >= 0 && idx < availableResearch.size()) {
                 selectedIndex = idx;
+                selectedId = availableResearch.get(idx).getId();
                 return true;
             }
         }

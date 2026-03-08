@@ -2,6 +2,7 @@ package com.researchcube.network;
 
 import com.researchcube.ResearchCubeMod;
 import com.researchcube.block.ResearchTableBlockEntity;
+import com.researchcube.research.ResearchSavedData;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -11,7 +12,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Packet sent from client → server when the player clicks "Start Research" in the UI.
@@ -42,9 +43,11 @@ public record StartResearchPacket(BlockPos pos, String researchId) implements Cu
             if (!(context.player() instanceof ServerPlayer player)) return;
 
             if (player.level().getBlockEntity(packet.pos()) instanceof ResearchTableBlockEntity be) {
-                // For now, pass empty completed research set.
-                // TODO: In a future phase, track per-player completed research.
-                boolean started = be.tryStartResearch(packet.researchId(), new HashSet<>());
+                // Look up per-player completed research from SavedData
+                ResearchSavedData savedData = ResearchSavedData.get(player.serverLevel());
+                Set<String> completed = savedData.getCompletedResearchStrings(player.getUUID());
+
+                boolean started = be.tryStartResearch(packet.researchId(), completed, player.getUUID());
                 if (started) {
                     ResearchCubeMod.LOGGER.debug("Player {} started research '{}'",
                             player.getName().getString(), packet.researchId());

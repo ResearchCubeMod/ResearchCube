@@ -11,6 +11,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.Containers;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -23,9 +24,9 @@ import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
 import software.bernie.geckolib.animation.*;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * BlockEntity for the Research Table.
@@ -62,6 +63,11 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
     @Nullable
     private String activeResearchId = null;
     private long startTime = -1;
+    @Nullable
+    private UUID researcherUUID = null; // player who started the current research
+    // Snapshot of item costs consumed when research started (for refund on cancel)
+    @Nullable
+    private List<ItemCost> consumedCosts = null;
 
     public ResearchTableBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.RESEARCH_STATION.get(), pos, state);
@@ -88,13 +94,14 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
 
     /**
      * Attempt to start a research. Validates all rules before starting.
-     * Called from the menu/screen when the player clicks "Start".
+     * Called from the network packet handler.
      *
-     * @param researchId    the research definition ID to start
+     * @param researchId        the research definition ID to start
      * @param completedResearch set of research IDs the player has already completed (for prereqs)
+     * @param playerUUID        UUID of the player starting the research
      * @return true if research was started, false if validation failed
      */
-    public boolean tryStartResearch(String researchId, Set<String> completedResearch) {
+    public boolean tryStartResearch(String researchId, Set<String> completedResearch, UUID playerUUID) {
         if (level == null || level.isClientSide()) return false;
         if (isResearching()) return false;
 
@@ -116,6 +123,12 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
             return false;
         }
 
+        // Check drive capacity
+        if (drive.isFull(driveStack)) {
+            ResearchCubeMod.LOGGER.debug("Drive is full, cannot start research '{}'", researchId);
+            return false;
+        }
+
         // Prerequisites
         if (!definition.getPrerequisites().isSatisfied(completedResearch)) {
             return false;
@@ -126,15 +139,17 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
             return false;
         }
 
-        // All checks passed — consume item costs
+        // All checks passed — snapshot costs for potential refund, then consume
+        this.consumedCosts = definition.getItemCosts();
         consumeItemCosts(definition.getItemCosts());
 
         // Start research
         this.activeResearchId = researchId;
         this.startTime = level.getGameTime();
+        this.researcherUUID = playerUUID;
         setChanged();
 
-        ResearchCubeMod.LOGGER.debug("Started research '{}' at tick {}", researchId, startTime);
+        ResearchCubeMod.LOGGER.debug("Started research '{}' at tick {} for player {}", researchId, startTime, playerUUID);
         return true;
     }
 
@@ -172,13 +187,21 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
 
     /**
      * Complete the research: randomly select a recipe from the pool, imprint it on the drive.
+     * Also records the research as completed in per-player SavedData.
      */
     private void completeResearch(ResearchDefinition definition) {
         if (level == null) return;
 
         ItemStack driveStack = inventory.getStackInSlot(SLOT_DRIVE);
-        if (driveStack.isEmpty() || !(driveStack.getItem() instanceof DriveItem)) {
+        if (driveStack.isEmpty() || !(driveStack.getItem() instanceof DriveItem drive)) {
             ResearchCubeMod.LOGGER.error("Cannot complete research — drive missing!");
+            clearResearch();
+            return;
+        }
+
+        // Double-check capacity (edge case: another research completed in the meantime)
+        if (drive.isFull(driveStack)) {
+            ResearchCubeMod.LOGGER.warn("Drive is full at completion time for research '{}'. Recipe lost.", definition.getId());
             clearResearch();
             return;
         }
@@ -195,6 +218,14 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
                     definition.getId(), selectedRecipe);
         } else {
             ResearchCubeMod.LOGGER.warn("Research '{}' completed but has no recipe pool.", definition.getId());
+        }
+
+        // Record completed research in per-player SavedData
+        if (researcherUUID != null && level instanceof ServerLevel serverLevel) {
+            ResearchSavedData savedData = ResearchSavedData.get(serverLevel);
+            savedData.addCompleted(researcherUUID, definition.getId());
+            ResearchCubeMod.LOGGER.debug("Recorded research '{}' as completed for player {}",
+                    definition.getId(), researcherUUID);
         }
 
         clearResearch();
@@ -272,7 +303,38 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
     public void clearResearch() {
         this.activeResearchId = null;
         this.startTime = -1;
+        this.researcherUUID = null;
+        this.consumedCosts = null;
         setChanged();
+    }
+
+    /**
+     * Cancel active research and refund item costs back into cost slots.
+     * Called from CancelResearchPacket handler.
+     */
+    public void cancelResearchWithRefund() {
+        if (!isResearching()) return;
+
+        // Refund consumed costs into the cost slots
+        if (consumedCosts != null) {
+            for (ItemCost cost : consumedCosts) {
+                int remaining = cost.count();
+                ItemStack refundStack = new ItemStack(cost.getItem(), remaining);
+
+                for (int i = COST_SLOT_START; i < TOTAL_SLOTS && !refundStack.isEmpty(); i++) {
+                    refundStack = inventory.insertItem(i, refundStack, false);
+                }
+
+                // If slots are full, items are lost (edge case — player filled slots)
+                if (!refundStack.isEmpty()) {
+                    ResearchCubeMod.LOGGER.warn("Could not fully refund {} x{} during cancel — {} lost",
+                            cost.itemId(), cost.count(), refundStack.getCount());
+                }
+            }
+        }
+
+        ResearchCubeMod.LOGGER.debug("Research '{}' cancelled with refund.", activeResearchId);
+        clearResearch();
     }
 
     /**
@@ -293,6 +355,9 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
         if (activeResearchId != null) {
             tag.putString("ActiveResearch", activeResearchId);
             tag.putLong("StartTime", startTime);
+            if (researcherUUID != null) {
+                tag.putUUID("ResearcherUUID", researcherUUID);
+            }
         }
     }
 
@@ -303,10 +368,14 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
         if (tag.contains("ActiveResearch")) {
             activeResearchId = tag.getString("ActiveResearch");
             startTime = tag.getLong("StartTime");
+            researcherUUID = tag.hasUUID("ResearcherUUID") ? tag.getUUID("ResearcherUUID") : null;
         } else {
             activeResearchId = null;
             startTime = -1;
+            researcherUUID = null;
         }
+        // consumedCosts are not persisted — on reload, cancel will not refund (acceptable tradeoff)
+        consumedCosts = null;
     }
 
     // ── GeckoLib Animation ──

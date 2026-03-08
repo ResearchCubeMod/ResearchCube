@@ -9,22 +9,24 @@ import java.util.Locale;
  * Higher ordinal = higher tier. IRRECOVERABLE is decorative only (broken).
  */
 public enum ResearchTier implements StringRepresentable {
-    IRRECOVERABLE(0, 0x888888, "Irrecoverable"),  // gray, broken/decorative
-    UNSTABLE     (1, 0xFFFFFF, "Unstable"),        // white
-    BASIC        (2, 0x55FF55, "Basic"),            // green
-    ADVANCED     (3, 0x5555FF, "Advanced"),         // blue
-    PRECISE      (4, 0xFFAA00, "Precise"),          // gold
-    FLAWLESS     (5, 0xAA00AA, "Flawless"),         // purple
-    SELF_AWARE   (6, 0xFF5555, "Self-Aware");       // red
+    IRRECOVERABLE(0, 0x888888, "Irrecoverable", 0),   // gray, broken/decorative
+    UNSTABLE     (1, 0xFFFFFF, "Unstable",       2),   // white
+    BASIC        (2, 0x55FF55, "Basic",          4),   // green
+    ADVANCED     (3, 0x5555FF, "Advanced",       8),   // blue
+    PRECISE      (4, 0xFFAA00, "Precise",       12),   // gold
+    FLAWLESS     (5, 0xAA00AA, "Flawless",      16),   // purple
+    SELF_AWARE   (6, 0xFF5555, "Self-Aware",    -1);   // red, unlimited
 
     private final int level;
     private final int color;
     private final String displayName;
+    private final int maxRecipes; // -1 = unlimited
 
-    ResearchTier(int level, int color, String displayName) {
+    ResearchTier(int level, int color, String displayName, int maxRecipes) {
         this.level = level;
         this.color = color;
         this.displayName = displayName;
+        this.maxRecipes = maxRecipes;
     }
 
     public int getLevel() {
@@ -37,6 +39,21 @@ public enum ResearchTier implements StringRepresentable {
 
     public String getDisplayName() {
         return displayName;
+    }
+
+    /**
+     * Maximum number of recipes a drive of this tier can hold.
+     * Returns -1 for unlimited (SELF_AWARE).
+     */
+    public int getMaxRecipes() {
+        return maxRecipes;
+    }
+
+    /**
+     * Whether this tier has a recipe capacity limit.
+     */
+    public boolean hasRecipeLimit() {
+        return maxRecipes >= 0;
     }
 
     /**

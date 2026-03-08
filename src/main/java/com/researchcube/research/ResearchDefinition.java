@@ -3,6 +3,7 @@ package com.researchcube.research;
 import com.researchcube.research.prerequisite.Prerequisite;
 import com.researchcube.research.prerequisite.NonePrerequisite;
 import net.minecraft.resources.ResourceLocation;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
@@ -29,16 +30,32 @@ public class ResearchDefinition {
     private final Prerequisite prerequisites;
     private final List<ItemCost> itemCosts;
     private final List<ResourceLocation> recipePool;
+    @Nullable
+    private final String name;        // human-readable display name (optional)
+    @Nullable
+    private final String description;  // short description (optional)
 
     public ResearchDefinition(ResourceLocation id, ResearchTier tier, int duration,
                               Prerequisite prerequisites, List<ItemCost> itemCosts,
-                              List<ResourceLocation> recipePool) {
+                              List<ResourceLocation> recipePool,
+                              @Nullable String name, @Nullable String description) {
         this.id = id;
         this.tier = tier;
         this.duration = duration;
         this.prerequisites = prerequisites != null ? prerequisites : NonePrerequisite.INSTANCE;
         this.itemCosts = itemCosts != null ? List.copyOf(itemCosts) : List.of();
         this.recipePool = recipePool != null ? List.copyOf(recipePool) : List.of();
+        this.name = name;
+        this.description = description;
+    }
+
+    /**
+     * Backwards-compatible constructor (no name/description).
+     */
+    public ResearchDefinition(ResourceLocation id, ResearchTier tier, int duration,
+                              Prerequisite prerequisites, List<ItemCost> itemCosts,
+                              List<ResourceLocation> recipePool) {
+        this(id, tier, duration, prerequisites, itemCosts, recipePool, null, null);
     }
 
     public ResourceLocation getId() {
@@ -73,6 +90,36 @@ public class ResearchDefinition {
      */
     public List<ResourceLocation> getRecipePool() {
         return recipePool;
+    }
+
+    /**
+     * Optional human-readable name. Falls back to the path of the ID.
+     */
+    @Nullable
+    public String getName() {
+        return name;
+    }
+
+    /**
+     * Returns the display name: the name field if set, otherwise the ID path.
+     */
+    public String getDisplayName() {
+        return name != null ? name : id.getPath();
+    }
+
+    /**
+     * Optional short description.
+     */
+    @Nullable
+    public String getDescription() {
+        return description;
+    }
+
+    /**
+     * Returns duration as human-readable seconds.
+     */
+    public float getDurationSeconds() {
+        return duration / 20.0f;
     }
 
     /**
