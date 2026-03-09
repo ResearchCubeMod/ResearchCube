@@ -106,8 +106,8 @@ public class ResearchBookScreen extends Screen {
      */
     @Override
     public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        // Flat opaque overlay — no super call, so no blur shader is applied
-        graphics.fill(0, 0, this.width, this.height, 0xFF101010);
+        // Semi-transparent dark overlay (50% opacity) — lets world show through without blur shader
+        graphics.fill(0, 0, this.width, this.height, 0x80101010);
     }
 
     @Override
