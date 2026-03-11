@@ -246,13 +246,6 @@ PHASE 14 — Quality of Life & Content Extras
   21 research entries under data/researchcube/advancements/ so players get in-game
   notifications and an advancement tab tracking their research progress.
 
-- [AI] [LOW PRIO] Research tree visualization screen
-  Add a "View Tree" button to the Research Book screen that opens a zoomable/pannable
-  canvas rendering the full research prerequisite graph as nodes (colored boxes) connected
-  by arrows. Node color = tier color; completed nodes show a checkmark overlay. Clicking
-  a node shows the same tooltip as the research list. Pure client-side rendering, no new
-  packets needed.
-
 - [AI] [LOW PRIO] Research export chip item
   Add a "Research Chip" item. Right-clicking the Research Station while holding it imprints
   one completed research ID onto the chip (choosable via a small pop-up list). Another
@@ -265,3 +258,95 @@ PHASE 14 — Quality of Life & Content Extras
   proportional to research progress (0 when idle, 1–14 scaling with progress, 15 on
   completion). Useful for redstone automation and visual progress indicators.
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 15 — Datapack Documentation
+(Complete pack developer guide for the research & recipe systems.)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- [AI] Create DATAPACK.md guide:
+  - Overview: what ResearchCube is for pack developers
+  - Research definition JSON schema with 3+ examples (basic, prerequisites, weighted pools)
+  - Drive crafting recipe JSON schema with examples
+  - Prerequisites syntax: AND/OR trees, recursive definitions
+  - Configuration defaults, costs, categories, tier reference
+  - Weighted recipe pools (uniform random vs. weighted selection)
+  - Common patterns & troubleshooting
+
+- [AI] Create example RESEARCHTREE.json package with 2–3 interconnected researches demonstrating prerequisites and unlock chains
+
+- [AI] Update root README.md: add "Quick Start" section for both players and pack developers
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 16 — Processing Crafting Station
+(New general-purpose recipe type: 16 item inputs + 2 fluid inputs → 8 item + 1 fluid outputs.)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- [AI] ProcessingRecipe (new CraftingRecipe type):
+  - JSON schema: `type: "researchcube:processing"`, `inputs` (≤16 items), `fluid_inputs` (≤2 fluids), `outputs` (≤8 items), `fluid_outputs` (≤1 fluid), `duration` (ticks)
+  - MapCodec + StreamCodec serializer (NeoForge 1.21.1 pattern)
+
+- [AI] ProcessingStationBlock + ProcessingStationBlockEntity (new block + BE):
+  - 16 item input slots + 2 internal IFluidHandler tanks (generic, not tied to Thinking Fluids)
+  - 8 item output slots + 1 fluid output tank
+  - Server-side ticking: validate inputs present → delay X ticks → produce outputs
+  - NBT persistence for fluid state
+  - getUpdateTag() / getUpdatePacket() for client sync
+
+- [AI] ProcessingStationMenu + ProcessingStationScreen (new UI):
+  - Display input/output slot grids with inline labels
+  - Vertical fluid tank visuals (fill level, colored by fluid type)
+  - Progress bar showing remaining ticks
+  - Validation indicator (recipe matchable, inputs present, space in outputs)
+
+- [AI] StartProcessingPacket (client→server):
+  - Triggered by "Start" button in screen
+  - Server validates recipe match → consume inputs → start ticking
+  - Log `[ResearchCube] WARN` on validation failure (as with research)
+
+- [AI] ModRecipeTypes + ModRecipeSerializers updates: register ProcessingRecipe + serializer; wire in ResearchCubeMod
+
+- [AI] ModBlocks + ModBlockEntities + ModMenus updates: register new block, BE, menu type; wire in ResearchCubeMod
+
+- [AI] JEI Integration (ResearchCubeJEIPlugin update):
+  - New ProcessingCategory (extends AbstractRecipeCategory)
+  - Render input grid, fluid tanks, output grid, duration indicator
+  - Register as recipe catalyst
+  - Auto-load all `processing` recipe types
+
+- [AI] GeckoLib animation (optional): spinning/working effect while processing
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 17 — Research Tree Visualization Screen
+(Visual tree-graph rendering of research prerequisites as alternative to list view.)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- [AI] ResearchTreeScreen (new client screen):
+  - Parse all research from ResearchRegistry + prerequisite graph
+  - Auto-layout: breadth-first hierarchical or force-directed (algorithm TBD)
+  - Render as nodes (tier-colored circles/boxes) + edges (prerequisite links)
+  - AND/OR prerequisites visually distinct (different colors or styles)
+  - Hover → tooltip with tier, name, costs, completion status (✔/✘/locked)
+  - Click node → select research
+  - "Start Research" button (same as list view)
+  - Toggle button or option menu to switch between tree view / list view
+
+- [AI] Integrate toggle into current ResearchTableScreen or add new screen selector
+
+- [AI] Handle edge cases: large research trees, overlapping nodes, single-node selections
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 18 — Custom Drive Crafting Table
+(Dedicated crafting station block for drive_crafting recipe execution.)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- [AI] [MAJOR] DriveCraftingTableBlock + DriveCraftingTableBlockEntity: 
+  - Exposes 3×3 crafting grid + dedicated Drive input slot + output slot
+  - Matches drive_crafting recipes against the grid
+  - On craft, drives Drive, updates inventory
+
+- [AI] [MAJOR] DriveCraftingTableMenu + DriveCraftingTableScreen (new UI):
+  - Display 3×3 grid, Drive slot, output slot
+  - Show matched recipe preview (if valid drive + ingredients present)
+  - "Craft" button (enabled only when valid recipe found)
+
+- [AI] [MAJOR] Networking: CraftDriveRecipePacket (client→server) to trigger craft
