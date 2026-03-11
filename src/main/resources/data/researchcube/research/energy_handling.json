@@ -9,6 +9,7 @@
     { "item": "minecraft:redstone", "count": 16 },
     { "item": "minecraft:gold_ingot", "count": 4 }
   ],
+  "fluid_cost": { "fluid": "researchcube:thinking_fluid", "amount": 1000 },
   "recipe_pool": [
     "researchcube:energy_handling_recipe_1"
   ]

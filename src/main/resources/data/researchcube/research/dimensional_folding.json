@@ -10,6 +10,7 @@
     { "item": "minecraft:obsidian", "count": 8 },
     { "item": "minecraft:crying_obsidian", "count": 4 }
   ],
+  "fluid_cost": { "fluid": "researchcube:reasoning_fluid", "amount": 2000 },
   "recipe_pool": [
     "researchcube:dimensional_folding_recipe_1",
     { "id": "researchcube:dimensional_folding_recipe_2", "weight": 2 }

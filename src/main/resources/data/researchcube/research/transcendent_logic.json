@@ -16,6 +16,7 @@
     { "item": "minecraft:ender_eye", "count": 8 },
     { "item": "minecraft:netherite_ingot", "count": 4 }
   ],
+  "fluid_cost": { "fluid": "researchcube:imagination_fluid", "amount": 4000 },
   "recipe_pool": [
     "researchcube:transcendent_logic_recipe_1",
     { "id": "researchcube:transcendent_logic_recipe_2", "weight": 2 }

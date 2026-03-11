@@ -10,6 +10,7 @@
     { "item": "minecraft:iron_block", "count": 4 },
     { "item": "minecraft:gold_ingot", "count": 8 }
   ],
+  "fluid_cost": { "fluid": "researchcube:reasoning_fluid", "amount": 2000 },
   "recipe_pool": [
     "researchcube:precision_engineering_recipe_1",
     "researchcube:precision_engineering_recipe_2"

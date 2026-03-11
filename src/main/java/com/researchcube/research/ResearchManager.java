@@ -112,7 +112,7 @@ public class ResearchManager extends SimpleJsonResourceReloadListener {
         }
 
         return new ResearchDefinition(id, tier, duration, prerequisites, itemCosts, weightedRecipePool,
-                parseName(json), parseDescription(json), parseCategory(json));
+                parseName(json), parseDescription(json), parseCategory(json), parseFluidCost(json));
     }
 
     @Nullable
@@ -128,5 +128,17 @@ public class ResearchManager extends SimpleJsonResourceReloadListener {
     @Nullable
     private String parseCategory(JsonObject json) {
         return json.has("category") ? json.get("category").getAsString() : null;
+    }
+
+    /**
+     * Parse optional fluid cost: { "fluid": "researchcube:thinking_fluid", "amount": 1000 }
+     */
+    @Nullable
+    private FluidCost parseFluidCost(JsonObject json) {
+        if (!json.has("fluid_cost")) return null;
+        JsonObject fluidObj = json.getAsJsonObject("fluid_cost");
+        ResourceLocation fluidId = ResourceLocation.parse(fluidObj.get("fluid").getAsString());
+        int amount = fluidObj.has("amount") ? fluidObj.get("amount").getAsInt() : 1000;
+        return new FluidCost(fluidId, amount);
     }
 }

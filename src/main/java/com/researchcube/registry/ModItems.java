@@ -3,10 +3,13 @@ package com.researchcube.registry;
 import com.researchcube.ResearchCubeMod;
 import com.researchcube.item.DriveItem;
 import com.researchcube.item.CubeItem;
+import com.researchcube.item.ResearchFluidBucketItem;
 import com.researchcube.research.ResearchTier;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.BucketItem;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
 import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
@@ -52,4 +55,25 @@ public class ModItems {
     // ── Research Book ──
     public static final DeferredItem<com.researchcube.item.ResearchBookItem> RESEARCH_BOOK = ITEMS.register("research_book",
             () -> new com.researchcube.item.ResearchBookItem(new Item.Properties().stacksTo(1)));
+
+    // ── Drive Crafting Table block item ──
+    public static final DeferredItem<BlockItem> DRIVE_CRAFTING_TABLE_ITEM = ITEMS.register("drive_crafting_table",
+            () -> new BlockItem(ModBlocks.DRIVE_CRAFTING_TABLE.get(), new Item.Properties()));
+
+    // ── Fluid Buckets ──
+    public static final DeferredItem<ResearchFluidBucketItem> THINKING_FLUID_BUCKET = ITEMS.register("thinking_fluid_bucket",
+            () -> new ResearchFluidBucketItem(ModFluids.THINKING_FLUID.get(),
+                    new Item.Properties().stacksTo(1).craftRemainder(Items.BUCKET)));
+
+    public static final DeferredItem<ResearchFluidBucketItem> PONDERING_FLUID_BUCKET = ITEMS.register("pondering_fluid_bucket",
+            () -> new ResearchFluidBucketItem(ModFluids.PONDERING_FLUID.get(),
+                    new Item.Properties().stacksTo(1).craftRemainder(Items.BUCKET)));
+
+    public static final DeferredItem<ResearchFluidBucketItem> REASONING_FLUID_BUCKET = ITEMS.register("reasoning_fluid_bucket",
+            () -> new ResearchFluidBucketItem(ModFluids.REASONING_FLUID.get(),
+                    new Item.Properties().stacksTo(1).craftRemainder(Items.BUCKET)));
+
+    public static final DeferredItem<ResearchFluidBucketItem> IMAGINATION_FLUID_BUCKET = ITEMS.register("imagination_fluid_bucket",
+            () -> new ResearchFluidBucketItem(ModFluids.IMAGINATION_FLUID.get(),
+                    new Item.Properties().stacksTo(1).craftRemainder(Items.BUCKET)));
 }

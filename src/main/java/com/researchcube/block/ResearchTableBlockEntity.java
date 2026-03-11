@@ -4,13 +4,18 @@ import com.researchcube.ResearchCubeMod;
 import com.researchcube.item.CubeItem;
 import com.researchcube.item.DriveItem;
 import com.researchcube.registry.ModBlockEntities;
+import com.researchcube.registry.ModFluids;
+import com.researchcube.registry.ModItems;
 import com.researchcube.research.*;
 import com.researchcube.util.NbtUtil;
 import com.researchcube.util.TierUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
@@ -19,10 +24,18 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.Containers;
+import net.minecraft.world.item.BucketItem;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.material.Fluid;
+import net.minecraft.world.level.material.Fluids;
+import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.capability.IFluidHandler;
+import net.neoforged.neoforge.fluids.capability.templates.FluidTank;
 import net.neoforged.neoforge.items.ItemStackHandler;
 import org.jetbrains.annotations.Nullable;
 import software.bernie.geckolib.animatable.GeoBlockEntity;
@@ -52,7 +65,10 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
     public static final int SLOT_DRIVE = 0;
     public static final int SLOT_CUBE = 1;
     public static final int COST_SLOT_START = 2;
-    public static final int TOTAL_SLOTS = 8; // 2 fixed + 6 cost input slots
+    public static final int SLOT_BUCKET_IN = 8;
+    public static final int SLOT_BUCKET_OUT = 9;
+    public static final int TOTAL_SLOTS = 10; // 2 fixed + 6 cost + 2 bucket slots
+    public static final int TANK_CAPACITY = 8000; // 8 buckets (in mB)
 
     // GeckoLib animation
     private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
@@ -63,7 +79,34 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
         protected void onContentsChanged(int slot) {
             setChanged();
         }
+
+        @Override
+        public void deserializeNBT(HolderLookup.Provider provider, CompoundTag nbt) {
+            // Override to prevent resizing when loading from older saves with fewer slots.
+            // Always maintain TOTAL_SLOTS regardless of the saved "Size" value.
+            ListTag tagList = nbt.getList("Items", Tag.TAG_COMPOUND);
+            for (int i = 0; i < getSlots(); i++) {
+                stacks.set(i, ItemStack.EMPTY);
+            }
+            for (int i = 0; i < tagList.size(); i++) {
+                CompoundTag itemTag = tagList.getCompound(i);
+                int slot = itemTag.getInt("Slot");
+                if (slot >= 0 && slot < getSlots()) {
+                    stacks.set(slot, ItemStack.parseOptional(provider, itemTag));
+                }
+            }
+            onLoad();
+        }
     };
+
+    /** Internal fluid tank for research fluids. Accepts only the 4 research fluids. */
+    private final FluidTank fluidTank = new FluidTank(TANK_CAPACITY, stack -> {
+        Fluid fluid = stack.getFluid();
+        return fluid == ModFluids.THINKING_FLUID.get() ||
+               fluid == ModFluids.PONDERING_FLUID.get() ||
+               fluid == ModFluids.REASONING_FLUID.get() ||
+               fluid == ModFluids.IMAGINATION_FLUID.get();
+    });
 
     @Nullable
     private String activeResearchId = null;
@@ -73,6 +116,9 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
     // Snapshot of item costs consumed when research started (for refund on cancel)
     @Nullable
     private List<ItemCost> consumedCosts = null;
+    // Snapshot of fluid cost consumed when research started (for refund on cancel)
+    @Nullable
+    private FluidCost consumedFluidCost = null;
 
     public ResearchTableBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.RESEARCH_STATION.get(), pos, state);
@@ -106,6 +152,67 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
 
     public boolean isResearching() {
         return activeResearchId != null && startTime >= 0;
+    }
+
+    /** Expose the fluid tank for capability registration and menu sync. */
+    public FluidTank getFluidTank() {
+        return fluidTank;
+    }
+
+    /**
+     * Void all fluid in the tank. Called from WipeTankPacket handler.
+     */
+    public void wipeTank() {
+        fluidTank.drain(fluidTank.getFluidAmount(), IFluidHandler.FluidAction.EXECUTE);
+        setChanged();
+    }
+
+    /**
+     * Map a bucket item to its corresponding research fluid, or null if not a research fluid bucket.
+     */
+    @Nullable
+    private Fluid getFluidFromBucket(ItemStack stack) {
+        Item item = stack.getItem();
+        if (item == ModItems.THINKING_FLUID_BUCKET.get()) return ModFluids.THINKING_FLUID.get();
+        if (item == ModItems.PONDERING_FLUID_BUCKET.get()) return ModFluids.PONDERING_FLUID.get();
+        if (item == ModItems.REASONING_FLUID_BUCKET.get()) return ModFluids.REASONING_FLUID.get();
+        if (item == ModItems.IMAGINATION_FLUID_BUCKET.get()) return ModFluids.IMAGINATION_FLUID.get();
+        return null;
+    }
+
+    /**
+     * Process the bucket input slot: if it holds a research fluid bucket and the tank
+     * has capacity, drain the bucket into the tank and output an empty bucket.
+     */
+    private void processBucketSlot() {
+        ItemStack bucketIn = inventory.getStackInSlot(SLOT_BUCKET_IN);
+        ItemStack bucketOut = inventory.getStackInSlot(SLOT_BUCKET_OUT);
+
+        if (bucketIn.isEmpty()) return;
+
+        Fluid fluid = getFluidFromBucket(bucketIn);
+        if (fluid == null) return;
+
+        // Check output slot can receive an empty bucket
+        if (!bucketOut.isEmpty() && (!bucketOut.is(Items.BUCKET) || bucketOut.getCount() >= Items.BUCKET.getDefaultMaxStackSize())) {
+            return;
+        }
+
+        // Try filling the tank
+        FluidStack toFill = new FluidStack(fluid, 1000);
+        int filled = fluidTank.fill(toFill, IFluidHandler.FluidAction.SIMULATE);
+        if (filled < 1000) return; // Not enough tank capacity
+
+        // Execute the fill
+        fluidTank.fill(toFill, IFluidHandler.FluidAction.EXECUTE);
+        bucketIn.shrink(1);
+
+        if (bucketOut.isEmpty()) {
+            inventory.setStackInSlot(SLOT_BUCKET_OUT, new ItemStack(Items.BUCKET));
+        } else {
+            bucketOut.grow(1);
+        }
+        setChanged();
     }
 
     // ── Research Start ──
@@ -170,9 +277,31 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
             return false;
         }
 
+        // Validate fluid cost (if defined)
+        FluidCost fluidCost = definition.getFluidCost();
+        if (fluidCost != null) {
+            FluidStack tankContents = fluidTank.getFluid();
+            if (tankContents.isEmpty() ||
+                !BuiltInRegistries.FLUID.getKey(tankContents.getFluid()).equals(fluidCost.fluidId()) ||
+                tankContents.getAmount() < fluidCost.amount()) {
+                ResearchCubeMod.LOGGER.warn("[ResearchCube] Cannot start '{}': fluid cost not met. required={} {} mB, tank has {} {} mB",
+                        researchId, fluidCost.fluidId(), fluidCost.amount(),
+                        tankContents.isEmpty() ? "empty" : BuiltInRegistries.FLUID.getKey(tankContents.getFluid()),
+                        tankContents.getAmount());
+                return false;
+            }
+        }
+
         // All checks passed — snapshot costs for potential refund, then consume
         this.consumedCosts = definition.getItemCosts();
+        this.consumedFluidCost = fluidCost;
         consumeItemCosts(definition.getItemCosts());
+
+        // Consume fluid cost
+        if (fluidCost != null) {
+            FluidStack toDrain = new FluidStack(fluidCost.getFluid(), fluidCost.amount());
+            fluidTank.drain(toDrain, IFluidHandler.FluidAction.EXECUTE);
+        }
 
         // Start research
         this.activeResearchId = researchId;
@@ -193,6 +322,9 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
      * Server-side tick. Checks research completion against duration.
      */
     public static void serverTick(Level level, BlockPos pos, BlockState state, ResearchTableBlockEntity be) {
+        // Process bucket input → tank fill every tick
+        be.processBucketSlot();
+
         if (!be.isResearching()) {
             return;
         }
@@ -354,6 +486,7 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
         this.startTime = -1;
         this.researchKey = null;
         this.consumedCosts = null;
+        this.consumedFluidCost = null;
         setChanged();
     }
 
@@ -370,7 +503,7 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
                 int remaining = cost.count();
                 ItemStack refundStack = new ItemStack(cost.getItem(), remaining);
 
-                for (int i = COST_SLOT_START; i < TOTAL_SLOTS && !refundStack.isEmpty(); i++) {
+                for (int i = COST_SLOT_START; i < SLOT_BUCKET_IN && !refundStack.isEmpty(); i++) {
                     refundStack = inventory.insertItem(i, refundStack, false);
                 }
 
@@ -379,6 +512,16 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
                     ResearchCubeMod.LOGGER.warn("Could not fully refund {} x{} during cancel — {} lost",
                             cost.itemId(), cost.count(), refundStack.getCount());
                 }
+            }
+        }
+
+        // Refund consumed fluid cost back into the tank
+        if (consumedFluidCost != null) {
+            FluidStack refund = new FluidStack(consumedFluidCost.getFluid(), consumedFluidCost.amount());
+            int refunded = fluidTank.fill(refund, IFluidHandler.FluidAction.EXECUTE);
+            if (refunded < consumedFluidCost.amount()) {
+                ResearchCubeMod.LOGGER.warn("Could not fully refund fluid {} — {} mB lost",
+                        consumedFluidCost.fluidId(), consumedFluidCost.amount() - refunded);
             }
         }
 
@@ -401,6 +544,7 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
     protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);
         tag.put("Inventory", inventory.serializeNBT(registries));
+        tag.put("FluidTank", fluidTank.writeToNBT(registries, new CompoundTag()));
         if (activeResearchId != null) {
             tag.putString("ActiveResearch", activeResearchId);
             tag.putLong("StartTime", startTime);
@@ -414,6 +558,9 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
     protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.loadAdditional(tag, registries);
         inventory.deserializeNBT(registries, tag.getCompound("Inventory"));
+        if (tag.contains("FluidTank")) {
+            fluidTank.readFromNBT(registries, tag.getCompound("FluidTank"));
+        }
         if (tag.contains("ActiveResearch")) {
             activeResearchId = tag.getString("ActiveResearch");
             startTime = tag.getLong("StartTime");
@@ -430,8 +577,9 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
             startTime = -1;
             researchKey = null;
         }
-        // consumedCosts are not persisted — on reload, cancel will not refund (acceptable tradeoff)
+        // consumedCosts/consumedFluidCost are not persisted — on reload, cancel will not refund
         consumedCosts = null;
+        consumedFluidCost = null;
     }
 
     // ── Client Sync ──

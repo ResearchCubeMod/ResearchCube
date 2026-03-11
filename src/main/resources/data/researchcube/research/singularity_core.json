@@ -16,6 +16,7 @@
     { "item": "minecraft:netherite_ingot", "count": 2 },
     { "item": "minecraft:diamond_block", "count": 4 }
   ],
+  "fluid_cost": { "fluid": "researchcube:imagination_fluid", "amount": 4000 },
   "recipe_pool": [
     "researchcube:singularity_core_recipe_1",
     { "id": "researchcube:singularity_core_recipe_2", "weight": 3 }

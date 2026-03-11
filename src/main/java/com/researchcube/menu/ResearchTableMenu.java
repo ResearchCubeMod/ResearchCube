@@ -3,14 +3,19 @@ package com.researchcube.menu;
 import com.researchcube.block.ResearchTableBlockEntity;
 import com.researchcube.item.CubeItem;
 import com.researchcube.item.DriveItem;
+import com.researchcube.item.ResearchFluidBucketItem;
+import com.researchcube.registry.ModFluids;
 import com.researchcube.registry.ModMenus;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.*;
+import net.minecraft.world.item.BucketItem;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.items.ItemStackHandler;
 import net.neoforged.neoforge.items.SlotItemHandler;
 import org.jetbrains.annotations.Nullable;
@@ -26,9 +31,11 @@ import java.util.stream.Collectors;
  *   Slot 0: Drive (filtered to DriveItem)
  *   Slot 1: Cube (filtered to CubeItem)
  *   Slots 2-7: Item cost inputs (6 slots)
+ *   Slot 8: Bucket input (accepts fluid buckets)
+ *   Slot 9: Bucket output (output only — empty buckets)
  *   Player inventory: standard 27 + 9 hotbar
  *
- * Data slots sync research progress and state from server to client.
+ * Data slots sync research progress, state, and fluid info from server to client.
  */
 public class ResearchTableMenu extends AbstractContainerMenu {
 
@@ -41,9 +48,11 @@ public class ResearchTableMenu extends AbstractContainerMenu {
     /** Player's completed research IDs (synced to client via menu buffer). */
     private final Set<String> completedResearch;
 
-    public static final int DATA_PROGRESS = 0;     // 0-1000 (progress * 1000)
-    public static final int DATA_IS_RESEARCHING = 1; // 0 or 1
-    public static final int DATA_COUNT = 2;
+    public static final int DATA_PROGRESS = 0;       // 0-1000 (progress * 1000)
+    public static final int DATA_IS_RESEARCHING = 1;   // 0 or 1
+    public static final int DATA_FLUID_AMOUNT = 2;     // 0-8000 (millibuckets)
+    public static final int DATA_FLUID_TYPE = 3;       // 0=empty, 1=thinking, 2=pondering, 3=reasoning, 4=imagination
+    public static final int DATA_COUNT = 4;
 
     // ── Constructor from server (block entity available) ──
     public ResearchTableMenu(int containerId, Inventory playerInv, ResearchTableBlockEntity be) {
@@ -71,6 +80,11 @@ public class ResearchTableMenu extends AbstractContainerMenu {
                     return switch (index) {
                         case DATA_PROGRESS -> (int) (be.getProgress() * 1000);
                         case DATA_IS_RESEARCHING -> be.isResearching() ? 1 : 0;
+                        case DATA_FLUID_AMOUNT -> be.getFluidTank().getFluidAmount();
+                        case DATA_FLUID_TYPE -> {
+                            FluidStack fs = be.getFluidTank().getFluid();
+                            yield fs.isEmpty() ? 0 : ModFluids.getFluidIndex(fs.getFluid());
+                        }
                         default -> 0;
                     };
                 }
@@ -114,6 +128,22 @@ public class ResearchTableMenu extends AbstractContainerMenu {
                 addSlot(new SlotItemHandler(inv, slotIndex, 48 + col * 18, 25 + row * 18));
             }
         }
+
+        // Slot 8: Bucket input (accepts research fluid buckets)
+        addSlot(new SlotItemHandler(inv, ResearchTableBlockEntity.SLOT_BUCKET_IN, 48, 68) {
+            @Override
+            public boolean mayPlace(ItemStack stack) {
+                return stack.getItem() instanceof ResearchFluidBucketItem;
+            }
+        });
+
+        // Slot 9: Bucket output (output only — receives empty buckets)
+        addSlot(new SlotItemHandler(inv, ResearchTableBlockEntity.SLOT_BUCKET_OUT, 70, 68) {
+            @Override
+            public boolean mayPlace(ItemStack stack) {
+                return false; // output only
+            }
+        });
 
         // ── Player Inventory (27 slots) ──
         for (int row = 0; row < 3; row++) {
@@ -172,6 +202,16 @@ public class ResearchTableMenu extends AbstractContainerMenu {
         return data.get(DATA_IS_RESEARCHING) == 1;
     }
 
+    /** Fluid amount in millibuckets (0-8000), synced via data slots. */
+    public int getFluidAmount() {
+        return data.get(DATA_FLUID_AMOUNT);
+    }
+
+    /** Fluid type index (0=empty, 1-4=research fluids), synced via data slots. */
+    public int getFluidType() {
+        return data.get(DATA_FLUID_TYPE);
+    }
+
     @Override
     public ItemStack quickMoveStack(Player player, int index) {
         ItemStack result = ItemStack.EMPTY;
@@ -181,7 +221,7 @@ public class ResearchTableMenu extends AbstractContainerMenu {
             ItemStack slotStack = slot.getItem();
             result = slotStack.copy();
 
-            int beSlots = ResearchTableBlockEntity.TOTAL_SLOTS; // 8
+            int beSlots = ResearchTableBlockEntity.TOTAL_SLOTS; // 10
             int playerStart = beSlots;
             int playerEnd = playerStart + 36;
 
@@ -200,9 +240,14 @@ public class ResearchTableMenu extends AbstractContainerMenu {
                     if (!this.moveItemStackTo(slotStack, 1, 2, false)) {
                         return ItemStack.EMPTY;
                     }
+                } else if (slotStack.getItem() instanceof ResearchFluidBucketItem) {
+                    // Fluid bucket → bucket input slot
+                    if (!this.moveItemStackTo(slotStack, ResearchTableBlockEntity.SLOT_BUCKET_IN, ResearchTableBlockEntity.SLOT_BUCKET_IN + 1, false)) {
+                        return ItemStack.EMPTY;
+                    }
                 } else {
-                    // Try cost slots
-                    if (!this.moveItemStackTo(slotStack, ResearchTableBlockEntity.COST_SLOT_START, beSlots, false)) {
+                    // Try cost slots (2-7 only, not bucket slots)
+                    if (!this.moveItemStackTo(slotStack, ResearchTableBlockEntity.COST_SLOT_START, ResearchTableBlockEntity.SLOT_BUCKET_IN, false)) {
                         return ItemStack.EMPTY;
                     }
                 }

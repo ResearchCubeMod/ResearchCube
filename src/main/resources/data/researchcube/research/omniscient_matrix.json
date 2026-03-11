@@ -10,6 +10,7 @@
     { "item": "minecraft:netherite_block", "count": 1 },
     { "item": "minecraft:dragon_breath", "count": 4 }
   ],
+  "fluid_cost": { "fluid": "researchcube:imagination_fluid", "amount": 4000 },
   "recipe_pool": [
     { "id": "researchcube:omniscient_matrix_recipe_1", "weight": 1 },
     { "id": "researchcube:omniscient_matrix_recipe_2", "weight": 3 },

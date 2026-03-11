@@ -16,6 +16,7 @@
     { "item": "minecraft:iron_block", "count": 2 },
     { "item": "minecraft:redstone_block", "count": 2 }
   ],
+  "fluid_cost": { "fluid": "researchcube:reasoning_fluid", "amount": 2000 },
   "recipe_pool": [
     "researchcube:nanostructures_recipe_1",
     { "id": "researchcube:nanostructures_recipe_2", "weight": 2 }

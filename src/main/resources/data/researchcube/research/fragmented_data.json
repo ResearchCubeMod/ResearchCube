@@ -8,6 +8,7 @@
     { "item": "minecraft:paper", "count": 8 },
     { "item": "minecraft:redstone", "count": 2 }
   ],
+  "fluid_cost": { "fluid": "researchcube:thinking_fluid", "amount": 500 },
   "recipe_pool": [
     "researchcube:fragmented_data_recipe_1"
   ]

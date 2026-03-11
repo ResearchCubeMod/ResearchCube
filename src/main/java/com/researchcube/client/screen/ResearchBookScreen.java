@@ -2,10 +2,13 @@ package com.researchcube.client.screen;
 
 import com.researchcube.research.*;
 import com.researchcube.research.prerequisite.NonePrerequisite;
+import com.researchcube.util.RecipeOutputResolver;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
 
 import java.util.*;
 
@@ -247,10 +250,16 @@ public class ResearchBookScreen extends Screen {
                     .withStyle(s -> s.withColor(prereqColor)));
         }
 
-        // Recipe pool
+        // Recipe pool — resolve to output item names
         if (def.hasRecipePool()) {
-            tooltip.add(Component.literal("Recipes: " + def.getRecipePool().size() + " possible")
-                    .withStyle(s -> s.withColor(0x55FFFF)));
+            tooltip.add(Component.literal("Possible Rewards:").withStyle(s -> s.withColor(0x55FFFF)));
+            for (ResourceLocation recipeRl : def.getRecipePool()) {
+                String resolved = RecipeOutputResolver.formatOutput(recipeRl.toString());
+                ItemStack output = RecipeOutputResolver.resolveOutput(recipeRl.toString());
+                int rewardColor = !output.isEmpty() ? 0x88FF88 : 0xBBBBBB;
+                tooltip.add(Component.literal("  \u2192 " + resolved)
+                        .withStyle(s -> s.withColor(rewardColor)));
+            }
         }
 
         // Completion status

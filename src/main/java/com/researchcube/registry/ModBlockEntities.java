@@ -1,6 +1,7 @@
 package com.researchcube.registry;
 
 import com.researchcube.ResearchCubeMod;
+import com.researchcube.block.DriveCraftingTableBlockEntity;
 import com.researchcube.block.ResearchTableBlockEntity;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -17,5 +18,12 @@ public class ModBlockEntities {
                     () -> BlockEntityType.Builder.of(
                             ResearchTableBlockEntity::new,
                             ModBlocks.RESEARCH_STATION.get()
+                    ).build(null));
+
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<DriveCraftingTableBlockEntity>> DRIVE_CRAFTING_TABLE =
+            BLOCK_ENTITIES.register("drive_crafting_table",
+                    () -> BlockEntityType.Builder.of(
+                            DriveCraftingTableBlockEntity::new,
+                            ModBlocks.DRIVE_CRAFTING_TABLE.get()
                     ).build(null));
 }

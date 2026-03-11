@@ -7,6 +7,7 @@
   "item_costs": [
     { "item": "minecraft:redstone", "count": 4 }
   ],
+  "fluid_cost": { "fluid": "researchcube:thinking_fluid", "amount": 500 },
   "recipe_pool": [
     "researchcube:unstable_signal_recipe_1"
   ]

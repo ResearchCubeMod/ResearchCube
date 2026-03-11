@@ -39,12 +39,14 @@ public class ResearchDefinition {
     private final String description;  // short description (optional)
     @Nullable
     private final String category;     // optional grouping category (e.g., "circuits", "energy")
+    @Nullable
+    private final FluidCost fluidCost; // optional fluid cost for this research
 
     public ResearchDefinition(ResourceLocation id, ResearchTier tier, int duration,
                               Prerequisite prerequisites, List<ItemCost> itemCosts,
                               List<WeightedRecipe> weightedRecipePool,
                               @Nullable String name, @Nullable String description,
-                              @Nullable String category) {
+                              @Nullable String category, @Nullable FluidCost fluidCost) {
         this.id = id;
         this.tier = tier;
         this.duration = duration;
@@ -55,17 +57,30 @@ public class ResearchDefinition {
         this.name = name;
         this.description = description;
         this.category = category;
+        this.fluidCost = fluidCost;
     }
 
     /**
-     * Backwards-compatible constructor (no name/description/category, plain ResourceLocation pool).
+     * Constructor without fluidCost (backwards-compatible).
+     */
+    public ResearchDefinition(ResourceLocation id, ResearchTier tier, int duration,
+                              Prerequisite prerequisites, List<ItemCost> itemCosts,
+                              List<WeightedRecipe> weightedRecipePool,
+                              @Nullable String name, @Nullable String description,
+                              @Nullable String category) {
+        this(id, tier, duration, prerequisites, itemCosts, weightedRecipePool,
+                name, description, category, null);
+    }
+
+    /**
+     * Backwards-compatible constructor (no name/description/category/fluidCost, plain ResourceLocation pool).
      */
     public ResearchDefinition(ResourceLocation id, ResearchTier tier, int duration,
                               Prerequisite prerequisites, List<ItemCost> itemCosts,
                               List<ResourceLocation> recipePool) {
         this(id, tier, duration, prerequisites, itemCosts,
                 recipePool.stream().map(rl -> new WeightedRecipe(rl, 1)).toList(),
-                null, null, null);
+                null, null, null, null);
     }
 
     public ResourceLocation getId() {
@@ -160,6 +175,14 @@ public class ResearchDefinition {
     @Nullable
     public String getCategory() {
         return category;
+    }
+
+    /**
+     * Optional fluid cost for this research (e.g., 1000 mB of Thinking Fluid).
+     */
+    @Nullable
+    public FluidCost getFluidCost() {
+        return fluidCost;
     }
 
     /**

@@ -8,6 +8,7 @@
     { "item": "minecraft:iron_ingot", "count": 8 },
     { "item": "minecraft:coal", "count": 4 }
   ],
+  "fluid_cost": { "fluid": "researchcube:thinking_fluid", "amount": 1000 },
   "recipe_pool": [
     "researchcube:material_synthesis_recipe_1"
   ]

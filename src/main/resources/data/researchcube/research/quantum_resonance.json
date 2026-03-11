@@ -9,6 +9,7 @@
     { "item": "minecraft:redstone_block", "count": 2 },
     { "item": "minecraft:quartz", "count": 8 }
   ],
+  "fluid_cost": { "fluid": "researchcube:pondering_fluid", "amount": 1000 },
   "recipe_pool": [
     "researchcube:quantum_resonance_recipe_1",
     "researchcube:quantum_resonance_recipe_2"

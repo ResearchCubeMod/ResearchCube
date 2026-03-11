@@ -137,8 +137,9 @@ public class DriveCraftingRecipe implements CraftingRecipe {
     }
 
     /**
-     * The drive is NOT consumed — instead, the matched recipe_id is stripped from
-     * its NBT, and the drive is returned as a remainder. All other items are consumed normally.
+     * The drive is NOT consumed and its NBT is NOT modified — it is returned intact
+     * so the same recipe can be crafted repeatedly without losing the stored recipe_id.
+     * All other items are consumed normally.
      */
     @Override
     public NonNullList<ItemStack> getRemainingItems(CraftingInput input) {
@@ -148,10 +149,8 @@ public class DriveCraftingRecipe implements CraftingRecipe {
         for (int i = 0; i < input.size(); i++) {
             ItemStack stack = input.getItem(i);
             if (!driveHandled && stack.getItem() instanceof DriveItem && NbtUtil.hasRecipe(stack, recipeId)) {
-                // Return a copy of the drive with the used recipe ID removed
-                ItemStack driveCopy = stack.copy();
-                NbtUtil.removeRecipe(driveCopy, recipeId);
-                remaining.set(i, driveCopy);
+                // Return the drive unchanged — recipe_id is kept for future uses
+                remaining.set(i, stack.copy());
                 driveHandled = true;
             }
             // Non-drive items: remain EMPTY (consumed)

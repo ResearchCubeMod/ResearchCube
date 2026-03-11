@@ -2,6 +2,7 @@ package com.researchcube.item;
 
 import com.researchcube.research.ResearchTier;
 import com.researchcube.util.NbtUtil;
+import com.researchcube.util.RecipeOutputResolver;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Item;
@@ -82,8 +83,20 @@ public class DriveItem extends Item {
             tooltipComponents.add(Component.literal("Stored Recipes: " + capacityStr)
                     .withStyle(ChatFormatting.AQUA));
             for (String recipe : recipes) {
-                tooltipComponents.add(Component.literal("  • " + recipe)
-                        .withStyle(ChatFormatting.GRAY));
+                String resolved = RecipeOutputResolver.formatOutput(recipe);
+                if (!resolved.equals(recipe)) {
+                    // Resolved to an output item name
+                    tooltipComponents.add(Component.literal("  \u2022 " + resolved)
+                            .withStyle(ChatFormatting.GREEN));
+                    if (tooltipFlag.isAdvanced()) {
+                        tooltipComponents.add(Component.literal("    (" + recipe + ")")
+                                .withStyle(ChatFormatting.DARK_GRAY));
+                    }
+                } else {
+                    // Fallback to raw ID
+                    tooltipComponents.add(Component.literal("  \u2022 " + recipe)
+                            .withStyle(ChatFormatting.GRAY));
+                }
             }
         }
 

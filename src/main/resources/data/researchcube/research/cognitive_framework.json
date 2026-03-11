@@ -16,6 +16,7 @@
     { "item": "minecraft:ender_eye", "count": 4 },
     { "item": "minecraft:golden_apple", "count": 2 }
   ],
+  "fluid_cost": { "fluid": "researchcube:reasoning_fluid", "amount": 2000 },
   "recipe_pool": [
     "researchcube:cognitive_framework_recipe_1",
     { "id": "researchcube:cognitive_framework_recipe_2", "weight": 2 }

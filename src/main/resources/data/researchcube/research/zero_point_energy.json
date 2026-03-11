@@ -16,6 +16,7 @@
     { "item": "minecraft:redstone_block", "count": 8 },
     { "item": "minecraft:ender_pearl", "count": 8 }
   ],
+  "fluid_cost": { "fluid": "researchcube:reasoning_fluid", "amount": 2000 },
   "recipe_pool": [
     "researchcube:zero_point_energy_recipe_1",
     { "id": "researchcube:zero_point_energy_recipe_2", "weight": 2 }

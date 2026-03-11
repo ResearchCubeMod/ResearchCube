@@ -15,6 +15,7 @@
     { "item": "minecraft:redstone", "count": 16 },
     { "item": "minecraft:diamond", "count": 2 }
   ],
+  "fluid_cost": { "fluid": "researchcube:pondering_fluid", "amount": 1000 },
   "recipe_pool": [
     "researchcube:processor_recipe_1",
     "researchcube:processor_recipe_2"

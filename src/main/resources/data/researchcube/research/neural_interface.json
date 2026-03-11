@@ -10,6 +10,7 @@
     { "item": "minecraft:redstone", "count": 16 },
     { "item": "minecraft:spider_eye", "count": 4 }
   ],
+  "fluid_cost": { "fluid": "researchcube:pondering_fluid", "amount": 1000 },
   "recipe_pool": [
     "researchcube:neural_interface_recipe_1",
     "researchcube:neural_interface_recipe_2"

@@ -6,11 +6,15 @@ import com.researchcube.item.CubeItem;
 import com.researchcube.menu.ResearchTableMenu;
 import com.researchcube.network.CancelResearchPacket;
 import com.researchcube.network.StartResearchPacket;
+import com.researchcube.network.WipeTankPacket;
+import com.researchcube.registry.ModFluids;
 import com.researchcube.research.ResearchDefinition;
 import com.researchcube.research.ResearchRegistry;
 import com.researchcube.research.ResearchTier;
 import com.researchcube.research.ItemCost;
+import com.researchcube.research.FluidCost;
 import com.researchcube.research.prerequisite.NonePrerequisite;
+import com.researchcube.util.RecipeOutputResolver;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -53,6 +57,12 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
     private static final int PROGRESS_W = 106;
     private static final int PROGRESS_H = 8;
 
+    // Fluid gauge (vertical bar on right side of left panel)
+    private static final int GAUGE_X = 108;
+    private static final int GAUGE_Y = 18;
+    private static final int GAUGE_W = 12;
+    private static final int GAUGE_H = 46;
+
     // Panel regions
     private static final int LEFT_PANEL_X = 5;
     private static final int LEFT_PANEL_Y = 5;
@@ -82,6 +92,7 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
 
     private Button startButton;
     private Button cancelButton;
+    private Button wipeButton;
 
     public ResearchTableScreen(ResearchTableMenu menu, Inventory playerInv, Component title) {
         super(menu, playerInv, title);
@@ -107,6 +118,11 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
                 .bounds(leftPos + 70, topPos + 110, 50, 16)
                 .build();
         addRenderableWidget(cancelButton);
+
+        wipeButton = Button.builder(Component.literal("Wipe"), btn -> onWipeTank())
+                .bounds(leftPos + 92, topPos + 72, 28, 14)
+                .build();
+        addRenderableWidget(wipeButton);
 
         refreshResearchList();
     }
@@ -196,6 +212,11 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         PacketDistributor.sendToServer(new CancelResearchPacket(be.getBlockPos()));
     }
 
+    private void onWipeTank() {
+        ResearchTableBlockEntity be = menu.getBlockEntity();
+        PacketDistributor.sendToServer(new WipeTankPacket(be.getBlockPos()));
+    }
+
     @Override
     public void containerTick() {
         super.containerTick();
@@ -205,6 +226,7 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
                 && isPrerequisiteMet(availableResearch.get(selectedIndex));
         startButton.active = canStart;
         cancelButton.active = menu.isResearching();
+        wipeButton.active = menu.getFluidAmount() > 0;
     }
 
     private boolean isPrerequisiteMet(ResearchDefinition def) {
@@ -265,6 +287,15 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         g.drawString(font, "Cube", x + 12, y + 50, 0xFF999999, false);
         g.drawString(font, "Cost:", x + 48, y + 16, 0xFF999999, false);
 
+        // ── Bucket slots ──
+        drawSlotBg(g, x + 48, y + 68);  // Bucket In
+        drawSlotBg(g, x + 70, y + 68);  // Bucket Out
+        g.drawString(font, "\u25BC", x + 51, y + 64, 0xFF55CCFF, false);  // down arrow — "input"
+        g.drawString(font, "\u25B2", x + 73, y + 64, 0xFF999999, false);  // up arrow — "output"
+
+        // ── Fluid gauge ──
+        drawFluidGauge(g, x + GAUGE_X, y + GAUGE_Y, GAUGE_W, GAUGE_H);
+
         // ── Progress bar ──
         if (menu.isResearching()) {
             float progress = Math.min(1.0f, menu.getScaledProgress());
@@ -318,6 +349,38 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         g.fill(x0, y0, x0 + 1, y0 + 18, PANEL_BORDER_DARK);
     }
 
+    /**
+     * Draw the vertical fluid gauge bar showing current tank contents.
+     * Fills from bottom to top, colored by fluid type.
+     */
+    private void drawFluidGauge(GuiGraphics g, int gx, int gy, int gw, int gh) {
+        // Frame (inset border)
+        g.fill(gx - 1, gy - 1, gx + gw + 1, gy + gh + 1, PANEL_BORDER_DARK);
+        g.fill(gx, gy, gx + gw, gy + gh, 0xFF222222);
+
+        int fluidAmount = menu.getFluidAmount();
+        int fluidType = menu.getFluidType();
+
+        if (fluidAmount > 0 && fluidType > 0) {
+            int tankCapacity = ResearchTableBlockEntity.TANK_CAPACITY;
+            int fillHeight = (int) ((float) gh * fluidAmount / tankCapacity);
+            fillHeight = Math.min(fillHeight, gh);
+            int fillY = gy + gh - fillHeight;
+            int fluidColor = ModFluids.getFluidColor(fluidType);
+            g.fill(gx, fillY, gx + gw, gy + gh, fluidColor);
+
+            // Subtle shine line at the top of the fill
+            if (fillHeight > 2) {
+                int shine = (fluidColor & 0x00FFFFFF) | 0x44000000;
+                g.fill(gx, fillY, gx + gw, fillY + 1, shine);
+            }
+        }
+
+        // Bottom/right highlight
+        g.fill(gx + gw, gy - 1, gx + gw + 1, gy + gh + 1, PANEL_BORDER_LIGHT);
+        g.fill(gx - 1, gy + gh, gx + gw + 1, gy + gh + 1, PANEL_BORDER_LIGHT);
+    }
+
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         super.render(graphics, mouseX, mouseY, partialTick);
@@ -343,6 +406,9 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
 
         // Tooltip on research row hover
         renderResearchTooltip(graphics, mouseX, mouseY);
+
+        // Tooltip on fluid gauge hover
+        renderFluidGaugeTooltip(graphics, mouseX, mouseY);
 
         renderTooltip(graphics, mouseX, mouseY);
     }
@@ -471,6 +537,15 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
             }
         }
 
+        // Fluid cost
+        FluidCost fluidCost = def.getFluidCost();
+        if (fluidCost != null) {
+            String fluidName = fluidCost.getFluidName();
+            fluidName = fluidName.substring(0, 1).toUpperCase() + fluidName.substring(1);
+            tooltip.add(Component.literal("Fluid: " + fluidCost.amount() + " mB " + fluidName)
+                    .withStyle(s -> s.withColor(0x55CCFF)));
+        }
+
         // Prerequisites status
         if (!(def.getPrerequisites() instanceof NonePrerequisite)) {
             boolean met = isPrerequisiteMet(def);
@@ -480,11 +555,51 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
                     .withStyle(s -> s.withColor(prereqColor)));
         }
 
-        // Recipe pool count
+        // Recipe pool — resolve to output item names
         if (def.hasRecipePool()) {
-            tooltip.add(Component.literal("Recipes: " + def.getRecipePool().size() + " possible")
+            StringBuilder rewardLine = new StringBuilder("Rewards: ");
+            boolean first = true;
+            for (ResourceLocation recipeRl : def.getRecipePool()) {
+                if (!first) rewardLine.append(" or ");
+                rewardLine.append(RecipeOutputResolver.formatOutput(recipeRl.toString()));
+                first = false;
+            }
+            tooltip.add(Component.literal(rewardLine.toString())
                     .withStyle(s -> s.withColor(0x55FFFF)));
         }
+
+        graphics.renderTooltip(font, tooltip, Optional.empty(), mouseX, mouseY);
+    }
+
+    /**
+     * Renders a tooltip when hovering over the fluid gauge bar.
+     */
+    private void renderFluidGaugeTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
+        int gx = leftPos + GAUGE_X;
+        int gy = topPos + GAUGE_Y;
+
+        if (mouseX < gx - 1 || mouseX >= gx + GAUGE_W + 1 || mouseY < gy - 1 || mouseY >= gy + GAUGE_H + 1) {
+            return;
+        }
+
+        List<Component> tooltip = new ArrayList<>();
+        int fluidAmount = menu.getFluidAmount();
+        int fluidType = menu.getFluidType();
+
+        if (fluidAmount > 0 && fluidType > 0) {
+            int color = ModFluids.getFluidColor(fluidType);
+            tooltip.add(Component.literal(ModFluids.getFluidName(fluidType))
+                    .withStyle(s -> s.withColor(color & 0x00FFFFFF)));
+            tooltip.add(Component.literal(fluidAmount + " / " + ResearchTableBlockEntity.TANK_CAPACITY + " mB")
+                    .withStyle(s -> s.withColor(0xBBBBBB)));
+        } else {
+            tooltip.add(Component.literal("Empty")
+                    .withStyle(s -> s.withColor(0x888888)));
+            tooltip.add(Component.literal("0 / " + ResearchTableBlockEntity.TANK_CAPACITY + " mB")
+                    .withStyle(s -> s.withColor(0xBBBBBB)));
+        }
+        tooltip.add(Component.literal("Insert fluid buckets below")
+                .withStyle(s -> s.withColor(0x666666).withItalic(true)));
 
         graphics.renderTooltip(font, tooltip, Optional.empty(), mouseX, mouseY);
     }

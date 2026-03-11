@@ -35,8 +35,15 @@ public class ModCreativeTabs {
                         output.accept(ModItems.CUBE_SELF_AWARE.get());
                         // Research Station
                         output.accept(ModItems.RESEARCH_STATION_ITEM.get());
+                        // Drive Crafting Table
+                        output.accept(ModItems.DRIVE_CRAFTING_TABLE_ITEM.get());
                         // Research Book
                         output.accept(ModItems.RESEARCH_BOOK.get());
+                        // Fluid Buckets
+                        output.accept(ModItems.THINKING_FLUID_BUCKET.get());
+                        output.accept(ModItems.PONDERING_FLUID_BUCKET.get());
+                        output.accept(ModItems.REASONING_FLUID_BUCKET.get());
+                        output.accept(ModItems.IMAGINATION_FLUID_BUCKET.get());
                     })
                     .build());
 }

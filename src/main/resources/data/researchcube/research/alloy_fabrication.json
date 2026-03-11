@@ -10,6 +10,7 @@
     { "item": "minecraft:gold_ingot", "count": 4 },
     { "item": "minecraft:coal", "count": 8 }
   ],
+  "fluid_cost": { "fluid": "researchcube:pondering_fluid", "amount": 1000 },
   "recipe_pool": [
     "researchcube:alloy_fabrication_recipe_1",
     "researchcube:alloy_fabrication_recipe_2"

@@ -16,7 +16,19 @@
 
   "item.researchcube.research_station_item": "Research Station",
   "item.researchcube.research_book": "Research Encyclopedia",
+  "item.researchcube.drive_crafting_table": "Drive Crafting Table",
+
+  "item.researchcube.thinking_fluid_bucket": "§bThinking Fluid Bucket",
+  "item.researchcube.pondering_fluid_bucket": "§5Pondering Fluid Bucket",
+  "item.researchcube.reasoning_fluid_bucket": "§6Reasoning Fluid Bucket",
+  "item.researchcube.imagination_fluid_bucket": "§dImagination Fluid Bucket",
+
+  "fluid_type.researchcube.thinking_fluid": "Thinking Fluid",
+  "fluid_type.researchcube.pondering_fluid": "Pondering Fluid",
+  "fluid_type.researchcube.reasoning_fluid": "Reasoning Fluid",
+  "fluid_type.researchcube.imagination_fluid": "Imagination Fluid",
 
   "itemGroup.researchcubetab": "Research Cube",
-  "block.researchcube.research_station": "Research Station"
+  "block.researchcube.research_station": "Research Station",
+  "block.researchcube.drive_crafting_table": "Drive Crafting Table"
 }

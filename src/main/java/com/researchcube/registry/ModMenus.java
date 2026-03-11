@@ -1,6 +1,7 @@
 package com.researchcube.registry;
 
 import com.researchcube.ResearchCubeMod;
+import com.researchcube.menu.DriveCraftingTableMenu;
 import com.researchcube.menu.ResearchTableMenu;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.inventory.MenuType;
@@ -16,4 +17,8 @@ public class ModMenus {
     public static final DeferredHolder<MenuType<?>, MenuType<ResearchTableMenu>> RESEARCH_TABLE =
             MENUS.register("research_table", () ->
                     IMenuTypeExtension.create(ResearchTableMenu::new));
+
+    public static final DeferredHolder<MenuType<?>, MenuType<DriveCraftingTableMenu>> DRIVE_CRAFTING_TABLE =
+            MENUS.register("drive_crafting_table", () ->
+                    IMenuTypeExtension.create(DriveCraftingTableMenu::new));
 }

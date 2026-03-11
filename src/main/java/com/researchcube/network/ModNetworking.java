@@ -28,6 +28,12 @@ public class ModNetworking {
                 CancelResearchPacket::handle
         );
 
+        registrar.playToServer(
+                WipeTankPacket.TYPE,
+                WipeTankPacket.STREAM_CODEC,
+                WipeTankPacket::handle
+        );
+
         registrar.playToClient(
                 OpenResearchBookPacket.TYPE,
                 OpenResearchBookPacket.STREAM_CODEC,

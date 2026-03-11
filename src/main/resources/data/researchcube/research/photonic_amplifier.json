@@ -16,6 +16,7 @@
     { "item": "minecraft:prismarine_shard", "count": 4 },
     { "item": "minecraft:redstone", "count": 8 }
   ],
+  "fluid_cost": { "fluid": "researchcube:pondering_fluid", "amount": 1000 },
   "recipe_pool": [
     "researchcube:photonic_amplifier_recipe_1"
   ]
