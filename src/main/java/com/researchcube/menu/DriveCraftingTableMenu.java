@@ -5,7 +5,6 @@ import com.researchcube.item.DriveItem;
 import com.researchcube.recipe.DriveCraftingRecipe;
 import com.researchcube.registry.ModMenus;
 import com.researchcube.registry.ModRecipeTypes;
-import com.researchcube.util.NbtUtil;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.Container;
 import net.minecraft.world.entity.player.Inventory;
@@ -162,7 +161,6 @@ public class DriveCraftingTableMenu extends AbstractContainerMenu {
         if (currentRecipe == null) return;
 
         DriveCraftingRecipe recipe = currentRecipe.value();
-        ItemStackHandler inv = blockEntity.getInventory();
 
         // Drive stays in the slot unchanged — recipe_id is deliberately kept
 

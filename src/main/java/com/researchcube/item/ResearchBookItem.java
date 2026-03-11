@@ -1,6 +1,5 @@
 package com.researchcube.item;
 
-import com.researchcube.ResearchCubeMod;
 import com.researchcube.network.OpenResearchBookPacket;
 import com.researchcube.research.ResearchSavedData;
 import net.minecraft.network.chat.Component;
