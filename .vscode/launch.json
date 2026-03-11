@@ -12,11 +12,11 @@
       "projectName": "researchcube",
       "mainClass": "net.neoforged.devlaunch.Main",
       "args": [
-        "@C:\\Users\\elias\\Documents\\dev\\ResearchCube\\build\\moddev\\clientRunProgramArgs.txt"
+        "@C:\\Users\\ASUS\\Documents\\java\\modding\\researchcube\\ResearchCube\\build\\moddev\\clientRunProgramArgs.txt"
       ],
       "vmArgs": [
-        "@C:\\Users\\elias\\Documents\\dev\\ResearchCube\\build\\moddev\\clientRunVmArgs.txt",
-        "-Dfml.modFolders\u003dresearchcube%%C:\\Users\\elias\\Documents\\dev\\ResearchCube\\bin\\main"
+        "@C:\\Users\\ASUS\\Documents\\java\\modding\\researchcube\\ResearchCube\\build\\moddev\\clientRunVmArgs.txt",
+        "-Dfml.modFolders\u003dresearchcube%%C:\\Users\\ASUS\\Documents\\java\\modding\\researchcube\\ResearchCube\\bin\\main"
       ],
       "cwd": "${workspaceFolder}\\run",
       "console": "internalConsole",
@@ -33,11 +33,11 @@
       "projectName": "researchcube",
       "mainClass": "net.neoforged.devlaunch.Main",
       "args": [
-        "@C:\\Users\\elias\\Documents\\dev\\ResearchCube\\build\\moddev\\dataRunProgramArgs.txt"
+        "@C:\\Users\\ASUS\\Documents\\java\\modding\\researchcube\\ResearchCube\\build\\moddev\\dataRunProgramArgs.txt"
       ],
       "vmArgs": [
-        "@C:\\Users\\elias\\Documents\\dev\\ResearchCube\\build\\moddev\\dataRunVmArgs.txt",
-        "-Dfml.modFolders\u003dresearchcube%%C:\\Users\\elias\\Documents\\dev\\ResearchCube\\bin\\main"
+        "@C:\\Users\\ASUS\\Documents\\java\\modding\\researchcube\\ResearchCube\\build\\moddev\\dataRunVmArgs.txt",
+        "-Dfml.modFolders\u003dresearchcube%%C:\\Users\\ASUS\\Documents\\java\\modding\\researchcube\\ResearchCube\\bin\\main"
       ],
       "cwd": "${workspaceFolder}\\run",
       "console": "internalConsole",
@@ -54,11 +54,11 @@
       "projectName": "researchcube",
       "mainClass": "net.neoforged.devlaunch.Main",
       "args": [
-        "@C:\\Users\\elias\\Documents\\dev\\ResearchCube\\build\\moddev\\serverRunProgramArgs.txt"
+        "@C:\\Users\\ASUS\\Documents\\java\\modding\\researchcube\\ResearchCube\\build\\moddev\\serverRunProgramArgs.txt"
       ],
       "vmArgs": [
-        "@C:\\Users\\elias\\Documents\\dev\\ResearchCube\\build\\moddev\\serverRunVmArgs.txt",
-        "-Dfml.modFolders\u003dresearchcube%%C:\\Users\\elias\\Documents\\dev\\ResearchCube\\bin\\main"
+        "@C:\\Users\\ASUS\\Documents\\java\\modding\\researchcube\\ResearchCube\\build\\moddev\\serverRunVmArgs.txt",
+        "-Dfml.modFolders\u003dresearchcube%%C:\\Users\\ASUS\\Documents\\java\\modding\\researchcube\\ResearchCube\\bin\\main"
       ],
       "cwd": "${workspaceFolder}\\run",
       "console": "internalConsole",
