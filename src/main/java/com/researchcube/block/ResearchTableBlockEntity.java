@@ -24,7 +24,6 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.Containers;
-import net.minecraft.world.item.BucketItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -420,7 +419,7 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
     private boolean validateItemCosts(List<ItemCost> costs) {
         for (ItemCost cost : costs) {
             int remaining = cost.count();
-            for (int i = COST_SLOT_START; i < TOTAL_SLOTS; i++) {
+            for (int i = COST_SLOT_START; i < SLOT_BUCKET_IN; i++) {
                 ItemStack stack = inventory.getStackInSlot(i);
                 if (!stack.isEmpty() && stack.getItem() == cost.getItem()) {
                     remaining -= stack.getCount();
@@ -439,7 +438,7 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
     private void consumeItemCosts(List<ItemCost> costs) {
         for (ItemCost cost : costs) {
             int remaining = cost.count();
-            for (int i = COST_SLOT_START; i < TOTAL_SLOTS && remaining > 0; i++) {
+            for (int i = COST_SLOT_START; i < SLOT_BUCKET_IN && remaining > 0; i++) {
                 ItemStack stack = inventory.getStackInSlot(i);
                 if (!stack.isEmpty() && stack.getItem() == cost.getItem()) {
                     int take = Math.min(remaining, stack.getCount());

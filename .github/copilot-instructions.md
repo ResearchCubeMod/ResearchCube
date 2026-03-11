@@ -4,19 +4,21 @@
 - This is a NeoForge 1.21.1 mod (`Java 21`) with one core gameplay loop: players run research at a `Research Station`, then unlock gated `drive_crafting` recipes.
 - Research definitions are **datapack-driven** from `data/*/research/*.json` and loaded on server reload via `ResearchManager`.
 - The authoritative flow is server-side: UI click → packet → block entity validation → timed completion → recipe ID imprinted into drive NBT.
-- The mod is fully implemented through Phase 6 (build system, items, blocks, research system, recipes, menu/screen UI, GeckoLib renderer, per-player tracking, cancel/refund, drive capacity, full UI polish). Build is verified `BUILD SUCCESSFUL`.
+- The mod is fully implemented (build system, items, blocks, research system, recipes, menu/screen UI, GeckoLib renderer, per-player tracking, cancel/refund, drive capacity, fluid costs, fluid tank, bucket slot handling, research book, Drive Crafting Table, JEI integration, ambient sound). Build is verified `BUILD SUCCESSFUL`.
 
 ## Tech stack
 - **NeoForge 21.1.219** for Minecraft 1.21.1
 - **GeckoLib 4.7.1** — animated Research Station block entity (rotating brain, `animation.researchstation.idle`)
 - **Java 21**, Gradle 8.10.2, `net.neoforged.moddev` plugin 2.0.42-beta
 - **Parchment mappings** 2024.11.17 for readable parameter names
+- **JEI 19.21.0.247** (`mezz.jei`) — `compileOnly` dependency; recipe category shows drive-crafting recipes. Only loaded when JEI is present at runtime.
 - `DataComponents.CUSTOM_DATA` / `NbtUtil` for item data (NeoForge 1.21.1 pattern — no raw `CompoundTag` on items)
 - `MapCodec` + `StreamCodec` for recipe serialization (NeoForge 1.21.1 pattern — no `fromJson`/`toJson`)
 - `SimpleJsonResourceReloadListener` for datapack research loading
 - `SavedData` for per-player completed research persistence (`ResearchSavedData`)
 - `IMenuTypeExtension.create(...)` with `FriendlyByteBuf` constructor for menu type registration
 - `SimpleContainerData` wrapped in anonymous `ContainerData` for correct client-side sync (the `set()` method must store values — a pure read-only anonymous class breaks client sync)
+- `FluidTank` (NeoForge) for the Research Station's internal fluid storage (capacity 8000 mB = 8 buckets)
 
 ## Architecture and data flow
 
@@ -28,9 +30,9 @@
 1. Player right-clicks the Research Station block → `ResearchTableBlock.useWithoutItem` opens the menu via `ServerPlayer.openMenu`, writing `BlockPos` + the player's completed research `Set<ResourceLocation>` into the `FriendlyByteBuf`.
 2. `client/screen/ResearchTableScreen` renders the research list (tier-colored, locked with lock icon if prerequisites unmet), slots, active research name, and progress bar; player selects a row then clicks Start.
 3. Screen sends `network/StartResearchPacket` (client → server) containing `BlockPos` + research ID string.
-4. `StartResearchPacket.handle` (server thread) calls `ResearchTableBlockEntity.tryStartResearch`, which validates tier rules, prerequisites, drive capacity, and item costs — all failures log a `[ResearchCube]` WARN. On success, costs are consumed and a snapshot stored for refund.
-5. `ResearchTableBlockEntity.serverTick` checks elapsed ticks vs. `definition.getDuration()`. On completion, `completeResearch()` picks a random recipe from the pool, calls `NbtUtil.addRecipe()` to imprint the recipe ID onto the drive stack, and records the research in `ResearchSavedData`.
-6. `ContainerData` (backed by `SimpleContainerData` so `set()` actually stores client-side) syncs `progress * 1000` and `isResearching` flag each tick. The screen shows the running research name (tier-colored), a gradient progress bar, and activates the Stop button.
+4. `StartResearchPacket.handle` (server thread) calls `ResearchTableBlockEntity.tryStartResearch`, which validates tier rules, prerequisites, drive capacity, item costs, and fluid costs — all failures log a `[ResearchCube]` WARN. On success, items are consumed and the fluid is drained from the tank; both are snapshotted for refund.
+5. `ResearchTableBlockEntity.serverTick` checks elapsed ticks vs. `definition.getDuration()`. On completion, `completeResearch()` picks a weighted-random recipe from the pool via `WeightedRecipe`, calls `NbtUtil.addRecipe()` to imprint the recipe ID onto the drive stack, and records the research in `ResearchSavedData`.
+6. `ContainerData` (backed by `SimpleContainerData`) syncs 4 values each tick: `DATA_PROGRESS` (0–1000), `DATA_IS_RESEARCHING` (0/1), `DATA_FLUID_AMOUNT` (0–8000 mB), `DATA_FLUID_TYPE` (0=empty, 1=thinking, 2=pondering, 3=reasoning, 4=imagination). The screen shows the running research name (tier-colored), a gradient progress bar, a fluid gauge, and activates the Stop button.
 7. If cancelled via `CancelResearchPacket`, `cancelResearchWithRefund()` returns the consumed item costs into the cost slots.
 
 ### Crafting gate path
@@ -41,18 +43,20 @@
 | Package | Purpose |
 |---|---|
 | `com.researchcube` | `ResearchCubeMod` — entry point, `rl()` helper, DeferredRegister wiring |
-| `block` | `ResearchTableBlock` (opens menu on right-click, writes completed research into buf), `ResearchTableBlockEntity` (GeoBlockEntity, ticking, slot storage, `getUpdateTag`/`getUpdatePacket` for client sync) |
-| `item` | `DriveItem` (tiered, stores recipe IDs in CustomData, `isFull()` capacity check, foil effect), `CubeItem` (tiered, validation only) |
-| `menu` | `ResearchTableMenu` — 8 BE slots + player inventory, `SimpleContainerData`-backed ContainerData sync, `completedResearch` set from buf |
-| `client` | `ModClientEvents` — registers screen + GeckoLib renderer (Dist.CLIENT, MOD bus) |
-| `client/screen` | `ResearchTableScreen` — scrollable research list with tier colors + lock icons, prereq tooltip, active research name, gradient progress bar, Start/Stop buttons |
+| `block` | `ResearchTableBlock` (opens menu on right-click, writes completed research into buf), `ResearchTableBlockEntity` (GeoBlockEntity, ticking, 10-slot inventory + FluidTank, `getUpdateTag`/`getUpdatePacket` for client sync), `DriveCraftingTableBlock`, `DriveCraftingTableBlockEntity` |
+| `item` | `DriveItem` (tiered, stores recipe IDs in CustomData, `isFull()` capacity check, foil effect), `CubeItem` (tiered, validation only), `ResearchBookItem` (opens research book screen via packet), `ResearchFluidBucketItem` (custom bucket for research fluids) |
+| `menu` | `ResearchTableMenu` — 10 BE slots + player inventory, 4-value `SimpleContainerData`, `completedResearch` set from buf; `DriveCraftingTableMenu` — drive crafting container |
+| `client` | `ModClientEvents` — registers screens + GeckoLib renderer + sound (Dist.CLIENT, MOD bus); `ClientSoundHandler` — starts/stops `ResearchStationSoundInstance` |
+| `client/screen` | `ResearchTableScreen` — scrollable research list with tier colors + lock icons, prereq tooltip, fluid gauge, gradient progress bar, Start/Stop buttons; `DriveCraftingTableScreen` — drive crafting UI with drive slot tooltip; `ResearchBookScreen` — read-only research encyclopedia |
 | `client/renderer` | `ResearchStationModel`, `ResearchStationRenderer` — GeckoLib geo/animation/texture wiring |
-| `network` | `StartResearchPacket` (client→server), `CancelResearchPacket` (client→server), `ModNetworking` (PayloadRegistrar) |
+| `client/sound` | `ResearchStationSoundInstance` — looping ambient sound while research is active |
+| `compat/jei` | `ResearchCubeJEIPlugin` (`@JeiPlugin`), `DriveCraftingCategory` — JEI recipe category for `drive_crafting` recipes |
+| `network` | `StartResearchPacket`, `CancelResearchPacket`, `WipeTankPacket`, `OpenResearchBookPacket` (all client→server), `ModNetworking` (PayloadRegistrar) |
 | `recipe` | `DriveCraftingRecipe`, `DriveCraftingRecipeSerializer` |
-| `research` | `ResearchDefinition` (id, tier, duration, prerequisites, itemCosts, recipePool, name, description), `ResearchRegistry`, `ResearchManager`, `ResearchTier` (with `maxRecipes`), `ItemCost`, `ResearchSavedData` |
+| `research` | `ResearchDefinition` (id, tier, duration, prerequisites, itemCosts, fluidCost, recipePool, name, description, category), `ResearchRegistry`, `ResearchManager`, `ResearchTier` (with `maxRecipes`), `ItemCost`, `FluidCost`, `WeightedRecipe`, `ResearchSavedData` |
 | `research/prerequisite` | `Prerequisite` interface (with `describe()`), `AndPrerequisite`, `OrPrerequisite`, `SinglePrerequisite`, `NonePrerequisite`, `PrerequisiteParser` |
-| `registry` | `ModItems`, `ModBlocks`, `ModBlockEntities`, `ModMenus`, `ModCreativeTabs`, `ModRecipeTypes`, `ModRecipeSerializers` |
-| `util` | `NbtUtil` (CustomData read/write), `TierUtil` (canResearch validation) |
+| `registry` | `ModItems`, `ModBlocks`, `ModBlockEntities`, `ModMenus`, `ModCreativeTabs`, `ModRecipeTypes`, `ModRecipeSerializers`, `ModFluids` |
+| `util` | `NbtUtil` (CustomData read/write), `TierUtil` (canResearch validation), `RecipeOutputResolver` |
 | `event` | `ModServerEvents` (AddReloadListenerEvent) |
 
 ## Critical workflows
@@ -67,13 +71,15 @@
 - Register new game objects using `DeferredRegister` in `registry/Mod*` classes, then ensure they are registered in `ResearchCubeMod` constructor.
 - **Server authority**: never start/complete/cancel research from client code. Client screens send packets; server validates.
 - Preserve slot semantics in `ResearchTableBlockEntity` / `ResearchTableMenu`:
-  - slot 0 = drive, slot 1 = cube, slots 2–7 = item costs (`SLOT_DRIVE`, `SLOT_CUBE`, `COST_SLOT_START` constants).
+  - slot 0 = drive, slot 1 = cube, slots 2–7 = item costs, slot 8 = bucket_in, slot 9 = bucket_out (`SLOT_DRIVE=0`, `SLOT_CUBE=1`, `COST_SLOT_START=2`, `SLOT_BUCKET_IN=8`, `SLOT_BUCKET_OUT=9`, `TOTAL_SLOTS=10`).
+  - When iterating cost slots, always loop `COST_SLOT_START` to `SLOT_BUCKET_IN` (exclusive), i.e. slots 2–7 only. Never include bucket slots in item-cost validation or consumption.
+  - The block entity also holds a `FluidTank` (capacity `TANK_CAPACITY = 8000` mB). Fluid cost is validated and drained separately from item costs.
 - Enforce tier rules through `TierUtil.canResearch(cubeTier, driveTier, researchTier)` — cube tier ≥ research tier AND drive tier == research tier.
 - Store custom item data through `DataComponents.CUSTOM_DATA` via `NbtUtil`; never write raw `CompoundTag` directly onto an `ItemStack`.
 - For new recipes: add type + serializer in `ModRecipeTypes`/`ModRecipeSerializers`, register both in `ResearchCubeMod`, and provide JSON under `data/researchcube/recipe/`.
 - Client-only registrations (screens, renderers) belong in `client/ModClientEvents` — annotated `@EventBusSubscriber(value = Dist.CLIENT, bus = Bus.MOD)`.
 - `@EventBusSubscriber` deprecation warnings for `Bus.MOD` are harmless in the current NeoForge version; leave as-is until the API stabilises.
-- **ContainerData sync**: always back `ContainerData` with a `SimpleContainerData` storage so `set()` actually stores client-received values. A pure read-only anonymous `ContainerData` (no-op `set()`) will silently break all client-side sync.
+- **ContainerData sync**: always back `ContainerData` with a `SimpleContainerData` storage so `set()` actually stores client-received values. A pure read-only anonymous `ContainerData` (no-op `set()`) will silently break all client-side sync. `ResearchTableMenu` exposes 4 data slots: `DATA_PROGRESS=0`, `DATA_IS_RESEARCHING=1`, `DATA_FLUID_AMOUNT=2`, `DATA_FLUID_TYPE=3`.
 - **Menu buffer pattern**: when opening a menu with `ServerPlayer.openMenu(provider, bufWriter)`, write all extra data (e.g. completed research set) in the buf lambda; read it in the `FriendlyByteBuf` constructor of the menu in the same order.
 - **Research failure logging**: all silent validation failures in `tryStartResearch()` must log a `[ResearchCube]` WARN with the specific reason so bugs are diagnosable without a debugger.
 - **Research ID tracking in screen**: store `selectedId` (ResourceLocation) not just `selectedIndex` — the list is rebuilt every tick, so an index-only selection is immediately lost.
@@ -93,16 +99,23 @@ Values in ordinal order (0–6): `IRRECOVERABLE`, `UNSTABLE`, `BASIC`, `ADVANCED
 {
   "name": "Basic Circuit",
   "description": "Short human-readable description shown in tooltip.",
+  "category": "circuits",
   "tier": "BASIC",
   "duration": 1200,
   "prerequisites": "other_research_id",
   "item_costs": [{ "item": "minecraft:iron_ingot", "count": 4 }],
-  "recipe_pool": ["researchcube:basic_circuit_recipe_1"]
+  "fluid_cost": { "fluid": "researchcube:thinking_fluid", "amount": 1000 },
+  "recipe_pool": [
+    "researchcube:basic_circuit_recipe_1",
+    { "id": "researchcube:basic_circuit_recipe_2", "weight": 3 }
+  ]
 }
 ```
-- `name` and `description` are optional. `getDisplayName()` falls back to the ID path if `name` is absent.
+- `name`, `description`, `category`, `item_costs`, `fluid_cost`, and `recipe_pool` are all optional.
+- `getDisplayName()` falls back to the ID path if `name` is absent.
 - `prerequisites` may be: a string ID, `{"type":"AND","values":[...]}`, or `{"type":"OR","values":[...]}` (recursive).
-- `item_costs` and `recipe_pool` are optional.
+- `recipe_pool` entries may be plain strings (weight defaults to 1) or objects `{"id": "...", "weight": N}`. Selection is weighted-random via `WeightedRecipe`.
+- `fluid_cost` specifies the fluid (`researchcube:thinking_fluid`, `pondering_fluid`, `reasoning_fluid`, or `imagination_fluid`) and amount in mB that must be in the Research Station's tank before research can start. The fluid is drained on research start and refunded on cancel.
 
 ### Drive crafting recipe (`data/{ns}/recipe/*.json`)
 ```json
@@ -116,6 +129,22 @@ Values in ordinal order (0–6): `IRRECOVERABLE`, `UNSTABLE`, `BASIC`, `ADVANCED
 - Drive containing the `recipe_id` must be present in the grid (it is consumed).
 - Up to 8 additional ingredient slots (shapeless).
 
+## Research fluids
+
+Four custom fluids are registered in `ModFluids`, each with a source + flowing variant and a bucket item in `ModItems`:
+
+| Fluid ID | Bucket item | Typical tier usage |
+|---|---|---|
+| `researchcube:thinking_fluid` | `thinking_fluid_bucket` | BASIC |
+| `researchcube:pondering_fluid` | `pondering_fluid_bucket` | ADVANCED |
+| `researchcube:reasoning_fluid` | `reasoning_fluid_bucket` | PRECISE |
+| `researchcube:imagination_fluid` | `imagination_fluid_bucket` | FLAWLESS / SELF_AWARE |
+
+- Fluids have a `FluidType` with custom texture/colour registered via `ModFluids`.
+- Bucket items use `ResearchFluidBucketItem` (not vanilla `BucketItem`).
+- The Research Station holds up to `TANK_CAPACITY = 8000` mB in a single `FluidTank`. Place a filled bucket in slot 8 (`SLOT_BUCKET_IN`) to fill the tank; the empty bucket lands in slot 9 (`SLOT_BUCKET_OUT`). Send `WipeTankPacket` to drain the tank.
+- `DATA_FLUID_TYPE` encodes the current fluid as an integer (0=empty, 1=thinking, 2=pondering, 3=reasoning, 4=imagination) for `ContainerData` sync.
+
 ## GeckoLib assets
 - Geo: `assets/researchcube/geo/research_station.geo.json` — identifier `geometry.unknown`, 128×128 UV, root bones: `ResearchStation → base, top, screen, Brain (→ center, b1–b8)`.
 - Animation: `assets/researchcube/animations/research_station.animation.json` — animation `animation.researchstation.idle`, loops 24 s, Brain bone rotates 360°/360°/360° and bobs.
@@ -126,13 +155,22 @@ Values in ordinal order (0–6): `IRRECOVERABLE`, `UNSTABLE`, `BASIC`, `ADVANCED
 - `src/main/java/com/researchcube/ResearchCubeMod.java`
 - `src/main/java/com/researchcube/block/ResearchTableBlockEntity.java`
 - `src/main/java/com/researchcube/block/ResearchTableBlock.java`
+- `src/main/java/com/researchcube/block/DriveCraftingTableBlockEntity.java`
 - `src/main/java/com/researchcube/menu/ResearchTableMenu.java`
+- `src/main/java/com/researchcube/menu/DriveCraftingTableMenu.java`
 - `src/main/java/com/researchcube/client/screen/ResearchTableScreen.java`
+- `src/main/java/com/researchcube/client/screen/DriveCraftingTableScreen.java`
+- `src/main/java/com/researchcube/client/screen/ResearchBookScreen.java`
 - `src/main/java/com/researchcube/research/ResearchManager.java`
 - `src/main/java/com/researchcube/research/ResearchSavedData.java`
+- `src/main/java/com/researchcube/research/WeightedRecipe.java`
+- `src/main/java/com/researchcube/research/FluidCost.java`
 - `src/main/java/com/researchcube/network/StartResearchPacket.java`
 - `src/main/java/com/researchcube/network/CancelResearchPacket.java`
+- `src/main/java/com/researchcube/network/WipeTankPacket.java`
 - `src/main/java/com/researchcube/recipe/DriveCraftingRecipe.java`
+- `src/main/java/com/researchcube/registry/ModFluids.java`
+- `src/main/java/com/researchcube/compat/jei/ResearchCubeJEIPlugin.java`
 - `src/main/resources/data/researchcube/research/advanced_processor.json`
 - `src/main/resources/data/researchcube/recipe/processor_recipe_1.json`
 

@@ -41,4 +41,4 @@ Essentially, take this and learn from it! Create addon mods that depend on it! I
 
 Don't be a jerk.
 
-Copyright (c) 2024 fireheart3911
+Copyright (c) 2026 fireheart3911

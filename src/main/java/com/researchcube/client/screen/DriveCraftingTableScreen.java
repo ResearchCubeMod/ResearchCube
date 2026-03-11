@@ -1,18 +1,11 @@
 package com.researchcube.client.screen;
 
-import com.researchcube.ResearchCubeMod;
-import com.researchcube.block.DriveCraftingTableBlockEntity;
-import com.researchcube.item.DriveItem;
 import com.researchcube.menu.DriveCraftingTableMenu;
-import com.researchcube.recipe.DriveCraftingRecipe;
-import com.researchcube.util.NbtUtil;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
-
-import java.util.List;
 
 /**
  * Screen for the Drive Crafting Table.
@@ -95,22 +88,6 @@ public class DriveCraftingTableScreen extends AbstractContainerScreen<DriveCraft
         graphics.drawString(this.font, driveLabel,
                 x + 15 + (16 - this.font.width(driveLabel)) / 2,
                 y + 25, SUBLABEL_COLOR, false);
-
-        // ── Show recipe ID info when a recipe is matched ──
-        DriveCraftingRecipe recipe = this.menu.getCurrentRecipe();
-        if (recipe != null) {
-            String recipeId = recipe.getRequiredRecipeId();
-            // Truncate if too long
-            String display = recipeId;
-            if (this.font.width(display) > panelW - 8) {
-                // Show just the path part
-                int lastColon = display.lastIndexOf(':');
-                if (lastColon >= 0) display = display.substring(lastColon + 1);
-            }
-            if (this.font.width(display) > panelW - 8) {
-                display = display.substring(0, Math.min(display.length(), 20)) + "...";
-            }
-        }
 
         // ── Player inventory area ──
         int invPanelY = y + 80;

@@ -77,9 +77,12 @@ public class ResearchCubeJEIPlugin implements IModPlugin {
         registration.addRecipeCatalyst(
                 new ItemStack(ModItems.RESEARCH_STATION_ITEM.get()),
                 DriveCraftingCategory.RECIPE_TYPE
-        );        // The Drive Crafting Table is the dedicated crafting station for drive recipes
+        );
+
+        // The Drive Crafting Table is the dedicated crafting station for drive recipes
         registration.addRecipeCatalyst(
                 new ItemStack(ModItems.DRIVE_CRAFTING_TABLE_ITEM.get()),
                 DriveCraftingCategory.RECIPE_TYPE
-        );    }
+        );
+    }
 }

@@ -1,7 +1,6 @@
 package com.researchcube.compat.jei;
 
 import com.researchcube.ResearchCubeMod;
-import com.researchcube.item.DriveItem;
 import com.researchcube.recipe.DriveCraftingRecipe;
 import com.researchcube.registry.ModItems;
 import com.researchcube.research.ResearchDefinition;
