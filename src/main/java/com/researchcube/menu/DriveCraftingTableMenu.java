@@ -12,7 +12,9 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.*;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.CraftingInput;
+import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.RecipeHolder;
+import net.minecraft.world.item.crafting.ShapedRecipePattern;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.neoforge.items.ItemStackHandler;
@@ -123,6 +125,10 @@ public class DriveCraftingTableMenu extends AbstractContainerMenu {
     /**
      * Called whenever a grid or drive slot changes. Builds a combined CraftingInput
      * including the drive, then searches for a matching DriveCraftingRecipe.
+     *
+     * For shaped recipes, the 3×3 grid is passed as a proper 3×3 CraftingInput so that
+     * ShapedRecipePattern.matches() can slide patterns and apply offset logic correctly.
+     * The drive is included as an extra slot at position 9 (conceptually a 4th column).
      */
     void updateResult() {
         Level level = player.level();
@@ -130,13 +136,30 @@ public class DriveCraftingTableMenu extends AbstractContainerMenu {
 
         ItemStackHandler inv = blockEntity.getInventory();
 
-        // Build a combined CraftingInput: drive + 9 grid items = 10 items in a 10x1 layout
-        List<ItemStack> combined = new ArrayList<>(10);
-        combined.add(inv.getStackInSlot(DriveCraftingTableBlockEntity.SLOT_DRIVE));
-        for (int i = 0; i < DriveCraftingTableBlockEntity.GRID_SIZE; i++) {
-            combined.add(inv.getStackInSlot(DriveCraftingTableBlockEntity.GRID_SLOT_START + i));
-        }
-        CraftingInput craftingInput = CraftingInput.of(10, 1, combined);
+        // Build a CraftingInput that includes the drive:
+        // Layout: 4×3 grid where columns 0-2 are the crafting grid, column 3 is the drive
+        // This preserves the 3×3 positions for shaped matching while including the drive for detection.
+        // Row 0: [grid0, grid1, grid2, drive]
+        // Row 1: [grid3, grid4, grid5, EMPTY]
+        // Row 2: [grid6, grid7, grid8, EMPTY]
+        List<ItemStack> combined = new ArrayList<>(12);
+        // Row 0
+        combined.add(inv.getStackInSlot(DriveCraftingTableBlockEntity.GRID_SLOT_START + 0));
+        combined.add(inv.getStackInSlot(DriveCraftingTableBlockEntity.GRID_SLOT_START + 1));
+        combined.add(inv.getStackInSlot(DriveCraftingTableBlockEntity.GRID_SLOT_START + 2));
+        combined.add(inv.getStackInSlot(DriveCraftingTableBlockEntity.SLOT_DRIVE)); // Drive in 4th column
+        // Row 1
+        combined.add(inv.getStackInSlot(DriveCraftingTableBlockEntity.GRID_SLOT_START + 3));
+        combined.add(inv.getStackInSlot(DriveCraftingTableBlockEntity.GRID_SLOT_START + 4));
+        combined.add(inv.getStackInSlot(DriveCraftingTableBlockEntity.GRID_SLOT_START + 5));
+        combined.add(ItemStack.EMPTY);
+        // Row 2
+        combined.add(inv.getStackInSlot(DriveCraftingTableBlockEntity.GRID_SLOT_START + 6));
+        combined.add(inv.getStackInSlot(DriveCraftingTableBlockEntity.GRID_SLOT_START + 7));
+        combined.add(inv.getStackInSlot(DriveCraftingTableBlockEntity.GRID_SLOT_START + 8));
+        combined.add(ItemStack.EMPTY);
+
+        CraftingInput craftingInput = CraftingInput.of(4, 3, combined);
 
         // Search for matching recipe
         Optional<RecipeHolder<DriveCraftingRecipe>> match = level.getRecipeManager()
@@ -164,19 +187,91 @@ public class DriveCraftingTableMenu extends AbstractContainerMenu {
 
         // Drive stays in the slot unchanged — recipe_id is deliberately kept
 
-        // Consume one of each ingredient slot that contributed to the recipe
-        // We need to re-determine which grid slots matched which ingredients
-        consumeGridIngredients(recipe);
+        // Consume ingredients from the grid
+        if (recipe.isShaped()) {
+            consumeGridIngredientsShaped(recipe);
+        } else {
+            consumeGridIngredientsShapeless(recipe);
+        }
 
         // Re-check recipe after consumption
         updateResult();
     }
 
     /**
+     * Consumes ingredients for a shaped recipe. Each ingredient position in the pattern
+     * matches a specific grid slot. Uses shapedPattern offset matching.
+     */
+    private void consumeGridIngredientsShaped(DriveCraftingRecipe recipe) {
+        ItemStackHandler inv = blockEntity.getInventory();
+        ShapedRecipePattern pattern = recipe.getShapedPattern();
+        if (pattern == null) return;
+
+        // Determine where the pattern matched by sliding it over the grid
+        // This replicates ShapedRecipePattern.matches() offset finding logic
+        int patternW = pattern.width();
+        int patternH = pattern.height();
+
+        for (int offsetX = 0; offsetX <= 3 - patternW; offsetX++) {
+            for (int offsetY = 0; offsetY <= 3 - patternH; offsetY++) {
+                if (checkPatternMatch(inv, pattern, offsetX, offsetY, false) ||
+                    checkPatternMatch(inv, pattern, offsetX, offsetY, true)) {
+                    // Found the match, consume at this offset
+                    consumeAtOffset(inv, pattern, offsetX, offsetY, false);
+                    return;
+                }
+            }
+        }
+    }
+
+    private boolean checkPatternMatch(ItemStackHandler inv, ShapedRecipePattern pattern, int offsetX, int offsetY, boolean mirrored) {
+        for (int py = 0; py < pattern.height(); py++) {
+            for (int px = 0; px < pattern.width(); px++) {
+                int gridX = offsetX + (mirrored ? pattern.width() - 1 - px : px);
+                int gridY = offsetY + py;
+                int gridSlot = gridY * 3 + gridX;
+                int patternSlot = py * pattern.width() + px;
+
+                Ingredient ingredient = pattern.ingredients().get(patternSlot);
+                ItemStack gridStack = inv.getStackInSlot(DriveCraftingTableBlockEntity.GRID_SLOT_START + gridSlot);
+
+                if (ingredient == null || ingredient.isEmpty()) {
+                    if (!gridStack.isEmpty()) return false;
+                } else {
+                    if (!ingredient.test(gridStack)) return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private void consumeAtOffset(ItemStackHandler inv, ShapedRecipePattern pattern, int offsetX, int offsetY, boolean mirrored) {
+        for (int py = 0; py < pattern.height(); py++) {
+            for (int px = 0; px < pattern.width(); px++) {
+                int gridX = offsetX + (mirrored ? pattern.width() - 1 - px : px);
+                int gridY = offsetY + py;
+                int gridSlot = gridY * 3 + gridX;
+                int patternSlot = py * pattern.width() + px;
+
+                Ingredient ingredient = pattern.ingredients().get(patternSlot);
+                if (ingredient != null && !ingredient.isEmpty()) {
+                    int slotIndex = DriveCraftingTableBlockEntity.GRID_SLOT_START + gridSlot;
+                    ItemStack gridStack = inv.getStackInSlot(slotIndex);
+                    ItemStack remainder = gridStack.getCraftingRemainingItem();
+                    gridStack.shrink(1);
+                    if (gridStack.isEmpty() && !remainder.isEmpty()) {
+                        inv.setStackInSlot(slotIndex, remainder);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
      * Consumes one item from each grid slot that contributed to the recipe (shapeless matching).
      * Uses the same shapeless matching logic as DriveCraftingRecipe.
      */
-    private void consumeGridIngredients(DriveCraftingRecipe recipe) {
+    private void consumeGridIngredientsShapeless(DriveCraftingRecipe recipe) {
         ItemStackHandler inv = blockEntity.getInventory();
         var ingredients = recipe.getIngredients();
         boolean[] consumed = new boolean[DriveCraftingTableBlockEntity.GRID_SIZE];

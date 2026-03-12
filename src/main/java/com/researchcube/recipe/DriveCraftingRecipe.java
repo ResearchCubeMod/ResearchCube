@@ -9,6 +9,7 @@ import net.minecraft.core.NonNullList;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.*;
 import net.minecraft.world.level.Level;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,44 +17,89 @@ import java.util.List;
 /**
  * A custom crafting recipe that requires:
  *   - A Drive item in the crafting grid containing a specific recipe_id in its NBT
- *   - Standard shapeless ingredients
+ *   - Shapeless OR shaped ingredients
  *
- * The Drive persists after crafting — only the matched recipe_id is removed from its NBT.
- *
- * JSON format:
- * {
- *   "type": "researchcube:drive_crafting",
- *   "recipe_id": "researchcube:processor_recipe_1",
- *   "ingredients": [ { "item": "minecraft:iron_ingot" }, ... ],
- *   "result": { "id": "minecraft:diamond", "count": 1 }
- * }
+ * When "pattern" + "key" are present in JSON, the recipe is shaped (position-sensitive).
+ * When "ingredients" is present, the recipe is shapeless (order-independent).
+ * The Drive persists after crafting — it is returned intact.
  */
 public class DriveCraftingRecipe implements CraftingRecipe {
 
     private final String recipeId;
     private final NonNullList<Ingredient> ingredients;
+    @Nullable
+    private final ShapedRecipePattern shapedPattern;
     private final ItemStack result;
     private final String group;
 
+    /** Shapeless constructor. */
     public DriveCraftingRecipe(String recipeId, NonNullList<Ingredient> ingredients, ItemStack result, String group) {
         this.recipeId = recipeId;
         this.ingredients = ingredients;
+        this.shapedPattern = null;
         this.result = result;
         this.group = group != null ? group : "";
     }
 
-    /**
-     * The recipe ID that must be present on the drive's NBT.
-     */
+    /** Shaped constructor. */
+    public DriveCraftingRecipe(String recipeId, ShapedRecipePattern pattern, ItemStack result, String group) {
+        this.recipeId = recipeId;
+        this.ingredients = NonNullList.create();
+        this.shapedPattern = pattern;
+        this.result = result;
+        this.group = group != null ? group : "";
+    }
+
     public String getRequiredRecipeId() {
         return recipeId;
     }
 
+    public boolean isShaped() {
+        return shapedPattern != null;
+    }
+
+    @Nullable
+    public ShapedRecipePattern getShapedPattern() {
+        return shapedPattern;
+    }
+
     @Override
     public boolean matches(CraftingInput input, Level level) {
-        // We need to find exactly one DriveItem with the correct recipe_id,
-        // and the remaining items must match the ingredients (shapeless).
+        if (isShaped()) {
+            return matchesShapedMode(input);
+        }
+        return matchesShapelessMode(input);
+    }
 
+    /**
+     * Shaped matching: find the drive, remove it from the grid, then delegate
+     * to ShapedRecipePattern.matches() which handles offset sliding and mirroring.
+     */
+    private boolean matchesShapedMode(CraftingInput input) {
+        int driveSlot = -1;
+        for (int i = 0; i < input.size(); i++) {
+            ItemStack stack = input.getItem(i);
+            if (stack.getItem() instanceof DriveItem && NbtUtil.hasRecipe(stack, recipeId)) {
+                driveSlot = i;
+                break;
+            }
+        }
+        if (driveSlot < 0) return false;
+
+        // Create a modified input with the drive replaced by empty
+        List<ItemStack> modified = new ArrayList<>(input.size());
+        for (int i = 0; i < input.size(); i++) {
+            modified.add(i == driveSlot ? ItemStack.EMPTY : input.getItem(i));
+        }
+        CraftingInput modifiedInput = CraftingInput.of(input.width(), input.height(), modified);
+
+        return shapedPattern.matches(modifiedInput);
+    }
+
+    /**
+     * Shapeless matching: find the drive, then match remaining items against ingredients.
+     */
+    private boolean matchesShapelessMode(CraftingInput input) {
         boolean driveFound = false;
         List<ItemStack> nonDriveItems = new ArrayList<>();
 
@@ -69,14 +115,9 @@ public class DriveCraftingRecipe implements CraftingRecipe {
         }
 
         if (!driveFound) return false;
-
-        // Check that all non-drive items match the ingredients (shapeless matching)
         return matchesShapeless(nonDriveItems, ingredients);
     }
 
-    /**
-     * Shapeless matching: each ingredient must be satisfied by exactly one item.
-     */
     private static boolean matchesShapeless(List<ItemStack> items, NonNullList<Ingredient> ingredients) {
         if (items.size() != ingredients.size()) return false;
 
@@ -102,7 +143,11 @@ public class DriveCraftingRecipe implements CraftingRecipe {
 
     @Override
     public boolean canCraftInDimensions(int width, int height) {
-        // ingredients + 1 for the drive
+        if (isShaped()) {
+            // Pattern must fit AND there must be at least one extra slot for the drive
+            return width >= shapedPattern.width() && height >= shapedPattern.height()
+                    && width * height > shapedPattern.width() * shapedPattern.height();
+        }
         return width * height >= ingredients.size() + 1;
     }
 
@@ -113,6 +158,13 @@ public class DriveCraftingRecipe implements CraftingRecipe {
 
     @Override
     public NonNullList<Ingredient> getIngredients() {
+        if (isShaped()) {
+            NonNullList<Ingredient> list = NonNullList.create();
+            for (Ingredient ing : shapedPattern.ingredients()) {
+                list.add(ing != null ? ing : Ingredient.EMPTY);
+            }
+            return list;
+        }
         return ingredients;
     }
 

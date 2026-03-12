@@ -2,7 +2,10 @@ package com.researchcube.recipe;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
+import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.MapLike;
+import com.mojang.serialization.RecordBuilder;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.NonNullList;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -10,12 +13,15 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.RecipeSerializer;
+import net.minecraft.world.item.crafting.ShapedRecipePattern;
+
+import java.util.stream.Stream;
 
 /**
  * Serializer for DriveCraftingRecipe.
  * Handles JSON (MapCodec) and network (StreamCodec) serialization.
  *
- * JSON format:
+ * Shapeless JSON format:
  * {
  *   "type": "researchcube:drive_crafting",
  *   "group": "",                           // optional
@@ -23,10 +29,20 @@ import net.minecraft.world.item.crafting.RecipeSerializer;
  *   "ingredients": [ { "item": "minecraft:iron_ingot" }, ... ],
  *   "result": { "id": "minecraft:diamond", "count": 1 }
  * }
+ *
+ * Shaped JSON format (when pattern + key are present, uses shaped matching):
+ * {
+ *   "type": "researchcube:drive_crafting",
+ *   "recipe_id": "researchcube:processor_recipe_1",
+ *   "pattern": ["RR ", "II ", "   "],
+ *   "key": { "R": { "item": "minecraft:redstone" }, "I": { "item": "minecraft:iron_ingot" } },
+ *   "result": { "id": "minecraft:repeater", "count": 4 }
+ * }
  */
 public class DriveCraftingRecipeSerializer implements RecipeSerializer<DriveCraftingRecipe> {
 
-    public static final MapCodec<DriveCraftingRecipe> CODEC = RecordCodecBuilder.mapCodec(instance ->
+    /** Shapeless codec (uses "ingredients" field). */
+    private static final MapCodec<DriveCraftingRecipe> SHAPELESS_CODEC = RecordCodecBuilder.mapCodec(instance ->
             instance.group(
                     Codec.STRING.fieldOf("recipe_id").forGetter(DriveCraftingRecipe::getRequiredRecipeId),
                     Ingredient.CODEC_NONEMPTY.listOf().fieldOf("ingredients").flatXmap(
@@ -36,7 +52,7 @@ public class DriveCraftingRecipeSerializer implements RecipeSerializer<DriveCraf
                                     return DataResult.error(() -> "No ingredients for drive crafting recipe");
                                 }
                                 if (ingredients.length > 8) {
-                                    return DataResult.error(() -> "Too many ingredients for drive crafting recipe (max 8, need 1 slot for drive)");
+                                    return DataResult.error(() -> "Too many ingredients (max 8, need 1 slot for drive)");
                                 }
                                 NonNullList<Ingredient> nonNullList = NonNullList.create();
                                 for (Ingredient ing : ingredients) {
@@ -51,6 +67,44 @@ public class DriveCraftingRecipeSerializer implements RecipeSerializer<DriveCraf
             ).apply(instance, DriveCraftingRecipe::new)
     );
 
+    /** Shaped codec using ShapedRecipePattern (uses "pattern" and "key" fields). */
+    private static final MapCodec<DriveCraftingRecipe> SHAPED_CODEC = RecordCodecBuilder.mapCodec(instance ->
+            instance.group(
+                    Codec.STRING.fieldOf("recipe_id").forGetter(DriveCraftingRecipe::getRequiredRecipeId),
+                    ShapedRecipePattern.MAP_CODEC.forGetter(r -> r.getShapedPattern()),
+                    ItemStack.STRICT_CODEC.fieldOf("result").forGetter(r -> r.getResultItem(null)),
+                    Codec.STRING.optionalFieldOf("group", "").forGetter(DriveCraftingRecipe::getGroup)
+            ).apply(instance, DriveCraftingRecipe::new)
+    );
+
+    /**
+     * Dispatch MapCodec that detects shaped vs shapeless by checking for "pattern" key.
+     */
+    public static final MapCodec<DriveCraftingRecipe> CODEC = new MapCodec<>() {
+        @Override
+        public <T> Stream<T> keys(DynamicOps<T> ops) {
+            return Stream.concat(SHAPELESS_CODEC.keys(ops), SHAPED_CODEC.keys(ops));
+        }
+
+        @Override
+        public <T> DataResult<DriveCraftingRecipe> decode(DynamicOps<T> ops, MapLike<T> input) {
+            // Check if "pattern" key exists to determine shaped vs shapeless
+            T patternValue = input.get("pattern");
+            if (patternValue != null) {
+                return SHAPED_CODEC.decode(ops, input);
+            }
+            return SHAPELESS_CODEC.decode(ops, input);
+        }
+
+        @Override
+        public <T> RecordBuilder<T> encode(DriveCraftingRecipe recipe, DynamicOps<T> ops, RecordBuilder<T> prefix) {
+            if (recipe.isShaped()) {
+                return SHAPED_CODEC.encode(recipe, ops, prefix);
+            }
+            return SHAPELESS_CODEC.encode(recipe, ops, prefix);
+        }
+    };
+
     public static final StreamCodec<RegistryFriendlyByteBuf, DriveCraftingRecipe> STREAM_CODEC =
             StreamCodec.of(
                     DriveCraftingRecipeSerializer::toNetwork,
@@ -60,21 +114,35 @@ public class DriveCraftingRecipeSerializer implements RecipeSerializer<DriveCraf
     private static DriveCraftingRecipe fromNetwork(RegistryFriendlyByteBuf buf) {
         String group = buf.readUtf();
         String recipeId = buf.readUtf();
-        int ingredientCount = buf.readVarInt();
-        NonNullList<Ingredient> ingredients = NonNullList.withSize(ingredientCount, Ingredient.EMPTY);
-        for (int i = 0; i < ingredientCount; i++) {
-            ingredients.set(i, Ingredient.CONTENTS_STREAM_CODEC.decode(buf));
+        boolean isShaped = buf.readBoolean();
+
+        if (isShaped) {
+            ShapedRecipePattern pattern = ShapedRecipePattern.STREAM_CODEC.decode(buf);
+            ItemStack result = ItemStack.STREAM_CODEC.decode(buf);
+            return new DriveCraftingRecipe(recipeId, pattern, result, group);
+        } else {
+            int ingredientCount = buf.readVarInt();
+            NonNullList<Ingredient> ingredients = NonNullList.withSize(ingredientCount, Ingredient.EMPTY);
+            for (int i = 0; i < ingredientCount; i++) {
+                ingredients.set(i, Ingredient.CONTENTS_STREAM_CODEC.decode(buf));
+            }
+            ItemStack result = ItemStack.STREAM_CODEC.decode(buf);
+            return new DriveCraftingRecipe(recipeId, ingredients, result, group);
         }
-        ItemStack result = ItemStack.STREAM_CODEC.decode(buf);
-        return new DriveCraftingRecipe(recipeId, ingredients, result, group);
     }
 
     private static void toNetwork(RegistryFriendlyByteBuf buf, DriveCraftingRecipe recipe) {
         buf.writeUtf(recipe.getGroup());
         buf.writeUtf(recipe.getRequiredRecipeId());
-        buf.writeVarInt(recipe.getIngredients().size());
-        for (Ingredient ingredient : recipe.getIngredients()) {
-            Ingredient.CONTENTS_STREAM_CODEC.encode(buf, ingredient);
+        buf.writeBoolean(recipe.isShaped());
+
+        if (recipe.isShaped()) {
+            ShapedRecipePattern.STREAM_CODEC.encode(buf, recipe.getShapedPattern());
+        } else {
+            buf.writeVarInt(recipe.getIngredients().size());
+            for (Ingredient ingredient : recipe.getIngredients()) {
+                Ingredient.CONTENTS_STREAM_CODEC.encode(buf, ingredient);
+            }
         }
         ItemStack.STREAM_CODEC.encode(buf, recipe.getResultItem(null));
     }

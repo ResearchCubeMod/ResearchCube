@@ -188,23 +188,20 @@ PHASE 10 — UI & Visual Improvements
   Shared RecipeOutputResolver utility class created in com.researchcube.util.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PHASE 13 — Shaped Drive Crafting Support
-(The drive_crafting recipe type only supports shapeless matching today.
-Adding shaped support lets pack authors specify exact crafting grid layouts.)
+[DONE — PHASE 13 — Shaped Drive Crafting Support]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-- [AI] DriveCraftingRecipe: add optional shaped mode
-  Extend DriveCraftingRecipe with an optional "pattern" (3-element string array) and
-  "key" (map of single char → ingredient) field mirroring vanilla shaped recipes.
-  When "pattern" is present the recipe is shaped; when absent it behaves as today (shapeless).
-  Add a boolean `isShaped` flag and a separate `matchesShaped()` path in matches().
-  The drive can appear inside the pattern (use a special marker character, e.g. 'D') or
-  outside it (auto-detected from remaining grid slots as before).
+- [DONE] [AI] DriveCraftingRecipe: add optional shaped mode
+  Extended DriveCraftingRecipe with optional ShapedRecipePattern support. When
+  "pattern" + "key" are present in JSON, the recipe uses shaped matching via
+  ShapedRecipePattern.matches(); otherwise it falls back to shapeless logic.
+  Added isShaped() flag, matchesShapedMode() and matchesShapelessMode() methods.
+  Drive is detected and excluded from the pattern match (placed anywhere in grid).
 
   Example shaped JSON:
   {
     "type": "researchcube:drive_crafting",
-    "recipe_id": "researchcube:basic_circuit_recipe_1",
+    "recipe_id": "researchcube:shaped_test_recipe",
     "pattern": ["RR ", "II ", "   "],
     "key": {
       "R": { "item": "minecraft:redstone" },
@@ -213,21 +210,24 @@ Adding shaped support lets pack authors specify exact crafting grid layouts.)
     "result": { "id": "minecraft:repeater", "count": 4 }
   }
 
-- [AI] DriveCraftingRecipeSerializer: parse shaped fields
-  Update DriveCraftingRecipeSerializer MapCodec and StreamCodec to handle the optional
-  "pattern" / "key" fields. Deserialize into a ShapedRecipePattern (reuse vanilla's
-  ShapedRecipePattern codec) stored on the recipe. Serializer must round-trip correctly
-  for both shaped and shapeless variants.
+- [DONE] [AI] DriveCraftingRecipeSerializer: parse shaped fields
+  DriveCraftingRecipeSerializer uses a custom MapCodec with decode() that checks for
+  "pattern" key presence. If present, decodes via ShapedRecipePattern.MAP_CODEC;
+  otherwise uses the shapeless ingredients list. StreamCodec writes/reads a boolean
+  flag followed by either ShapedRecipePattern.STREAM_CODEC or ingredient list.
 
-- [AI] DriveCraftingTableMenu: respect shaped mode
-  DriveCraftingTableMenu's live recipe matching loop checks all recipes for matches.
-  Ensure the 3×3 grid CraftingInput is passed directly so that shaped recipes work
-  (position matters). Shapeless recipes should continue to work unchanged.
+- [DONE] [AI] DriveCraftingTableMenu: respect shaped mode
+  DriveCraftingTableMenu.updateResult() now builds a 4×3 CraftingInput layout where
+  columns 0-2 are the 3×3 grid and column 3 holds the drive. This preserves positional
+  matching for shaped recipes while still including the drive for detection.
+  consumeGridIngredientsShaped() and consumeGridIngredientsShapeless() handle ingredient
+  consumption correctly based on recipe type.
 
-- [AI] JEI drive crafting category: shaped layout
-  When a DriveCraftingRecipe is shaped, render the ingredients in DriveCraftingCategory
-  using a 3×3 slot grid (like vanilla shaped JEI categories) rather than the current
-  flat 4×2 row. Auto-detect shaped vs shapeless from the recipe and switch layout.
+- [DONE] [AI] JEI drive crafting category: shaped layout
+  DriveCraftingCategory.setRecipe() detects recipe.isShaped() and switches layout:
+  shaped recipes render in a 3×3 grid matching the pattern dimensions; shapeless
+  recipes use the previous 4×2 flat arrangement. Background height increased to 72px
+  to accommodate the 3×3 grid.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 PHASE 14 — Quality of Life & Content Extras

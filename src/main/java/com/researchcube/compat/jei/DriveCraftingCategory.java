@@ -18,12 +18,14 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.item.crafting.ShapedRecipePattern;
 
 import java.util.List;
 
 /**
  * JEI recipe category for Drive Crafting recipes.
  * Shows the drive requirement, ingredients, and the recipe output.
+ * Supports both shaped (3×3 grid) and shapeless (4×2 flat) layouts.
  */
 public class DriveCraftingCategory implements IRecipeCategory<DriveCraftingRecipe> {
 
@@ -36,7 +38,8 @@ public class DriveCraftingCategory implements IRecipeCategory<DriveCraftingRecip
     private final Component title;
 
     public DriveCraftingCategory(IGuiHelper guiHelper) {
-        this.background = guiHelper.createBlankDrawable(150, 60);
+        // Increased height to accommodate 3×3 grid for shaped recipes
+        this.background = guiHelper.createBlankDrawable(150, 72);
         this.icon = guiHelper.createDrawableIngredient(VanillaTypes.ITEM_STACK,
                 new ItemStack(ModItems.METADATA_RECLAIMED.get()));
         this.title = Component.literal("Drive Crafting");
@@ -87,26 +90,73 @@ public class DriveCraftingCategory implements IRecipeCategory<DriveCraftingRecip
                     // Show which research unlocks this recipe
                     if (!unlockingResearch.isEmpty()) {
                         for (ResearchDefinition def : unlockingResearch) {
-                            int color = def.getTier().getColor();
-                            String hexColor = String.format("%06X", color);
                             tooltip.add(Component.literal("\u00A7aUnlocked by: \u00A7f" + def.getDisplayName()
                                     + " \u00A77(" + def.getTier().getDisplayName() + ")"));
                         }
                     }
                 });
 
-        // Ingredient slots (up to 8, arranged in a 4x2 grid)
+        if (recipe.isShaped()) {
+            // Shaped layout: render ingredients in a 3×3 grid matching the pattern
+            renderShapedLayout(builder, recipe);
+        } else {
+            // Shapeless layout: render ingredients in a 4×2 flat arrangement
+            renderShapelessLayout(builder, recipe);
+        }
+
+        // Output slot (positioned to the right)
+        builder.addSlot(RecipeIngredientRole.OUTPUT, 128, 18)
+                .addItemStack(recipe.getResultItem(null));
+    }
+
+    /**
+     * Render shaped recipe ingredients in a 3×3 grid layout.
+     */
+    private void renderShapedLayout(IRecipeLayoutBuilder builder, DriveCraftingRecipe recipe) {
+        ShapedRecipePattern pattern = recipe.getShapedPattern();
+        if (pattern == null) {
+            renderShapelessLayout(builder, recipe);
+            return;
+        }
+
+        int patternW = pattern.width();
+        int patternH = pattern.height();
+
+        // Grid starts at (22, 1) with 18px spacing
+        for (int row = 0; row < patternH; row++) {
+            for (int col = 0; col < patternW; col++) {
+                int patternIdx = row * patternW + col;
+                Ingredient ingredient = pattern.ingredients().get(patternIdx);
+
+                // Skip empty ingredients (air slots in the pattern)
+                if (ingredient == null || ingredient.isEmpty()) {
+                    continue;
+                }
+
+                int x = 22 + col * 18;
+                int y = 1 + row * 18;
+                builder.addSlot(RecipeIngredientRole.INPUT, x, y)
+                        .addIngredients(ingredient);
+            }
+        }
+    }
+
+    /**
+     * Render shapeless recipe ingredients in a flat 4×2 arrangement.
+     */
+    private void renderShapelessLayout(IRecipeLayoutBuilder builder, DriveCraftingRecipe recipe) {
         int idx = 0;
         for (Ingredient ingredient : recipe.getIngredients()) {
+            // Skip empty ingredients
+            if (ingredient == null || ingredient.isEmpty()) {
+                idx++;
+                continue;
+            }
             int col = idx % 4;
             int row = idx / 4;
             builder.addSlot(RecipeIngredientRole.INPUT, 22 + col * 18, 1 + row * 18)
                     .addIngredients(ingredient);
             idx++;
         }
-
-        // Output slot
-        builder.addSlot(RecipeIngredientRole.OUTPUT, 128, 10)
-                .addItemStack(recipe.getResultItem(null));
     }
 }
