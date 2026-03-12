@@ -1,0 +1,20 @@
+{
+  "parent": "researchcube:root",
+  "display": {
+    "icon": {
+      "id": "researchcube:cube_basic"
+    },
+    "title": "Material Synthesis",
+    "description": "Complete the Material Synthesis research",
+    "show_toast": true,
+    "announce_to_chat": true
+  },
+  "criteria": {
+    "research_complete": {
+      "trigger": "researchcube:complete_research",
+      "conditions": {
+        "research_id": "researchcube:material_synthesis"
+      }
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "Crystal Resonance",
+  "description": "Harness the natural vibration frequencies of crystals to amplify energy.",
+  "category": "materials",
+  "tier": "ADVANCED",
+  "duration": 3600,
+  "prerequisites": "example:crystal_analysis",
+  "item_costs": [
+    { "item": "minecraft:amethyst_shard", "count": 16 },
+    { "item": "minecraft:diamond", "count": 2 }
+  ],
+  "fluid_cost": {
+    "fluid": "researchcube:pondering_fluid",
+    "amount": 1500
+  },
+  "recipe_pool": [
+    { "id": "example:resonant_crystal_recipe", "weight": 3 },
+    { "id": "example:crystal_capacitor_recipe", "weight": 1 }
+  ]
+}

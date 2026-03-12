@@ -1,0 +1,18 @@
+{
+  "type": "researchcube:drive_crafting",
+  "recipe_id": "example:synthetic_crystal_recipe",
+  "pattern": [
+    "EAE",
+    "ADA",
+    "EAE"
+  ],
+  "key": {
+    "E": { "item": "minecraft:emerald" },
+    "A": { "item": "minecraft:amethyst_shard" },
+    "D": { "item": "minecraft:diamond_block" }
+  },
+  "result": {
+    "id": "minecraft:beacon",
+    "count": 1
+  }
+}

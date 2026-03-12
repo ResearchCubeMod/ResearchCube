@@ -1,0 +1,13 @@
+{
+  "type": "researchcube:drive_crafting",
+  "recipe_id": "example:crystal_lens_recipe",
+  "ingredients": [
+    { "item": "minecraft:amethyst_shard" },
+    { "item": "minecraft:amethyst_shard" },
+    { "item": "minecraft:glass_pane" }
+  ],
+  "result": {
+    "id": "minecraft:spyglass",
+    "count": 2
+  }
+}

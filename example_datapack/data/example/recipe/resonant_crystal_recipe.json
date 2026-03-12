@@ -1,0 +1,18 @@
+{
+  "type": "researchcube:drive_crafting",
+  "recipe_id": "example:resonant_crystal_recipe",
+  "pattern": [
+    "ADA",
+    "DGD",
+    "ADA"
+  ],
+  "key": {
+    "A": { "item": "minecraft:amethyst_shard" },
+    "D": { "item": "minecraft:diamond" },
+    "G": { "item": "minecraft:gold_ingot" }
+  },
+  "result": {
+    "id": "minecraft:amethyst_block",
+    "count": 4
+  }
+}

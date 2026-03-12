@@ -1,0 +1,15 @@
+{
+  "type": "researchcube:processing",
+  "ingredients": [
+    { "item": "minecraft:iron_ingot" },
+    { "item": "minecraft:iron_ingot" },
+    { "item": "minecraft:coal" }
+  ],
+  "fluid_inputs": [
+    { "fluid": "researchcube:thinking_fluid", "amount": 500 }
+  ],
+  "results": [
+    { "id": "minecraft:iron_block", "count": 1 }
+  ],
+  "duration": 200
+}

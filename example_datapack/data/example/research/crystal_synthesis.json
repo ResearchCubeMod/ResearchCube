@@ -1,0 +1,26 @@
+{
+  "name": "Crystal Synthesis",
+  "description": "The ultimate mastery of crystalline matter - create synthetic crystals with perfect structure.",
+  "category": "materials",
+  "tier": "PRECISE",
+  "duration": 7200,
+  "prerequisites": {
+    "type": "AND",
+    "values": [
+      "example:crystal_resonance",
+      "researchcube:material_synthesis"
+    ]
+  },
+  "item_costs": [
+    { "item": "minecraft:amethyst_shard", "count": 32 },
+    { "item": "minecraft:diamond", "count": 4 },
+    { "item": "minecraft:emerald", "count": 2 }
+  ],
+  "fluid_cost": {
+    "fluid": "researchcube:reasoning_fluid",
+    "amount": 2000
+  },
+  "recipe_pool": [
+    "example:synthetic_crystal_recipe"
+  ]
+}

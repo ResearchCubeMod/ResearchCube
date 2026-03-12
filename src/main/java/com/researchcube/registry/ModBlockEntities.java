@@ -2,6 +2,7 @@ package com.researchcube.registry;
 
 import com.researchcube.ResearchCubeMod;
 import com.researchcube.block.DriveCraftingTableBlockEntity;
+import com.researchcube.block.ProcessingStationBlockEntity;
 import com.researchcube.block.ResearchTableBlockEntity;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -25,5 +26,12 @@ public class ModBlockEntities {
                     () -> BlockEntityType.Builder.of(
                             DriveCraftingTableBlockEntity::new,
                             ModBlocks.DRIVE_CRAFTING_TABLE.get()
+                    ).build(null));
+
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<ProcessingStationBlockEntity>> PROCESSING_STATION =
+            BLOCK_ENTITIES.register("processing_station",
+                    () -> BlockEntityType.Builder.of(
+                            ProcessingStationBlockEntity::new,
+                            ModBlocks.PROCESSING_STATION.get()
                     ).build(null));
 }

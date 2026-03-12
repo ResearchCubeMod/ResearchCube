@@ -1,0 +1,24 @@
+{
+  "display": {
+    "icon": {
+      "id": "researchcube:metadata_self_aware"
+    },
+    "title": "ResearchCube",
+    "description": "Begin your research journey",
+    "background": "minecraft:textures/gui/advancements/backgrounds/adventure.png",
+    "show_toast": false,
+    "announce_to_chat": false
+  },
+  "criteria": {
+    "has_research_station": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "researchcube:research_station_item"
+          }
+        ]
+      }
+    }
+  }
+}

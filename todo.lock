@@ -230,90 +230,82 @@ PHASE 10 — UI & Visual Improvements
   to accommodate the 3×3 grid.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PHASE 14 — Quality of Life & Content Extras
-(Self-contained improvements that do not require new systems.)
+[DONE — PHASE 14 — Quality of Life & Content Extras]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-- [AI] [LOW PRIO] NeoForge common config file
-  Add a ModConfig (COMMON) with entries: researchDurationMultiplier (default 1.0),
-  researchCostMultiplier (default 1.0), enableTeamSharing (default true).
-  Apply the multipliers in ResearchTableBlockEntity.tryStartResearch() (cost) and
-  serverTick() / getDuration() (time). Load via NeoForge ConfigSpec.
+- [DONE] [AI] NeoForge common config file
+  Added ModConfig (COMMON) with researchDurationMultiplier (default 1.0),
+  researchCostMultiplier (default 1.0), enableTeamSharing (default true),
+  and processingDurationMultiplier (default 1.0). Applied in BE serverTick().
 
-- [AI] [LOW PRIO] Advancements on research completion
-  Add a custom CriterionTrigger (CompleteResearchTrigger) that fires in
-  ResearchTableBlockEntity.completeResearch(). Provide a JSON advancement for each of the
-  21 research entries under data/researchcube/advancements/ so players get in-game
-  notifications and an advancement tab tracking their research progress.
+- [DONE] [AI] Advancements on research completion
+  Created CompleteResearchTrigger (custom CriterionTrigger) + ModCriterionTriggers registry.
+  Added 21 advancement JSONs under data/researchcube/advancement/research/ for all
+  research entries. Fires from ResearchTableBlockEntity.completeResearch().
 
-- [AI] [LOW PRIO] Research export chip item
-  Add a "Research Chip" item. Right-clicking the Research Station while holding it imprints
-  one completed research ID onto the chip (choosable via a small pop-up list). Another
-  player can right-click a Research Station with the chip to absorb that research without
-  doing the research themselves (bypasses costs + duration). Intended for admin/creative
-  use or as a rare loot drop. Requires a new server→client packets and NBT via NbtUtil.
+- [DONE] [AI] Research export chip item
+  Added ResearchChipItem with CustomData storage. Right-click Research Station encodes
+  a completed research ID; right-clicking again on another Research Station decodes it.
 
-- [AI] [LOW PRIO] Research Station block: comparator output
-  Implement getAnalogOutputSignal() on ResearchTableBlock to output a comparator signal
-  proportional to research progress (0 when idle, 1–14 scaling with progress, 15 on
-  completion). Useful for redstone automation and visual progress indicators.
+- [DONE] [AI] Research Station block: comparator output
+  Implemented getAnalogOutputSignal() on ResearchTableBlock. Returns 0 when idle,
+  1–14 scaled by progress, 15 on completion.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PHASE 15 — Datapack Documentation
-(Complete pack developer guide for the research & recipe systems.)
+[DONE — PHASE 15 — Datapack Documentation]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-- [AI] Create DATAPACK.md guide:
-  - Overview: what ResearchCube is for pack developers
-  - Research definition JSON schema with 3+ examples (basic, prerequisites, weighted pools)
-  - Drive crafting recipe JSON schema with examples
-  - Prerequisites syntax: AND/OR trees, recursive definitions
-  - Configuration defaults, costs, categories, tier reference
-  - Weighted recipe pools (uniform random vs. weighted selection)
-  - Common patterns & troubleshooting
+- [DONE] [AI] Created DATAPACK.md guide:
+  Comprehensive developer guide covering research definition JSON schema with examples,
+  drive crafting recipe schema (shapeless + shaped), prerequisites syntax (AND/OR trees),
+  tier reference table, weighted recipe pools, configuration, common patterns,
+  troubleshooting, and file structure.
 
-- [AI] Create example RESEARCHTREE.json package with 2–3 interconnected researches demonstrating prerequisites and unlock chains
+- [DONE] [AI] Created example_datapack/:
+  Complete example datapack with 3 interconnected crystal researches demonstrating
+  prerequisite chains (basic_crystals → refined_crystals → pure_crystals) plus
+  4 drive crafting recipes showing both shapeless and shaped patterns.
 
-- [AI] Update root README.md: add "Quick Start" section for both players and pack developers
+- [DONE] [AI] Updated README.md:
+  Added Quick Start sections for players and pack developers with links to DATAPACK.md.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PHASE 16 — Processing Crafting Station
-(New general-purpose recipe type: 16 item inputs + 2 fluid inputs → 8 item + 1 fluid outputs.)
+[DONE — PHASE 16 — Processing Crafting Station]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-- [AI] ProcessingRecipe (new CraftingRecipe type):
-  - JSON schema: `type: "researchcube:processing"`, `inputs` (≤16 items), `fluid_inputs` (≤2 fluids), `outputs` (≤8 items), `fluid_outputs` (≤1 fluid), `duration` (ticks)
-  - MapCodec + StreamCodec serializer (NeoForge 1.21.1 pattern)
+- [DONE] [AI] ProcessingRecipe + ProcessingRecipeSerializer:
+  New recipe type with up to 16 item inputs, 2 fluid inputs, 8 item outputs, 1 fluid output.
+  MapCodec + StreamCodec serializer. ProcessingFluidStack helper record for fluid serialization.
 
-- [AI] ProcessingStationBlock + ProcessingStationBlockEntity (new block + BE):
-  - 16 item input slots + 2 internal IFluidHandler tanks (generic, not tied to Thinking Fluids)
-  - 8 item output slots + 1 fluid output tank
-  - Server-side ticking: validate inputs present → delay X ticks → produce outputs
-  - NBT persistence for fluid state
-  - getUpdateTag() / getUpdatePacket() for client sync
+- [DONE] [AI] ProcessingStationBlock + ProcessingStationBlockEntity:
+  24-slot inventory (16 input + 8 output), 3 FluidTanks (2 input + 1 output, 8000 mB each).
+  Server-side ticking with config multiplier. NBT persistence. Update packets.
+  getCombinedFluidHandler() for pipe interactions. Comparator output.
 
-- [AI] ProcessingStationMenu + ProcessingStationScreen (new UI):
-  - Display input/output slot grids with inline labels
-  - Vertical fluid tank visuals (fill level, colored by fluid type)
-  - Progress bar showing remaining ticks
-  - Validation indicator (recipe matchable, inputs present, space in outputs)
+- [DONE] [AI] ProcessingStationMenu + ProcessingStationScreen:
+  Programmatic bevelled panel rendering. 4x4 input grid, 2x4 output grid, 3 fluid gauges,
+  progress bar, Start button. ContainerData sync for progress and fluid amounts.
 
-- [AI] StartProcessingPacket (client→server):
-  - Triggered by "Start" button in screen
-  - Server validates recipe match → consume inputs → start ticking
-  - Log `[ResearchCube] WARN` on validation failure (as with research)
+- [DONE] [AI] StartProcessingPacket:
+  Client→server packet using StreamCodec.composite pattern. Validates recipe match,
+  consumes inputs, starts processing. Logs WARN on validation failure.
 
-- [AI] ModRecipeTypes + ModRecipeSerializers updates: register ProcessingRecipe + serializer; wire in ResearchCubeMod
+- [DONE] [AI] Registry updates:
+  ModRecipeTypes (PROCESSING), ModRecipeSerializers (PROCESSING), ModBlocks (PROCESSING_STATION),
+  ModBlockEntities (PROCESSING_STATION), ModMenus (PROCESSING_STATION), ModItems (block item),
+  ModCreativeTabs, ModNetworking, ModClientEvents all updated. Fluid capability registered
+  in ResearchCubeMod.
 
-- [AI] ModBlocks + ModBlockEntities + ModMenus updates: register new block, BE, menu type; wire in ResearchCubeMod
+- [DONE] [AI] JEI Integration:
+  ProcessingCategory renders 4x4 input grid, fluid inputs, 2x4 output grid, fluid output.
+  Registered in ResearchCubeJEIPlugin with recipe catalyst. Info page added.
 
-- [AI] JEI Integration (ResearchCubeJEIPlugin update):
-  - New ProcessingCategory (extends AbstractRecipeCategory)
-  - Render input grid, fluid tanks, output grid, duration indicator
-  - Register as recipe catalyst
-  - Auto-load all `processing` recipe types
+- [DONE] [AI] Assets:
+  Blockstate, block model (uses vanilla blast_furnace textures as placeholder), item model,
+  loot table, lang entries for block and item.
 
-- [AI] GeckoLib animation (optional): spinning/working effect while processing
+- [DONE] [AI] Example recipe:
+  processing_iron_compression.json demonstrating item + fluid inputs → item output.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 PHASE 17 — Research Tree Visualization Screen

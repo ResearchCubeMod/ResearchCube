@@ -3,6 +3,7 @@ package com.researchcube.client;
 import com.researchcube.ResearchCubeMod;
 import com.researchcube.client.renderer.ResearchStationRenderer;
 import com.researchcube.client.screen.DriveCraftingTableScreen;
+import com.researchcube.client.screen.ProcessingStationScreen;
 import com.researchcube.client.screen.ResearchTableScreen;
 import com.researchcube.registry.ModBlockEntities;
 import com.researchcube.registry.ModFluids;
@@ -27,6 +28,7 @@ public class ModClientEvents {
     public static void onRegisterScreens(RegisterMenuScreensEvent event) {
         event.register(ModMenus.RESEARCH_TABLE.get(), ResearchTableScreen::new);
         event.register(ModMenus.DRIVE_CRAFTING_TABLE.get(), DriveCraftingTableScreen::new);
+        event.register(ModMenus.PROCESSING_STATION.get(), ProcessingStationScreen::new);
     }
 
     @SubscribeEvent

@@ -37,8 +37,12 @@ public class ModCreativeTabs {
                         output.accept(ModItems.RESEARCH_STATION_ITEM.get());
                         // Drive Crafting Table
                         output.accept(ModItems.DRIVE_CRAFTING_TABLE_ITEM.get());
+                        // Processing Station
+                        output.accept(ModItems.PROCESSING_STATION_ITEM.get());
                         // Research Book
                         output.accept(ModItems.RESEARCH_BOOK.get());
+                        // Research Chip
+                        output.accept(ModItems.RESEARCH_CHIP.get());
                         // Fluid Buckets
                         output.accept(ModItems.THINKING_FLUID_BUCKET.get());
                         output.accept(ModItems.PONDERING_FLUID_BUCKET.get());

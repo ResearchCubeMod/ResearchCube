@@ -2,6 +2,7 @@ package com.researchcube.compat.jei;
 
 import com.researchcube.ResearchCubeMod;
 import com.researchcube.recipe.DriveCraftingRecipe;
+import com.researchcube.recipe.ProcessingRecipe;
 import com.researchcube.registry.ModItems;
 import com.researchcube.registry.ModRecipeTypes;
 import mezz.jei.api.IModPlugin;
@@ -38,7 +39,8 @@ public class ResearchCubeJEIPlugin implements IModPlugin {
     @Override
     public void registerCategories(IRecipeCategoryRegistration registration) {
         registration.addRecipeCategories(
-                new DriveCraftingCategory(registration.getJeiHelpers().getGuiHelper())
+                new DriveCraftingCategory(registration.getJeiHelpers().getGuiHelper()),
+                new ProcessingCategory(registration.getJeiHelpers().getGuiHelper())
         );
     }
 
@@ -58,6 +60,15 @@ public class ResearchCubeJEIPlugin implements IModPlugin {
 
         registration.addRecipes(DriveCraftingCategory.RECIPE_TYPE, driveCraftingRecipes);
 
+        // Collect all processing recipes
+        List<ProcessingRecipe> processingRecipes = recipeManager
+                .getAllRecipesFor(ModRecipeTypes.PROCESSING.get())
+                .stream()
+                .map(RecipeHolder::value)
+                .toList();
+
+        registration.addRecipes(ProcessingCategory.RECIPE_TYPE, processingRecipes);
+
         // Add info page for the Research Station
         registration.addIngredientInfo(
                 new ItemStack(ModItems.RESEARCH_STATION_ITEM.get()),
@@ -67,6 +78,18 @@ public class ResearchCubeJEIPlugin implements IModPlugin {
                         "Insert a Drive and a Cube of the appropriate tier, provide item costs, " +
                         "then start research. On completion, a recipe ID is imprinted onto the Drive. " +
                         "Use the Drive in a crafting grid with the required materials to craft the result."
+                )
+        );
+
+        // Add info page for the Processing Station
+        registration.addIngredientInfo(
+                new ItemStack(ModItems.PROCESSING_STATION_ITEM.get()),
+                mezz.jei.api.constants.VanillaTypes.ITEM_STACK,
+                net.minecraft.network.chat.Component.literal(
+                        "The Processing Station is a general-purpose machine. " +
+                        "It can accept up to 16 item inputs, 2 fluid inputs, " +
+                        "and produces up to 8 item outputs and 1 fluid output. " +
+                        "Processing recipes are defined via datapack."
                 )
         );
     }
@@ -83,6 +106,12 @@ public class ResearchCubeJEIPlugin implements IModPlugin {
         registration.addRecipeCatalyst(
                 new ItemStack(ModItems.DRIVE_CRAFTING_TABLE_ITEM.get()),
                 DriveCraftingCategory.RECIPE_TYPE
+        );
+
+        // The Processing Station handles processing recipes
+        registration.addRecipeCatalyst(
+                new ItemStack(ModItems.PROCESSING_STATION_ITEM.get()),
+                ProcessingCategory.RECIPE_TYPE
         );
     }
 }

@@ -3,6 +3,7 @@ package com.researchcube.registry;
 import com.researchcube.ResearchCubeMod;
 import com.researchcube.item.DriveItem;
 import com.researchcube.item.CubeItem;
+import com.researchcube.item.ResearchChipItem;
 import com.researchcube.item.ResearchFluidBucketItem;
 import com.researchcube.research.ResearchTier;
 import net.minecraft.world.item.BlockItem;
@@ -58,6 +59,10 @@ public class ModItems {
     public static final DeferredItem<BlockItem> DRIVE_CRAFTING_TABLE_ITEM = ITEMS.register("drive_crafting_table",
             () -> new BlockItem(ModBlocks.DRIVE_CRAFTING_TABLE.get(), new Item.Properties()));
 
+    // ── Processing Station block item ──
+    public static final DeferredItem<BlockItem> PROCESSING_STATION_ITEM = ITEMS.register("processing_station",
+            () -> new BlockItem(ModBlocks.PROCESSING_STATION.get(), new Item.Properties()));
+
     // ── Fluid Buckets ──
     public static final DeferredItem<ResearchFluidBucketItem> THINKING_FLUID_BUCKET = ITEMS.register("thinking_fluid_bucket",
             () -> new ResearchFluidBucketItem(ModFluids.THINKING_FLUID.get(),
@@ -74,4 +79,8 @@ public class ModItems {
     public static final DeferredItem<ResearchFluidBucketItem> IMAGINATION_FLUID_BUCKET = ITEMS.register("imagination_fluid_bucket",
             () -> new ResearchFluidBucketItem(ModFluids.IMAGINATION_FLUID.get(),
                     new Item.Properties().stacksTo(1).craftRemainder(Items.BUCKET)));
+
+    // ── Research Chip (export/import research) ──
+    public static final DeferredItem<ResearchChipItem> RESEARCH_CHIP = ITEMS.register("research_chip",
+            () -> new ResearchChipItem(new Item.Properties().stacksTo(1)));
 }

@@ -4,9 +4,11 @@ import com.researchcube.ResearchCubeMod;
 import com.researchcube.item.CubeItem;
 import com.researchcube.item.DriveItem;
 import com.researchcube.registry.ModBlockEntities;
+import com.researchcube.registry.ModConfig;
 import com.researchcube.registry.ModFluids;
 import com.researchcube.registry.ModItems;
 import com.researchcube.research.*;
+import com.researchcube.research.criterion.CompleteResearchTrigger;
 import com.researchcube.util.NbtUtil;
 import com.researchcube.util.TierUtil;
 import net.minecraft.core.BlockPos;
@@ -21,6 +23,7 @@ import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.Containers;
@@ -345,7 +348,9 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
         }
 
         long elapsed = level.getGameTime() - be.startTime;
-        if (elapsed >= definition.getDuration()) {
+        // Apply config duration multiplier
+        int adjustedDuration = (int) (definition.getDuration() * ModConfig.getResearchDurationMultiplier());
+        if (elapsed >= adjustedDuration) {
             be.completeResearch(definition);
         }
     }
@@ -394,6 +399,13 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
             savedData.addCompleted(researchKey, definition.getId());
             ResearchCubeMod.LOGGER.debug("Recorded research '{}' as completed for key {}",
                     definition.getId(), researchKey);
+
+            // Fire advancement criterion for player who completed the research
+            for (ServerPlayer player : serverLevel.players()) {
+                if (researchKey.equals(ResearchSavedData.getResearchKey(player))) {
+                    CompleteResearchTrigger.INSTANCE.trigger(player, definition.getId());
+                }
+            }
         }
 
         // Play completion sound and spawn particles
@@ -415,10 +427,11 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
 
     /**
      * Check that all item costs can be satisfied from the cost input slots (slots 2-7).
+     * Applies the config cost multiplier to determine the actual required amount.
      */
     private boolean validateItemCosts(List<ItemCost> costs) {
         for (ItemCost cost : costs) {
-            int remaining = cost.count();
+            int remaining = ModConfig.applyResearchCostMultiplier(cost.count());
             for (int i = COST_SLOT_START; i < SLOT_BUCKET_IN; i++) {
                 ItemStack stack = inventory.getStackInSlot(i);
                 if (!stack.isEmpty() && stack.getItem() == cost.getItem()) {
@@ -434,10 +447,11 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
     /**
      * Consume item costs from the cost input slots.
      * Must only be called after validateItemCosts returns true.
+     * Applies the config cost multiplier to determine the actual consumed amount.
      */
     private void consumeItemCosts(List<ItemCost> costs) {
         for (ItemCost cost : costs) {
-            int remaining = cost.count();
+            int remaining = ModConfig.applyResearchCostMultiplier(cost.count());
             for (int i = COST_SLOT_START; i < SLOT_BUCKET_IN && remaining > 0; i++) {
                 ItemStack stack = inventory.getStackInSlot(i);
                 if (!stack.isEmpty() && stack.getItem() == cost.getItem()) {
@@ -457,13 +471,15 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
     /**
      * Returns the research progress as a float 0.0 to 1.0.
      * Returns 0 if no research is active.
+     * Applies the config duration multiplier to the total duration.
      */
     public float getProgress() {
         if (!isResearching() || level == null) return 0f;
         ResearchDefinition definition = ResearchRegistry.get(activeResearchId);
         if (definition == null) return 0f;
         long elapsed = level.getGameTime() - startTime;
-        return Math.min(1.0f, (float) elapsed / definition.getDuration());
+        int adjustedDuration = (int) (definition.getDuration() * ModConfig.getResearchDurationMultiplier());
+        return Math.min(1.0f, (float) elapsed / adjustedDuration);
     }
 
     /**

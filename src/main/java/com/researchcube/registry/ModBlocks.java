@@ -2,6 +2,7 @@ package com.researchcube.registry;
 
 import com.researchcube.ResearchCubeMod;
 import com.researchcube.block.DriveCraftingTableBlock;
+import com.researchcube.block.ProcessingStationBlock;
 import com.researchcube.block.ResearchTableBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
@@ -23,6 +24,12 @@ public class ModBlocks {
     public static final DeferredBlock<DriveCraftingTableBlock> DRIVE_CRAFTING_TABLE = BLOCKS.register("drive_crafting_table",
             () -> new DriveCraftingTableBlock(BlockBehaviour.Properties.of()
                     .strength(3.5f, 5.0f)
+                    .sound(SoundType.METAL)
+                    .requiresCorrectToolForDrops()));
+
+    public static final DeferredBlock<ProcessingStationBlock> PROCESSING_STATION = BLOCKS.register("processing_station",
+            () -> new ProcessingStationBlock(BlockBehaviour.Properties.of()
+                    .strength(4.0f, 6.0f)
                     .sound(SoundType.METAL)
                     .requiresCorrectToolForDrops()));
 }

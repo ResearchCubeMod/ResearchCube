@@ -1,0 +1,18 @@
+{
+  "name": "Crystal Analysis",
+  "description": "Study the fundamental properties of crystalline structures to unlock new possibilities.",
+  "category": "materials",
+  "tier": "BASIC",
+  "duration": 1200,
+  "item_costs": [
+    { "item": "minecraft:amethyst_shard", "count": 8 },
+    { "item": "minecraft:glass", "count": 4 }
+  ],
+  "fluid_cost": {
+    "fluid": "researchcube:thinking_fluid",
+    "amount": 1000
+  },
+  "recipe_pool": [
+    "example:crystal_lens_recipe"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "type": "researchcube:drive_crafting",
+  "recipe_id": "example:crystal_capacitor_recipe",
+  "ingredients": [
+    { "item": "minecraft:amethyst_shard" },
+    { "item": "minecraft:copper_ingot" },
+    { "item": "minecraft:redstone" }
+  ],
+  "result": {
+    "id": "minecraft:comparator",
+    "count": 2
+  }
+}

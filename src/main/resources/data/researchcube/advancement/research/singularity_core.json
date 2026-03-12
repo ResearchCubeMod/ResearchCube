@@ -1,0 +1,20 @@
+{
+  "parent": "researchcube:research/dimensional_folding",
+  "display": {
+    "icon": {
+      "id": "researchcube:cube_self_aware"
+    },
+    "title": "Singularity Core",
+    "description": "Complete the Singularity Core research",
+    "show_toast": true,
+    "announce_to_chat": true
+  },
+  "criteria": {
+    "research_complete": {
+      "trigger": "researchcube:complete_research",
+      "conditions": {
+        "research_id": "researchcube:singularity_core"
+      }
+    }
+  }
+}

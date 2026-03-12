@@ -16,6 +16,7 @@
 
   "item.researchcube.research_station_item": "Research Station",
   "item.researchcube.research_book": "Research Encyclopedia",
+  "item.researchcube.research_chip": "Research Export Chip",
   "item.researchcube.drive_crafting_table": "Drive Crafting Table",
 
   "item.researchcube.thinking_fluid_bucket": "§bThinking Fluid Bucket",
@@ -30,5 +31,7 @@
 
   "itemGroup.researchcubetab": "Research Cube",
   "block.researchcube.research_station": "Research Station",
-  "block.researchcube.drive_crafting_table": "Drive Crafting Table"
+  "block.researchcube.drive_crafting_table": "Drive Crafting Table",
+  "block.researchcube.processing_station": "Processing Station",
+  "item.researchcube.processing_station": "Processing Station"
 }

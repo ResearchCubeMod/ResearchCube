@@ -1,6 +1,7 @@
 package com.researchcube.research;
 
 import com.researchcube.ResearchCubeMod;
+import com.researchcube.registry.ModConfig;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -39,13 +40,15 @@ public class ResearchSavedData extends SavedData {
 
     /**
      * Resolve the research key for a player.
-     * If the player is on a scoreboard team, returns the team name (shared pool).
+     * If team sharing is enabled and the player is on a scoreboard team, returns the team name (shared pool).
      * Otherwise, returns the player's UUID as a string (isolated pool).
      */
     public static String getResearchKey(ServerPlayer player) {
-        PlayerTeam team = player.getTeam() instanceof PlayerTeam pt ? pt : null;
-        if (team != null) {
-            return "team:" + team.getName();
+        if (ModConfig.isTeamSharingEnabled()) {
+            PlayerTeam team = player.getTeam() instanceof PlayerTeam pt ? pt : null;
+            if (team != null) {
+                return "team:" + team.getName();
+            }
         }
         return player.getUUID().toString();
     }

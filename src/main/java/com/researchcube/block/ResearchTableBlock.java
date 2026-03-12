@@ -104,4 +104,32 @@ public class ResearchTableBlock extends BaseEntityBlock {
         }
         super.onRemove(state, level, pos, newState, movedByPiston);
     }
+
+    @Override
+    protected boolean hasAnalogOutputSignal(BlockState state) {
+        return true;
+    }
+
+    /**
+     * Comparator output based on research progress:
+     * - 0 when idle (no research active)
+     * - 1-14 scaling with progress (1% to 99%)
+     * - 15 when research is complete (100%)
+     */
+    @Override
+    protected int getAnalogOutputSignal(BlockState state, Level level, BlockPos pos) {
+        BlockEntity be = level.getBlockEntity(pos);
+        if (be instanceof ResearchTableBlockEntity rtbe) {
+            if (!rtbe.isResearching()) {
+                return 0;
+            }
+            float progress = rtbe.getProgress();
+            if (progress >= 1.0f) {
+                return 15; // Fully complete
+            }
+            // Scale 0.0-0.99 to 1-14
+            return 1 + (int) (progress * 14);
+        }
+        return 0;
+    }
 }
