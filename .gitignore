@@ -12,7 +12,7 @@ out
 *.iws
 *.iml
 .idea
-.vscode
+.vscode/
 
 # gradle
 build
@@ -24,6 +24,3 @@ run
 
 # Files from Forge MDK
 forge*changelog.txt
-
-# Local dev notes (not for repo)
-DEV_NOTES.md
