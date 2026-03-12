@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    { "item": "researchcube:pondering_fluid_bucket" },
+    { "item": "minecraft:blaze_powder" },
+    { "item": "minecraft:blaze_powder" }
+  ],
+  "result": {
+    "id": "researchcube:reasoning_fluid_bucket",
+    "count": 1
+  }
+}

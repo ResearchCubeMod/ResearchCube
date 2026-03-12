@@ -1,0 +1,68 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "Client",
+      "presentation": {
+        "group": "Mod Development - researchcube",
+        "order": 0
+      },
+      "projectName": "researchcube",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@C:\\Users\\ASUS\\Documents\\java\\modding\\researchcube\\ResearchCube\\build\\moddev\\clientRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@C:\\Users\\ASUS\\Documents\\java\\modding\\researchcube\\ResearchCube\\build\\moddev\\clientRunVmArgs.txt",
+        "-Dfml.modFolders\u003dresearchcube%%C:\\Users\\ASUS\\Documents\\java\\modding\\researchcube\\ResearchCube\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run",
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "Data",
+      "presentation": {
+        "group": "Mod Development - researchcube",
+        "order": 1
+      },
+      "projectName": "researchcube",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@C:\\Users\\ASUS\\Documents\\java\\modding\\researchcube\\ResearchCube\\build\\moddev\\dataRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@C:\\Users\\ASUS\\Documents\\java\\modding\\researchcube\\ResearchCube\\build\\moddev\\dataRunVmArgs.txt",
+        "-Dfml.modFolders\u003dresearchcube%%C:\\Users\\ASUS\\Documents\\java\\modding\\researchcube\\ResearchCube\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run",
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "Server",
+      "presentation": {
+        "group": "Mod Development - researchcube",
+        "order": 2
+      },
+      "projectName": "researchcube",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@C:\\Users\\ASUS\\Documents\\java\\modding\\researchcube\\ResearchCube\\build\\moddev\\serverRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@C:\\Users\\ASUS\\Documents\\java\\modding\\researchcube\\ResearchCube\\build\\moddev\\serverRunVmArgs.txt",
+        "-Dfml.modFolders\u003dresearchcube%%C:\\Users\\ASUS\\Documents\\java\\modding\\researchcube\\ResearchCube\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run",
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "type": "researchcube:drive_crafting",
+  "recipe_id": "researchcube:waveform_analysis_recipe_1",
+  "ingredients": [
+    { "item": "minecraft:amethyst_shard" },
+    { "item": "minecraft:amethyst_shard" },
+    { "item": "minecraft:redstone_block" },
+    { "item": "minecraft:quartz" }
+  ],
+  "result": {
+    "id": "minecraft:amethyst_block",
+    "count": 8
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "type": "researchcube:drive_crafting",
+  "recipe_id": "researchcube:material_synthesis_recipe_1",
+  "ingredients": [
+    { "item": "minecraft:iron_ingot" },
+    { "item": "minecraft:iron_ingot" },
+    { "item": "minecraft:coal" },
+    { "item": "minecraft:coal" }
+  ],
+  "result": {
+    "id": "minecraft:chain",
+    "count": 8
+  }
+}

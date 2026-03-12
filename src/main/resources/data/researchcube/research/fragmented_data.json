@@ -1,0 +1,15 @@
+{
+  "name": "Fragmented Data",
+  "description": "Recover partial data patterns from corrupted storage media.",
+  "category": "signals",
+  "tier": "UNSTABLE",
+  "duration": 800,
+  "item_costs": [
+    { "item": "minecraft:paper", "count": 8 },
+    { "item": "minecraft:redstone", "count": 2 }
+  ],
+  "fluid_cost": { "fluid": "researchcube:thinking_fluid", "amount": 500 },
+  "recipe_pool": [
+    "researchcube:fragmented_data_recipe_1"
+  ]
+}

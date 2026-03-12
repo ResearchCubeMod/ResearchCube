@@ -1,0 +1,14 @@
+{
+  "type": "researchcube:drive_crafting",
+  "recipe_id": "researchcube:cognitive_framework_recipe_1",
+  "ingredients": [
+    { "item": "minecraft:diamond" },
+    { "item": "minecraft:ender_eye" },
+    { "item": "minecraft:golden_apple" },
+    { "item": "minecraft:redstone_block" }
+  ],
+  "result": {
+    "id": "minecraft:enchanted_golden_apple",
+    "count": 1
+  }
+}

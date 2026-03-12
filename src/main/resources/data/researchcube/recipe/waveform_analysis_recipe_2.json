@@ -1,0 +1,14 @@
+{
+  "type": "researchcube:drive_crafting",
+  "recipe_id": "researchcube:waveform_analysis_recipe_2",
+  "ingredients": [
+    { "item": "minecraft:amethyst_shard" },
+    { "item": "minecraft:quartz_block" },
+    { "item": "minecraft:copper_ingot" },
+    { "item": "minecraft:redstone" }
+  ],
+  "result": {
+    "id": "minecraft:tinted_glass",
+    "count": 4
+  }
+}

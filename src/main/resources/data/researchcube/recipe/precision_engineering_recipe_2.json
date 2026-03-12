@@ -1,0 +1,14 @@
+{
+  "type": "researchcube:drive_crafting",
+  "recipe_id": "researchcube:precision_engineering_recipe_2",
+  "ingredients": [
+    { "item": "minecraft:diamond" },
+    { "item": "minecraft:diamond" },
+    { "item": "minecraft:iron_block" },
+    { "item": "minecraft:redstone" }
+  ],
+  "result": {
+    "id": "minecraft:lodestone",
+    "count": 1
+  }
+}

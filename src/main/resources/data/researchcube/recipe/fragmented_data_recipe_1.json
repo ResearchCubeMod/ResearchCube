@@ -1,0 +1,14 @@
+{
+  "type": "researchcube:drive_crafting",
+  "recipe_id": "researchcube:fragmented_data_recipe_1",
+  "ingredients": [
+    { "item": "minecraft:paper" },
+    { "item": "minecraft:paper" },
+    { "item": "minecraft:redstone" },
+    { "item": "minecraft:ink_sac" }
+  ],
+  "result": {
+    "id": "minecraft:book",
+    "count": 4
+  }
+}

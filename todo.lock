@@ -1,0 +1,352 @@
+[AI INSTRUCTIONS]
+This is the TODO tracker for this project. The content below shows the current tasks and their statuses.
+Prefer fixing bugs before moving on to new features.
+Tasks prefixed with [MAJOR] or [DANGER] should only be touched after explicit approval.
+Tasks prefixed with [LOW PRIO] or similar can be deferred if necessary.
+Tasks marked as [DONE] have been completed and should not be suggested for new work.
+[END AI INSTRUCTIONS]
+
+
+[DONE — Phase 1: Foundation]
+- [DONE] Build system: build.gradle, settings.gradle, gradle.properties, neoforge.mods.toml, pack.mcmeta
+- [DONE] ResearchTier enum (7 values: IRRECOVERABLE → SELF_AWARE), StringRepresentable
+- [DONE] DriveItem — tiered, CustomData recipe storage, foil effect, tooltip
+- [DONE] CubeItem — tiered, tooltip
+- [DONE] ModItems — 7 Drives (metadata_*), 6 Cubes, research_station_item
+- [DONE] ModBlocks — ResearchTableBlock
+- [DONE] ModBlockEntities — RESEARCH_STATION type
+- [DONE] ModCreativeTabs — ResearchCube tab with all items
+- [DONE] NbtUtil — CustomData helpers for tier/recipe read/write
+- [DONE] TierUtil — canResearch() validation
+- [DONE] Item model JSONs for all cube_* items and research_station_item
+- [DONE] Item textures (PNG) generated for all cube_* items and research_station_item
+
+[DONE — Phase 2: Research System]
+- [DONE] Prerequisite interface + AndPrerequisite, OrPrerequisite, SinglePrerequisite, NonePrerequisite
+- [DONE] PrerequisiteParser — recursive JSON → Prerequisite tree (string, AND/OR objects)
+- [DONE] ResearchDefinition record (id, tier, duration, prerequisites, itemCosts, recipePool)
+- [DONE] ItemCost record (itemId, count, getItem())
+- [DONE] ResearchRegistry — static Map with get/getAll/getByTier/getUpToTier
+- [DONE] ResearchManager — SimpleJsonResourceReloadListener scanning data/{ns}/research/*.json
+- [DONE] ModServerEvents — AddReloadListenerEvent registration
+- [DONE] ResearchTableBlockEntity — 8 slots, tryStartResearch(), serverTick(), completeResearch(), getProgress(), NBT persistence
+- [DONE] Example research datapacks: basic_circuit.json, energy_handling.json, advanced_processor.json
+
+[DONE — Phase 3: Custom Recipe System]
+- [DONE] DriveCraftingRecipe — CraftingRecipe checking drive NBT + shapeless ingredients, drive consumed
+- [DONE] DriveCraftingRecipeSerializer — MapCodec + StreamCodec
+- [DONE] ModRecipeTypes, ModRecipeSerializers registered in ResearchCubeMod
+- [DONE] Example recipe JSONs: basic_circuit_recipe_1, energy_handling_recipe_1, processor_recipe_1, processor_recipe_2
+
+[DONE — Phase 4: Menu, Screen, Networking, GeckoLib]
+- [DONE] ResearchTableMenu — 8 BE slots + player inventory, ContainerData syncing progress (×1000) and isResearching flag
+- [DONE] ModMenus — RESEARCH_TABLE MenuType via IMenuTypeExtension
+- [DONE] ResearchTableScreen — scrollable research list (filtered by cube tier), row selection, Start button, green progress bar with % text, mouseScrolled support
+- [DONE] GUI texture: assets/researchcube/textures/gui/research_table.png (256×256)
+- [DONE] StartResearchPacket — client→server, BlockPos + researchId, StreamCodec
+- [DONE] ModNetworking — RegisterPayloadHandlersEvent, playToServer registration
+- [DONE] ResearchTableBlock.useWithoutItem() — opens menu via ServerPlayer.openMenu with pos buffer
+- [DONE] ResearchTableBlockEntity implements GeoBlockEntity — AnimatableInstanceCache, idle animation controller
+- [DONE] ResearchStationModel — geo/texture/animation ResourceLocations
+- [DONE] ResearchStationRenderer — GeoBlockRenderer subclass
+- [DONE] ModClientEvents — registers screen + block entity renderer (Dist.CLIENT, MOD bus)
+
+
+[TODO LIST]
+
+Current Bugs
+- (none confirmed — build is green and client runs cleanly)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Resolved Decision Backlog (implement before Phase 10/11)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- [DONE] Drive recipe stripping (reverted): DriveCraftingRecipe.getRemainingItems() and DriveCraftingTableMenu.onResultTaken() were updated to return the drive unchanged — the recipe_id is kept forever so the same recipe can be crafted any number of times. NbtUtil.removeRecipe() remains in the codebase for potential future use.
+
+- [DONE] Per-team research sharing: refactored ResearchSavedData from UUID-keyed (Map<UUID, Set<ResourceLocation>>) to String-keyed map. Key = \"team:<teamname>\" for players in a scoreboard team, otherwise UUID string. Added static getResearchKey(ServerPlayer) helper. Updated all call-sites: ResearchTableBlock, StartResearchPacket, ResearchTableBlockEntity (stores researchKey instead of UUID, with backwards-compat loading of legacy ResearcherUUID NBT), and ResearchBookItem.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DONE — Phase 5: Core Gameplay Gaps]
+- [DONE] Per-player completed research tracking — ResearchSavedData (SavedData) stores Map<UUID, Set<ResourceLocation>>. StartResearchPacket & completeResearch() wired. Prerequisite enforcement works.
+- [DONE] CancelResearchPacket — client→server packet, cancelResearchWithRefund() refunds consumedCosts into cost slots, Cancel button in screen active while isResearching.
+- [DONE] Research name/description in JSON — optional "name" + "description" fields in ResearchDefinition; ResearchManager parses them; screen uses getDisplayName(); all example JSONs updated.
+- [DONE] Drive capacity per tier — ResearchTier.maxRecipes (0/2/4/8/12/16/-1), DriveItem.isFull(), tooltip shows X/max, completeResearch() double-checks capacity.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[DONE — Phase 6: UI Polish]
+- [DONE] Research row tooltip — hover shows tier, duration, item costs, prerequisite IDs with green ✔/red ✘ status.
+- [DONE] Lock/unlock visual on research rows — locked research greyed out (0x666666) with lock icon prefix; selection highlight turns red-tinted for locked entries.
+- [DONE] Active research name display — shows the running research name (tier-colored) above the progress bar.
+- [DONE] Drive contents tooltip — verified: DriveItem.appendHoverText shows tier, capacity (X/max or unlimited), bullet-pointed recipe IDs, and FULL indicator.
+- [DONE] Animated progress bar — smooth green gradient bar in renderBg(); unfilled bg drawn first, bar fills proportionally.
+- [DONE] Sync infrastructure — completed research sent to client via menu buffer (openMenu → FriendlyByteBuf); BE syncs active state via getUpdateTag/getUpdatePacket.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[DONE — Phase 7: Content & Data]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- [DONE] Full research tree: 21 research definitions across all functional tiers (UNSTABLE→SELF_AWARE) with coherent prerequisite graph, 7 categories (signals, circuits, energy, materials, optics, computing, temporal, convergence).
+  - UNSTABLE: unstable_signal, fragmented_data
+  - BASIC: basic_circuit, energy_handling, material_synthesis, basic_optics
+  - ADVANCED: advanced_processor, quantum_resonance, alloy_fabrication, photonic_amplifier, neural_interface
+  - PRECISE: precision_engineering, waveform_analysis, nanostructures, temporal_calibration, biophotonic_matrix
+  - FLAWLESS: dimensional_folding, molecular_assembly, cognitive_framework, zero_point_energy
+  - SELF_AWARE: singularity_core, transcendent_logic, omniscient_matrix
+
+- [DONE] Full recipe set: 35 drive_crafting recipe JSONs covering every recipe pool entry in the research tree, scaling from basic vanilla items (repeaters, chains) up through endgame rewards (elytra, dragon egg, nether stars).
+
+- [DONE] Research categories field: optional "category" string in ResearchDefinition JSON, parsed by ResearchManager. Screen groups entries by category with collapsible-style headers (▸ category). Tooltip shows category. Categories: signals, circuits, energy, materials, optics, computing, temporal, convergence.
+
+- [DONE] Weighted recipe pool: recipe_pool supports both plain string ("id") and object ({"id": "...", "weight": 3}) entries. WeightedRecipe record added. ResearchDefinition.pickWeightedRecipe() uses weighted random selection. Block entity completeResearch() calls pickWeightedRecipe() instead of uniform random.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[DONE — Phase 8: Audio / Visual Feedback]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- [DONE] Research complete sound: plays SoundEvents.PLAYER_LEVELUP at the block when research finishes (server-side). Spawns HAPPY_VILLAGER + COMPOSTER particles via ServerLevel.sendParticles(). Implemented in ResearchTableBlockEntity.completeResearch().
+
+- [DONE] Research start sound: plays SoundEvents.UI_BUTTON_CLICK at the block when research successfully starts (server-side). Implemented in ResearchTableBlockEntity.tryStartResearch().
+
+- [DONE] Block ambient sound: ResearchStationSoundInstance (extends AbstractTickableSoundInstance) plays a looping beacon hum (SoundEvents.BEACON_AMBIENT, vol 0.25, pitch 0.6) at the block while research is active. ClientSoundHandler (subscribes to LevelTickEvent.Post) scans nearby block entities every 40 ticks and starts/stops instances automatically.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[DONE — Phase 9: Mod Compatibility & Polish]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- [DONE] JEI/REI integration: compileOnly JEI dependency (mezz.jei 19.21.0.247, 1.21.1 NeoForge API). DriveCraftingCategory shows drive + ingredients → result with tooltip showing required recipe_id. ResearchCubeJEIPlugin (@JeiPlugin) registers the category, loads all drive_crafting recipes, adds Research Station info page and recipe catalyst. Located in compat/jei/ package.
+
+- [DONE] Loot table & data gen audit: added loot table at data/researchcube/loot_table/blocks/research_station.json (drops itself with survives_explosion condition). All blockstates, block models, item models, and item textures verified complete and present.
+
+- [DONE] Research book item: ResearchBookItem (creative tab, stacksTo(1)) opens a read-only ResearchBookScreen. Server sends OpenResearchBookPacket (server→client) with player's completed research set. Screen shows all research grouped by tier with ✔/✘ completion status, hover tooltips with full details (description, costs, prerequisites, recipes). Uses vanilla knowledge_book texture. Registered in ModItems, ModCreativeTabs, ModNetworking, and en_us.json.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Design Decisions (resolve before implementing dependent phases)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- [RESOLVED] Completed research scope: implemented as per-player via ResearchSavedData (SavedData). Each player UUID has their own Set<ResourceLocation> of completed research.
+
+- [RESOLVED] Drive reusability: drive PERSISTS after a drive_crafting recipe is used and the recipe_id is NOT removed — the same recipe can be crafted repeatedly as long as the ingredients are available. DriveCraftingRecipe.getRemainingItems() returns the drive unchanged; DriveCraftingTableMenu.onResultTaken() no longer calls NbtUtil.removeRecipe(). NbtUtil.removeRecipe() is kept for potential future use (e.g. Research Chip).
+
+- [RESOLVED] Research failure / risk: no risk system. IRRECOVERABLE-tier research always completes cleanly with no corruption or destruction chance.
+
+- [RESOLVED] [MAJOR] Multi-player research sharing: per-team. Players in the same Minecraft scoreboard team share one completed-research pool. ResearchSavedData must be refactored from UUID-keyed to team-name-keyed (with UUID fallback for players not in a team). Requires design + implementation approval before touching.
+
+- [RESOLVED] Multi-tier Research Stations: one universal Research Station handles all tiers forever. No tiered station blocks will be added.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 10 — UI & Visual Improvements
+(Self-contained improvements; no new systems required. Do non-MAJOR items first.)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- [DONE] Bigger Research Station UI: expanded screen from 176×166 to 280×222. Research list now 130px wide with 8 visible rows (was 50px/3 rows). Progress bar widened to 106px. Start/Stop buttons are full-sized. Programmatic background rendering with bevelled panels replaces texture dependency. Slot positions updated in both Menu and Screen. Player inventory centered in the wider layout.
+
+- [DONE] Research Station dynamic GeckoLib visuals per cube tier: ResearchStationRenderer overrides renderRecursively() to detect Brain bone hierarchy (Brain, center, b1–b8). When a CubeItem is in the cube slot, the brain bones are tinted with the tier's RGB color (ARGB packed) and rendered at full brightness (LightTexture.FULL_BRIGHT) for an emissive glow effect. A subtle pulsing sine wave (0.7–1.0 amplitude, ~800ms period) modulates the color brightness. ResearchTableBlockEntity.getCubeTier() reads the cube slot client-side (synced via getUpdateTag). No cube → default rendering; each tier (UNSTABLE→SELF_AWARE) shows its distinct color accent on the floating brain.
+
+- [DONE] Custom Drive Crafting Table block: DriveCraftingTableBlock + DriveCraftingTableBlockEntity (10 slots: 1 drive + 3x3 grid, persistent inventory, drops on break) + DriveCraftingTableMenu (drive slot, crafting grid, result slot with live recipe matching via combined CraftingInput, ingredient consumption + recipe ID stripping on craft, shift-click support) + DriveCraftingTableScreen (programmatic bevelled-panel rendering matching mod style, slot visuals, arrow, result highlight, drive tooltip). Registered in ModBlocks, ModBlockEntities, ModMenus, ModItems (block item), ModCreativeTabs, ModClientEvents. Blockstate, block model (cube with 4 textures), item model, loot table (drops self), 16x16 placeholder textures (top/side/front/bottom), lang entries. JEI catalyst registered. Build verified.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[DONE — PHASE 11: Thinking Fluid System]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- [DONE] [AI] Thinking Fluid tiers: 4 custom fluids (Thinking, Pondering, Reasoning, Imagination) registered via DeferredRegister<Fluid> with FluidType + Source + Flowing variants. Each has a matching bucket item (ResearchFluidBucketItem, prevents world placement). Client fluid extensions use vanilla water textures with custom tint colors (cyan/purple/gold/pink). NeoForge fluid_container bucket models. Registered in ModFluids, ModItems, ModCreativeTabs, ModClientEvents.
+
+- [DONE] [AI] Fluid textures + models: IClientFluidTypeExtensions registered per fluid type. Bucket item models use neoforge:fluid_container loader. No separate PNG textures needed — vanilla water_still/water_flow with tint.
+
+- [DONE] [AI] Fluid tank in Research Station BE: internal FluidTank (8000 mB capacity, filtered to 4 research fluids only). Persisted in NBT. Bucket input/output slots (8/9) auto-process fluid buckets every tick. Fluid cost validated and drained in tryStartResearch(). Refunded on cancel. Capability registered (Capabilities.FluidHandler.BLOCK) in ResearchCubeMod.
+
+- [DONE] [AI] Research Station fluid UI: vertical fluid gauge (12×46px, colored by fluid type, fills bottom-to-top). 2 bucket slots with input/output indicators. "Wipe" button voids tank contents (sends WipeTankPacket). Fluid gauge tooltip shows fluid name, amount/capacity, and hint text. Fluid cost shown in research row tooltip.
+
+- [DONE] [AI] Fluid-gated research: optional "fluid_cost" field in ResearchDefinition JSON (e.g. {"fluid": "researchcube:pondering_fluid", "amount": 1000}). ResearchManager parses it. tryStartResearch() validates and drains the tank. Fluid cost displayed in tooltip. All 23 research definitions updated: UNSTABLE=500mB thinking, BASIC=1000mB thinking, ADVANCED=1000mB pondering, PRECISE/FLAWLESS=2000mB reasoning, SELF_AWARE=4000mB imagination.
+
+- [DONE] [AI] Fluid crafting/obtaining: 4 shapeless vanilla crafting recipes for fluid tier progression. water_bucket + 2 redstone → Thinking Fluid Bucket. Thinking + 2 glowstone_dust → Pondering. Pondering + 2 blaze_powder → Reasoning. Reasoning + ender_pearl + chorus_fruit → Imagination. Lang entries for all bucket items and fluid types added to en_us.json.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[DONE — PHASE 12 — Recipe Discoverability & JEI/Book Improvements]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- [DONE] [AI] JEI drive crafting: show unlocking research name
+  DriveCraftingCategory.setRecipe() now resolves which ResearchDefinition has the recipe_id
+  in its pool (via RecipeOutputResolver.findResearchForRecipe()) and appends a tooltip line:
+  "Unlocked by: <Research Display Name> (<Tier>)". Lists all matching research entries.
+
+- [DONE] [AI] JEI drive crafting: pre-loaded drive as ingredient
+  Instead of cycling all bare drives, the JEI category now creates a single ItemStack of
+  the correct tier drive (resolved from the unlocking research's tier) with the recipe_id
+  pre-loaded via NbtUtil.addRecipe(). Players can use JEI "show uses" on a filled drive.
+
+- [DONE] [AI] Research Book: show recipe output items instead of raw IDs
+  ResearchBookScreen tooltip now shows "Possible Rewards:" followed by each recipe resolved
+  to its output item name + count via RecipeOutputResolver. Falls back to raw ID if unresolvable.
+
+- [DONE] [AI] Research Station screen: show recipe output items instead of raw IDs
+  ResearchTableScreen tooltip now shows "Rewards: Repeater ×4 or Comparator ×2" instead of
+  raw recipe IDs. Uses RecipeOutputResolver.formatOutput() for each pool entry.
+
+- [DONE] [AI] Drive item tooltip: resolve recipe IDs to output item names
+  DriveItem.appendHoverText() now shows resolved output names in green with raw recipe ID
+  shown in dark gray on advanced/shift hover. Falls back to raw ID if resolution fails.
+  Shared RecipeOutputResolver utility class created in com.researchcube.util.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[DONE — PHASE 13 — Shaped Drive Crafting Support]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- [DONE] [AI] DriveCraftingRecipe: add optional shaped mode
+  Extended DriveCraftingRecipe with optional ShapedRecipePattern support. When
+  "pattern" + "key" are present in JSON, the recipe uses shaped matching via
+  ShapedRecipePattern.matches(); otherwise it falls back to shapeless logic.
+  Added isShaped() flag, matchesShapedMode() and matchesShapelessMode() methods.
+  Drive is detected and excluded from the pattern match (placed anywhere in grid).
+
+  Example shaped JSON:
+  {
+    "type": "researchcube:drive_crafting",
+    "recipe_id": "researchcube:shaped_test_recipe",
+    "pattern": ["RR ", "II ", "   "],
+    "key": {
+      "R": { "item": "minecraft:redstone" },
+      "I": { "item": "minecraft:iron_ingot" }
+    },
+    "result": { "id": "minecraft:repeater", "count": 4 }
+  }
+
+- [DONE] [AI] DriveCraftingRecipeSerializer: parse shaped fields
+  DriveCraftingRecipeSerializer uses a custom MapCodec with decode() that checks for
+  "pattern" key presence. If present, decodes via ShapedRecipePattern.MAP_CODEC;
+  otherwise uses the shapeless ingredients list. StreamCodec writes/reads a boolean
+  flag followed by either ShapedRecipePattern.STREAM_CODEC or ingredient list.
+
+- [DONE] [AI] DriveCraftingTableMenu: respect shaped mode
+  DriveCraftingTableMenu.updateResult() now builds a 4×3 CraftingInput layout where
+  columns 0-2 are the 3×3 grid and column 3 holds the drive. This preserves positional
+  matching for shaped recipes while still including the drive for detection.
+  consumeGridIngredientsShaped() and consumeGridIngredientsShapeless() handle ingredient
+  consumption correctly based on recipe type.
+
+- [DONE] [AI] JEI drive crafting category: shaped layout
+  DriveCraftingCategory.setRecipe() detects recipe.isShaped() and switches layout:
+  shaped recipes render in a 3×3 grid matching the pattern dimensions; shapeless
+  recipes use the previous 4×2 flat arrangement. Background height increased to 72px
+  to accommodate the 3×3 grid.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 14 — Quality of Life & Content Extras
+(Self-contained improvements that do not require new systems.)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- [AI] [LOW PRIO] NeoForge common config file
+  Add a ModConfig (COMMON) with entries: researchDurationMultiplier (default 1.0),
+  researchCostMultiplier (default 1.0), enableTeamSharing (default true).
+  Apply the multipliers in ResearchTableBlockEntity.tryStartResearch() (cost) and
+  serverTick() / getDuration() (time). Load via NeoForge ConfigSpec.
+
+- [AI] [LOW PRIO] Advancements on research completion
+  Add a custom CriterionTrigger (CompleteResearchTrigger) that fires in
+  ResearchTableBlockEntity.completeResearch(). Provide a JSON advancement for each of the
+  21 research entries under data/researchcube/advancements/ so players get in-game
+  notifications and an advancement tab tracking their research progress.
+
+- [AI] [LOW PRIO] Research export chip item
+  Add a "Research Chip" item. Right-clicking the Research Station while holding it imprints
+  one completed research ID onto the chip (choosable via a small pop-up list). Another
+  player can right-click a Research Station with the chip to absorb that research without
+  doing the research themselves (bypasses costs + duration). Intended for admin/creative
+  use or as a rare loot drop. Requires a new server→client packets and NBT via NbtUtil.
+
+- [AI] [LOW PRIO] Research Station block: comparator output
+  Implement getAnalogOutputSignal() on ResearchTableBlock to output a comparator signal
+  proportional to research progress (0 when idle, 1–14 scaling with progress, 15 on
+  completion). Useful for redstone automation and visual progress indicators.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 15 — Datapack Documentation
+(Complete pack developer guide for the research & recipe systems.)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- [AI] Create DATAPACK.md guide:
+  - Overview: what ResearchCube is for pack developers
+  - Research definition JSON schema with 3+ examples (basic, prerequisites, weighted pools)
+  - Drive crafting recipe JSON schema with examples
+  - Prerequisites syntax: AND/OR trees, recursive definitions
+  - Configuration defaults, costs, categories, tier reference
+  - Weighted recipe pools (uniform random vs. weighted selection)
+  - Common patterns & troubleshooting
+
+- [AI] Create example RESEARCHTREE.json package with 2–3 interconnected researches demonstrating prerequisites and unlock chains
+
+- [AI] Update root README.md: add "Quick Start" section for both players and pack developers
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 16 — Processing Crafting Station
+(New general-purpose recipe type: 16 item inputs + 2 fluid inputs → 8 item + 1 fluid outputs.)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- [AI] ProcessingRecipe (new CraftingRecipe type):
+  - JSON schema: `type: "researchcube:processing"`, `inputs` (≤16 items), `fluid_inputs` (≤2 fluids), `outputs` (≤8 items), `fluid_outputs` (≤1 fluid), `duration` (ticks)
+  - MapCodec + StreamCodec serializer (NeoForge 1.21.1 pattern)
+
+- [AI] ProcessingStationBlock + ProcessingStationBlockEntity (new block + BE):
+  - 16 item input slots + 2 internal IFluidHandler tanks (generic, not tied to Thinking Fluids)
+  - 8 item output slots + 1 fluid output tank
+  - Server-side ticking: validate inputs present → delay X ticks → produce outputs
+  - NBT persistence for fluid state
+  - getUpdateTag() / getUpdatePacket() for client sync
+
+- [AI] ProcessingStationMenu + ProcessingStationScreen (new UI):
+  - Display input/output slot grids with inline labels
+  - Vertical fluid tank visuals (fill level, colored by fluid type)
+  - Progress bar showing remaining ticks
+  - Validation indicator (recipe matchable, inputs present, space in outputs)
+
+- [AI] StartProcessingPacket (client→server):
+  - Triggered by "Start" button in screen
+  - Server validates recipe match → consume inputs → start ticking
+  - Log `[ResearchCube] WARN` on validation failure (as with research)
+
+- [AI] ModRecipeTypes + ModRecipeSerializers updates: register ProcessingRecipe + serializer; wire in ResearchCubeMod
+
+- [AI] ModBlocks + ModBlockEntities + ModMenus updates: register new block, BE, menu type; wire in ResearchCubeMod
+
+- [AI] JEI Integration (ResearchCubeJEIPlugin update):
+  - New ProcessingCategory (extends AbstractRecipeCategory)
+  - Render input grid, fluid tanks, output grid, duration indicator
+  - Register as recipe catalyst
+  - Auto-load all `processing` recipe types
+
+- [AI] GeckoLib animation (optional): spinning/working effect while processing
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 17 — Research Tree Visualization Screen
+(Visual tree-graph rendering of research prerequisites as alternative to list view.)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- [AI] ResearchTreeScreen (new client screen):
+  - Parse all research from ResearchRegistry + prerequisite graph
+  - Auto-layout: breadth-first hierarchical or force-directed (algorithm TBD)
+  - Render as nodes (tier-colored circles/boxes) + edges (prerequisite links)
+  - AND/OR prerequisites visually distinct (different colors or styles)
+  - Hover → tooltip with tier, name, costs, completion status (✔/✘/locked)
+  - Click node → select research
+  - "Start Research" button (same as list view)
+  - Toggle button or option menu to switch between tree view / list view
+
+- [AI] Integrate toggle into current ResearchTableScreen or add new screen selector
+
+- [AI] Handle edge cases: large research trees, overlapping nodes, single-node selections
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 18 — Custom Drive Crafting Table
+(Dedicated crafting station block for drive_crafting recipe execution.)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- [AI] [MAJOR] DriveCraftingTableBlock + DriveCraftingTableBlockEntity: 
+  - Exposes 3×3 crafting grid + dedicated Drive input slot + output slot
+  - Matches drive_crafting recipes against the grid
+  - On craft, drives Drive, updates inventory
+
+- [AI] [MAJOR] DriveCraftingTableMenu + DriveCraftingTableScreen (new UI):
+  - Display 3×3 grid, Drive slot, output slot
+  - Show matched recipe preview (if valid drive + ingredients present)
+  - "Craft" button (enabled only when valid recipe found)
+
+- [AI] [MAJOR] Networking: CraftDriveRecipePacket (client→server) to trigger craft

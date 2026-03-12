@@ -1,0 +1,12 @@
+{
+  "parent": "minecraft:block/cube",
+  "textures": {
+    "up": "researchcube:block/drive_crafting_table_top",
+    "down": "researchcube:block/drive_crafting_table_bottom",
+    "north": "researchcube:block/drive_crafting_table_front",
+    "south": "researchcube:block/drive_crafting_table_side",
+    "east": "researchcube:block/drive_crafting_table_side",
+    "west": "researchcube:block/drive_crafting_table_side",
+    "particle": "researchcube:block/drive_crafting_table_side"
+  }
+}

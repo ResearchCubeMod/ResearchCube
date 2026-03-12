@@ -1,0 +1,13 @@
+{
+  "type": "researchcube:drive_crafting",
+  "recipe_id": "researchcube:processor_recipe_1",
+  "ingredients": [
+    { "item": "minecraft:diamond" },
+    { "item": "minecraft:redstone_block" },
+    { "item": "minecraft:iron_block" }
+  ],
+  "result": {
+    "id": "minecraft:observer",
+    "count": 2
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "type": "researchcube:drive_crafting",
+  "recipe_id": "researchcube:biophotonic_matrix_recipe_1",
+  "ingredients": [
+    { "item": "minecraft:glowstone" },
+    { "item": "minecraft:prismarine_crystals" },
+    { "item": "minecraft:spider_eye" },
+    { "item": "minecraft:spider_eye" }
+  ],
+  "result": {
+    "id": "minecraft:end_crystal",
+    "count": 1
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    { "item": "researchcube:reasoning_fluid_bucket" },
+    { "item": "minecraft:ender_pearl" },
+    { "item": "minecraft:chorus_fruit" }
+  ],
+  "result": {
+    "id": "researchcube:imagination_fluid_bucket",
+    "count": 1
+  }
+}

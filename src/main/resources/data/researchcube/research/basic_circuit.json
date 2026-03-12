@@ -1,0 +1,15 @@
+{
+  "name": "Basic Circuit",
+  "description": "Fundamental circuit design - the building block of all electronics.",
+  "category": "circuits",
+  "tier": "BASIC",
+  "duration": 1200,
+  "item_costs": [
+    { "item": "minecraft:redstone", "count": 8 },
+    { "item": "minecraft:iron_ingot", "count": 4 }
+  ],
+  "fluid_cost": { "fluid": "researchcube:thinking_fluid", "amount": 1000 },
+  "recipe_pool": [
+    "researchcube:basic_circuit_recipe_1"
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "name": "Photonic Amplifier",
+  "description": "Channel focused light beams to power advanced optical machinery.",
+  "category": "optics",
+  "tier": "ADVANCED",
+  "duration": 5400,
+  "prerequisites": {
+    "type": "AND",
+    "values": [
+      "researchcube:basic_optics",
+      "researchcube:energy_handling"
+    ]
+  },
+  "item_costs": [
+    { "item": "minecraft:glowstone", "count": 8 },
+    { "item": "minecraft:prismarine_shard", "count": 4 },
+    { "item": "minecraft:redstone", "count": 8 }
+  ],
+  "fluid_cost": { "fluid": "researchcube:pondering_fluid", "amount": 1000 },
+  "recipe_pool": [
+    "researchcube:photonic_amplifier_recipe_1"
+  ]
+}

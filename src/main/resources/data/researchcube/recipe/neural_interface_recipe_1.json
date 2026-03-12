@@ -1,0 +1,14 @@
+{
+  "type": "researchcube:drive_crafting",
+  "recipe_id": "researchcube:neural_interface_recipe_1",
+  "ingredients": [
+    { "item": "minecraft:diamond" },
+    { "item": "minecraft:redstone" },
+    { "item": "minecraft:redstone" },
+    { "item": "minecraft:spider_eye" }
+  ],
+  "result": {
+    "id": "minecraft:ender_eye",
+    "count": 2
+  }
+}
