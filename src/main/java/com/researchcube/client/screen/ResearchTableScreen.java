@@ -18,6 +18,7 @@ import com.researchcube.util.RecipeOutputResolver;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
@@ -29,7 +30,7 @@ import java.util.*;
 /**
  * Client-side screen for the Research Table.
  *
- * Expanded layout (280×222):
+ * Expanded layout (520x286):
  *   Left panel: Drive slot, Cube slot, 3×2 cost grid, progress bar, Start/Stop buttons
  *   Right panel: Scrollable research list grouped by category (8 visible rows, 130px wide)
  *   Bottom: Player inventory + hotbar (centered)
@@ -45,43 +46,44 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
     // ── Layout constants ──
 
     // Research list (right panel)
-    private static final int LIST_X = 140;
-    private static final int LIST_Y = 22;
-    private static final int LIST_W = 130;
+    private static final int LIST_X = 194;
+    private static final int LIST_Y = 38;
+    private static final int LIST_W = 306;
     private static final int ROW_H = 14;
     private static final int VISIBLE_ROWS = 7;
 
     // Progress bar
-    private static final int PROGRESS_X = 15;
-    private static final int PROGRESS_Y = 96;
-    private static final int PROGRESS_W = 106;
+    private static final int PROGRESS_X = 26;
+    private static final int PROGRESS_Y = 118;
+    private static final int PROGRESS_W = 146;
     private static final int PROGRESS_H = 8;
 
     // Fluid gauge (vertical bar on right side of left panel)
-    private static final int GAUGE_X = 108;
-    private static final int GAUGE_Y = 18;
-    private static final int GAUGE_W = 12;
-    private static final int GAUGE_H = 46;
+    private static final int GAUGE_X = 154;
+    private static final int GAUGE_Y = 34;
+    private static final int GAUGE_W = 16;
+    private static final int GAUGE_H = 58;
 
     // Panel regions
-    private static final int LEFT_PANEL_X = 5;
-    private static final int LEFT_PANEL_Y = 5;
-    private static final int LEFT_PANEL_W = 126;
-    private static final int LEFT_PANEL_H = 127;
+    private static final int LEFT_PANEL_X = 20;
+    private static final int LEFT_PANEL_Y = 20;
+    private static final int LEFT_PANEL_W = 160;
+    private static final int LEFT_PANEL_H = 132;
 
-    private static final int RIGHT_PANEL_X = 135;
-    private static final int RIGHT_PANEL_Y = 5;
-    private static final int RIGHT_PANEL_W = 140;
-    private static final int RIGHT_PANEL_H = 127;
+    private static final int RIGHT_PANEL_X = 186;
+    private static final int RIGHT_PANEL_Y = 20;
+    private static final int RIGHT_PANEL_W = 314;
+    private static final int RIGHT_PANEL_H = 132;
 
     // Colors
     private static final int BG_OUTER = 0xFFC6C6C6;
-    private static final int PANEL_BG = 0xFF3A3A3A;
-    private static final int PANEL_BORDER_LIGHT = 0xFF5A5A5A;
+    private static final int PANEL_BG = 0xFF4A4F60;
+    private static final int PANEL_BORDER_LIGHT = 0xFF7E87A6;
     private static final int PANEL_BORDER_DARK = 0xFF1A1A1A;
+    private static final int PANEL_INNER = 0xFF2E3342;
     private static final int SLOT_BG = 0xFF8B8B8B;
-    private static final int SLOT_INNER = 0xFF373737;
-    private static final int LIST_BG = 0xFF1E1E2E;
+    private static final int SLOT_INNER = 0xFF2B2E38;
+    private static final int LIST_BG = 0xFF252A3E;
 
     // Research list state
     private List<ResearchDefinition> availableResearch = new ArrayList<>();
@@ -93,15 +95,14 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
     private Button startButton;
     private Button cancelButton;
     private Button wipeButton;
+    private Button treeViewButton;
 
     public ResearchTableScreen(ResearchTableMenu menu, Inventory playerInv, Component title) {
         super(menu, playerInv, title);
-        this.imageWidth = 280;
-        this.imageHeight = 222;
-        // Inventory label sits in the 4px grey gap between top panels (bottom y+132) and
-        // the inventory panel (top y+136), so it is visually outside both dark areas.
-        this.inventoryLabelX = 10;
-        this.inventoryLabelY = 133;
+        this.imageWidth = 520;
+        this.imageHeight = 286;
+        this.inventoryLabelX = 156;
+        this.inventoryLabelY = 154;
     }
 
     @Override
@@ -110,19 +111,24 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
 
         // Start / Cancel buttons below the progress bar
         startButton = Button.builder(Component.literal("Start"), btn -> onStartResearch())
-                .bounds(leftPos + 15, topPos + 110, 50, 16)
+                .bounds(leftPos + 26, topPos + 132, 70, 18)
                 .build();
         addRenderableWidget(startButton);
 
         cancelButton = Button.builder(Component.literal("Stop"), btn -> onCancelResearch())
-                .bounds(leftPos + 70, topPos + 110, 50, 16)
+                .bounds(leftPos + 102, topPos + 132, 70, 18)
                 .build();
         addRenderableWidget(cancelButton);
 
         wipeButton = Button.builder(Component.literal("Wipe"), btn -> onWipeTank())
-                .bounds(leftPos + 92, topPos + 72, 28, 14)
+                .bounds(leftPos + 114, topPos + 86, 34, 16)
                 .build();
         addRenderableWidget(wipeButton);
+
+        treeViewButton = Button.builder(Component.literal("Tree"), btn -> onOpenTreeView())
+            .bounds(leftPos + 432, topPos + 22, 66, 18)
+                .build();
+        addRenderableWidget(treeViewButton);
 
         refreshResearchList();
     }
@@ -217,6 +223,12 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         PacketDistributor.sendToServer(new WipeTankPacket(be.getBlockPos()));
     }
 
+    private void onOpenTreeView() {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null) return;
+        mc.setScreen(new ResearchTreeScreen(menu, mc.player.getInventory(), this.title));
+    }
+
     @Override
     public void containerTick() {
         super.containerTick();
@@ -227,6 +239,7 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         startButton.active = canStart;
         cancelButton.active = menu.isResearching();
         wipeButton.active = menu.getFluidAmount() > 0;
+        treeViewButton.active = true;
     }
 
     private boolean isPrerequisiteMet(ResearchDefinition def) {
@@ -257,41 +270,41 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         // ── Right panel (dark inset) ──
         drawInsetPanel(g, x + RIGHT_PANEL_X, y + RIGHT_PANEL_Y, RIGHT_PANEL_W, RIGHT_PANEL_H);
 
-        // ── Player inventory area (dark inset — spans full width like top panels) ──
-        drawInsetPanel(g, x + 5, y + 136, 270, 80);
+        // ── Player inventory area ──
+        drawInsetPanel(g, x + 20, y + 156, 480, 122);
 
         // ── Slot backgrounds ──
         // Drive slot
-        drawSlotBg(g, x + 15, y + 25);
+        drawSlotBg(g, x + ResearchTableMenu.DRIVE_X, y + ResearchTableMenu.DRIVE_Y);
         // Cube slot
-        drawSlotBg(g, x + 15, y + 59);
+        drawSlotBg(g, x + ResearchTableMenu.CUBE_X, y + ResearchTableMenu.CUBE_Y);
         // Cost slots 3×2
         for (int row = 0; row < 2; row++) {
             for (int col = 0; col < 3; col++) {
-                drawSlotBg(g, x + 48 + col * 18, y + 25 + row * 18);
+                drawSlotBg(g, x + ResearchTableMenu.COST_X + col * 18, y + ResearchTableMenu.COST_Y + row * 18);
             }
         }
         // Player inventory slots
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
-                drawSlotBg(g, x + 59 + col * 18, y + 140 + row * 18);
+                drawSlotBg(g, x + ResearchTableMenu.PLAYER_INV_X + col * 18, y + ResearchTableMenu.PLAYER_INV_Y + row * 18);
             }
         }
         // Hotbar slots
         for (int col = 0; col < 9; col++) {
-            drawSlotBg(g, x + 59 + col * 18, y + 198);
+            drawSlotBg(g, x + ResearchTableMenu.HOTBAR_X + col * 18, y + ResearchTableMenu.HOTBAR_Y);
         }
 
         // ── Slot labels ──
-        g.drawString(font, "Drive", x + 12, y + 16, 0xFF999999, false);
-        g.drawString(font, "Cube", x + 12, y + 50, 0xFF999999, false);
-        g.drawString(font, "Cost:", x + 48, y + 16, 0xFF999999, false);
+        g.drawString(font, "Drive", x + 24, y + 28, 0xFFD3D7E5, false);
+        g.drawString(font, "Cube", x + 24, y + 64, 0xFFD3D7E5, false);
+        g.drawString(font, "Costs", x + 70, y + 28, 0xFFD3D7E5, false);
 
         // ── Bucket slots ──
-        drawSlotBg(g, x + 48, y + 68);  // Bucket In
-        drawSlotBg(g, x + 70, y + 68);  // Bucket Out
-        g.drawString(font, "\u25BC", x + 51, y + 64, 0xFF55CCFF, false);  // down arrow — "input"
-        g.drawString(font, "\u25B2", x + 73, y + 64, 0xFF999999, false);  // up arrow — "output"
+        drawSlotBg(g, x + ResearchTableMenu.BUCKET_IN_X, y + ResearchTableMenu.BUCKET_IN_Y);
+        drawSlotBg(g, x + ResearchTableMenu.BUCKET_OUT_X, y + ResearchTableMenu.BUCKET_OUT_Y);
+        g.drawString(font, "\u25BC", x + ResearchTableMenu.BUCKET_IN_X + 3, y + ResearchTableMenu.BUCKET_IN_Y - 4, 0xFF55CCFF, false);
+        g.drawString(font, "\u25B2", x + ResearchTableMenu.BUCKET_OUT_X + 3, y + ResearchTableMenu.BUCKET_OUT_Y - 4, 0xFF999999, false);
 
         // ── Fluid gauge ──
         drawFluidGauge(g, x + GAUGE_X, y + GAUGE_Y, GAUGE_W, GAUGE_H);
@@ -328,6 +341,7 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
     private void drawInsetPanel(GuiGraphics g, int px, int py, int pw, int ph) {
         // Dark fill
         g.fill(px, py, px + pw, py + ph, PANEL_BG);
+        g.fill(px + 1, py + 1, px + pw - 1, py + ph - 1, PANEL_INNER);
         // Top/left shadow (darker)
         g.fill(px, py, px + pw, py + 1, PANEL_BORDER_DARK);
         g.fill(px, py, px + 1, py + ph, PANEL_BORDER_DARK);
@@ -395,13 +409,10 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
             if (activeDef != null) {
                 String activeName = activeDef.getDisplayName();
                 int nameColor = activeDef.getTier().getColor() | 0xFF000000;
-                graphics.drawCenteredString(font, activeName,
-                        leftPos + PROGRESS_X + PROGRESS_W / 2, topPos + PROGRESS_Y - 16, nameColor);
-            }
-
-            int percent = (int) (menu.getScaledProgress() * 100);
-            graphics.drawCenteredString(font, percent + "%",
-                    leftPos + PROGRESS_X + PROGRESS_W / 2, topPos + PROGRESS_Y - 8, 0xFFFFFF);
+                int percent = (int) (menu.getScaledProgress() * 100);
+                graphics.drawCenteredString(font, activeName + "  " + percent + "%",
+                    leftPos + PROGRESS_X + PROGRESS_W / 2, topPos + PROGRESS_Y - 10, nameColor);
+                }
         }
 
         // Tooltip on research row hover
@@ -418,7 +429,7 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         int y = topPos + LIST_Y;
 
         // Header label
-        graphics.drawString(font, "Research:", x, y - 12, 0xFFDDDDDD, false);
+        graphics.drawString(font, "Research", x, y - 12, 0xFFC8D2EE, false);
 
         // List background
         graphics.fill(x - 2, y - 2, x + LIST_W + 2, y + VISIBLE_ROWS * ROW_H + 2, LIST_BG);
@@ -654,9 +665,9 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
 
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
-        // Title sits on the dark left panel — use light text for readability
-        graphics.drawString(this.font, this.title, this.titleLabelX, this.titleLabelY, 0xFFDDDDDD, false);
-        // Inventory label sits on the grey bg between panels — dark text for readability
-        graphics.drawString(this.font, this.playerInventoryTitle, this.inventoryLabelX, this.inventoryLabelY, 0xFF404040, false);
+        // Dark title for the light outer strip.
+        graphics.drawString(this.font, this.title, this.titleLabelX, this.titleLabelY, 0xFF343841, false);
+        // Inventory label on dark panel should be bright.
+        graphics.drawString(this.font, this.playerInventoryTitle, this.inventoryLabelX, this.inventoryLabelY, 0xFFE6EAF5, false);
     }
 }

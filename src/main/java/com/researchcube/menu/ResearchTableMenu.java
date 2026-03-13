@@ -50,6 +50,22 @@ public class ResearchTableMenu extends AbstractContainerMenu {
     public static final int DATA_FLUID_TYPE = 3;       // 0=empty, 1=thinking, 2=pondering, 3=reasoning, 4=imagination
     public static final int DATA_COUNT = 4;
 
+    // Layout coordinates shared by screens
+    public static final int DRIVE_X = 26;
+    public static final int DRIVE_Y = 42;
+    public static final int CUBE_X = 26;
+    public static final int CUBE_Y = 78;
+    public static final int COST_X = 70;
+    public static final int COST_Y = 42;
+    public static final int BUCKET_IN_X = 70;
+    public static final int BUCKET_IN_Y = 86;
+    public static final int BUCKET_OUT_X = 92;
+    public static final int BUCKET_OUT_Y = 86;
+    public static final int PLAYER_INV_X = 156;
+    public static final int PLAYER_INV_Y = 164;
+    public static final int HOTBAR_X = 156;
+    public static final int HOTBAR_Y = 222;
+
     // ── Constructor from server (block entity available) ──
     public ResearchTableMenu(int containerId, Inventory playerInv, ResearchTableBlockEntity be) {
         this(containerId, playerInv, be, Set.of());
@@ -102,7 +118,7 @@ public class ResearchTableMenu extends AbstractContainerMenu {
         // ── Block Entity Slots ──
 
         // Slot 0: Drive
-        addSlot(new SlotItemHandler(inv, ResearchTableBlockEntity.SLOT_DRIVE, 15, 25) {
+        addSlot(new SlotItemHandler(inv, ResearchTableBlockEntity.SLOT_DRIVE, DRIVE_X, DRIVE_Y) {
             @Override
             public boolean mayPlace(ItemStack stack) {
                 return stack.getItem() instanceof DriveItem;
@@ -110,7 +126,7 @@ public class ResearchTableMenu extends AbstractContainerMenu {
         });
 
         // Slot 1: Cube
-        addSlot(new SlotItemHandler(inv, ResearchTableBlockEntity.SLOT_CUBE, 15, 59) {
+        addSlot(new SlotItemHandler(inv, ResearchTableBlockEntity.SLOT_CUBE, CUBE_X, CUBE_Y) {
             @Override
             public boolean mayPlace(ItemStack stack) {
                 return stack.getItem() instanceof CubeItem;
@@ -121,12 +137,12 @@ public class ResearchTableMenu extends AbstractContainerMenu {
         for (int row = 0; row < 2; row++) {
             for (int col = 0; col < 3; col++) {
                 int slotIndex = ResearchTableBlockEntity.COST_SLOT_START + row * 3 + col;
-                addSlot(new SlotItemHandler(inv, slotIndex, 48 + col * 18, 25 + row * 18));
+                addSlot(new SlotItemHandler(inv, slotIndex, COST_X + col * 18, COST_Y + row * 18));
             }
         }
 
         // Slot 8: Bucket input (accepts research fluid buckets)
-        addSlot(new SlotItemHandler(inv, ResearchTableBlockEntity.SLOT_BUCKET_IN, 48, 68) {
+        addSlot(new SlotItemHandler(inv, ResearchTableBlockEntity.SLOT_BUCKET_IN, BUCKET_IN_X, BUCKET_IN_Y) {
             @Override
             public boolean mayPlace(ItemStack stack) {
                 return stack.getItem() instanceof ResearchFluidBucketItem;
@@ -134,7 +150,7 @@ public class ResearchTableMenu extends AbstractContainerMenu {
         });
 
         // Slot 9: Bucket output (output only — receives empty buckets)
-        addSlot(new SlotItemHandler(inv, ResearchTableBlockEntity.SLOT_BUCKET_OUT, 70, 68) {
+        addSlot(new SlotItemHandler(inv, ResearchTableBlockEntity.SLOT_BUCKET_OUT, BUCKET_OUT_X, BUCKET_OUT_Y) {
             @Override
             public boolean mayPlace(ItemStack stack) {
                 return false; // output only
@@ -144,13 +160,13 @@ public class ResearchTableMenu extends AbstractContainerMenu {
         // ── Player Inventory (27 slots) ──
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
-                addSlot(new Slot(playerInv, col + row * 9 + 9, 59 + col * 18, 140 + row * 18));
+                addSlot(new Slot(playerInv, col + row * 9 + 9, PLAYER_INV_X + col * 18, PLAYER_INV_Y + row * 18));
             }
         }
 
         // ── Player Hotbar (9 slots) ──
         for (int col = 0; col < 9; col++) {
-            addSlot(new Slot(playerInv, col, 59 + col * 18, 198));
+            addSlot(new Slot(playerInv, col, HOTBAR_X + col * 18, HOTBAR_Y));
         }
     }
 

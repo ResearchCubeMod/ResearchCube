@@ -307,12 +307,16 @@ PHASE 10 — UI & Visual Improvements
 - [DONE] [AI] Example recipe:
   processing_iron_compression.json demonstrating item + fluid inputs → item output.
 
+- [DONE] [AI] Processing Station GUI enhancement pass:
+  Expanded to a larger 238x208 layout with clearer panel grouping, repositioned slot grids,
+  improved fluid/progress visuals, in-screen status text, and hover tooltips for tanks and progress.
+
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PHASE 17 — Research Tree Visualization Screen
+[DONE — PHASE 17 — Research Tree Visualization Screen]
 (Visual tree-graph rendering of research prerequisites as alternative to list view.)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-- [AI] ResearchTreeScreen (new client screen):
+- [DONE] [AI] ResearchTreeScreen (new client screen):
   - Parse all research from ResearchRegistry + prerequisite graph
   - Auto-layout: breadth-first hierarchical or force-directed (algorithm TBD)
   - Render as nodes (tier-colored circles/boxes) + edges (prerequisite links)
@@ -322,9 +326,9 @@ PHASE 17 — Research Tree Visualization Screen
   - "Start Research" button (same as list view)
   - Toggle button or option menu to switch between tree view / list view
 
-- [AI] Integrate toggle into current ResearchTableScreen or add new screen selector
+- [DONE] [AI] Integrate toggle into current ResearchTableScreen or add new screen selector
 
-- [AI] Handle edge cases: large research trees, overlapping nodes, single-node selections
+- [DONE] [AI] Handle edge cases: large research trees, overlapping nodes, single-node selections
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 PHASE 18 — Custom Drive Crafting Table

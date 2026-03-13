@@ -21,21 +21,22 @@ public class DriveCraftingTableScreen extends AbstractContainerScreen<DriveCraft
 
     // ── Colors (matching ResearchTableScreen style) ──
     private static final int BG_OUTER = 0xFFC6C6C6;
-    private static final int PANEL_BG = 0xFF3A3A3A;
-    private static final int PANEL_BORDER_LIGHT = 0xFF5A5A5A;
-    private static final int PANEL_BORDER_DARK = 0xFF1A1A1A;
+    private static final int PANEL_BG = 0xFF444A5E;
+    private static final int PANEL_INNER = 0xFF2A2E3A;
+    private static final int PANEL_BORDER_LIGHT = 0xFF8F99B8;
+    private static final int PANEL_BORDER_DARK = 0xFF14161C;
     private static final int SLOT_BG = 0xFF8B8B8B;
-    private static final int SLOT_INNER = 0xFF373737;
-    private static final int ARROW_COLOR = 0xFFAAAAAA;
-    private static final int LABEL_COLOR = 0xFFE0E0E0;
-    private static final int SUBLABEL_COLOR = 0xFF888888;
+    private static final int SLOT_INNER = 0xFF272830;
+    private static final int ARROW_COLOR = 0xFFB9C0D8;
+    private static final int LABEL_COLOR = 0xFFE6EAF5;
+    private static final int SUBLABEL_COLOR = 0xFFA3AAC0;
 
     public DriveCraftingTableScreen(DriveCraftingTableMenu menu, Inventory playerInv, Component title) {
         super(menu, playerInv, title);
-        this.imageWidth = 176;
-        this.imageHeight = 166;
-        this.inventoryLabelX = 8;
-        this.inventoryLabelY = this.imageHeight - 94;
+        this.imageWidth = 246;
+        this.imageHeight = 200;
+        this.inventoryLabelX = 10;
+        this.inventoryLabelY = 104;
     }
 
     @Override
@@ -59,50 +60,45 @@ public class DriveCraftingTableScreen extends AbstractContainerScreen<DriveCraft
         graphics.fill(x, y, x + 1, y + h, PANEL_BORDER_DARK);
         graphics.fill(x + w - 1, y, x + w, y + h, PANEL_BORDER_DARK);
 
-        // ── Top panel (crafting area) ──
-        int panelX = x + 4;
-        int panelY = y + 4;
-        int panelW = w - 8;
-        int panelH = 74;
+        // ── Machine and inventory panels ──
+        int panelX = x + 8;
+        int panelY = y + 18;
+        int panelW = w - 16;
+        int panelH = 84;
         drawBevelledPanel(graphics, panelX, panelY, panelW, panelH);
+        drawBevelledPanel(graphics, x + 8, y + 104, w - 16, 88);
 
         // ── Draw all slots ──
-        // Drive slot at (15, 35)
-        drawSlot(graphics, x + 15, y + 35);
+        drawSlot(graphics, x + DriveCraftingTableMenu.DRIVE_X, y + DriveCraftingTableMenu.DRIVE_Y);
 
-        // 3x3 grid at (44, 17)
+        // 3x3 grid
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 3; col++) {
-                drawSlot(graphics, x + 44 + col * 18, y + 17 + row * 18);
+                drawSlot(graphics, x + DriveCraftingTableMenu.GRID_X + col * 18, y + DriveCraftingTableMenu.GRID_Y + row * 18);
             }
         }
 
-        // Result slot at (134, 35) — slightly larger appearance
-        drawResultSlot(graphics, x + 134, y + 35);
+        // Result slot
+        drawResultSlot(graphics, x + DriveCraftingTableMenu.RESULT_X, y + DriveCraftingTableMenu.RESULT_Y);
 
         // ── Arrow between grid and result ──
-        drawArrow(graphics, x + 106, y + 37);
+        drawArrow(graphics, x + 170, y + 45);
 
         // ── Drive info label ──
-        String driveLabel = "DRIVE";
-        graphics.drawString(this.font, driveLabel,
-                x + 15 + (16 - this.font.width(driveLabel)) / 2,
-                y + 25, SUBLABEL_COLOR, false);
-
-        // ── Player inventory area ──
-        int invPanelY = y + 80;
-        int invPanelH = h - 84;
-        drawBevelledPanel(graphics, panelX, invPanelY, panelW, invPanelH);
+        graphics.drawString(this.font, "Drive", x + 30, y + 24, SUBLABEL_COLOR, false);
+        graphics.drawString(this.font, "Craft Matrix", x + 88, y + 20, SUBLABEL_COLOR, false);
+        graphics.drawString(this.font, "Result", x + 192, y + 24, SUBLABEL_COLOR, false);
+        graphics.drawString(this.font, "craft", x + 170, y + 34, 0xFF9EA8C8, false);
 
         // Player inventory slots visual
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
-                drawSlot(graphics, x + 8 + col * 18, y + 84 + row * 18);
+                drawSlot(graphics, x + DriveCraftingTableMenu.INV_X + col * 18, y + DriveCraftingTableMenu.INV_Y + row * 18);
             }
         }
         // Hotbar slots
         for (int col = 0; col < 9; col++) {
-            drawSlot(graphics, x + 8 + col * 18, y + 142);
+            drawSlot(graphics, x + DriveCraftingTableMenu.INV_X + col * 18, y + DriveCraftingTableMenu.INV_Y + 58);
         }
     }
 
@@ -112,8 +108,8 @@ public class DriveCraftingTableScreen extends AbstractContainerScreen<DriveCraft
         renderTooltip(graphics, mouseX, mouseY);
 
         // Extra tooltip when hovering the drive slot: show stored recipe IDs
-        int driveSlotX = this.leftPos + 15;
-        int driveSlotY = this.topPos + 35;
+        int driveSlotX = this.leftPos + DriveCraftingTableMenu.DRIVE_X;
+        int driveSlotY = this.topPos + DriveCraftingTableMenu.DRIVE_Y;
         if (mouseX >= driveSlotX && mouseX < driveSlotX + 16 && mouseY >= driveSlotY && mouseY < driveSlotY + 16) {
             ItemStack driveStack = this.menu.getSlot(0).getItem();
             if (driveStack.isEmpty()) {
@@ -132,6 +128,7 @@ public class DriveCraftingTableScreen extends AbstractContainerScreen<DriveCraft
 
     private void drawBevelledPanel(GuiGraphics g, int x, int y, int w, int h) {
         g.fill(x, y, x + w, y + h, PANEL_BG);
+        g.fill(x + 1, y + 1, x + w - 1, y + h - 1, PANEL_INNER);
         // Top and left borders (lighter)
         g.fill(x, y, x + w, y + 1, PANEL_BORDER_LIGHT);
         g.fill(x, y, x + 1, y + h, PANEL_BORDER_LIGHT);
@@ -145,24 +142,22 @@ public class DriveCraftingTableScreen extends AbstractContainerScreen<DriveCraft
         g.fill(x - 1, y - 1, x + 17, y + 17, SLOT_BG);
         // Inner slot background
         g.fill(x, y, x + 16, y + 16, SLOT_INNER);
+        g.fill(x - 1, y - 1, x + 17, y, PANEL_BORDER_DARK);
+        g.fill(x - 1, y - 1, x, y + 17, PANEL_BORDER_DARK);
     }
 
     private void drawResultSlot(GuiGraphics g, int x, int y) {
-        // Larger result slot with highlight border
-        g.fill(x - 3, y - 3, x + 19, y + 19, 0xFF5A5A2A); // Gold-ish border
+        g.fill(x - 3, y - 3, x + 19, y + 19, 0xFF7B8451);
         g.fill(x - 2, y - 2, x + 18, y + 18, SLOT_BG);
         g.fill(x, y, x + 16, y + 16, SLOT_INNER);
     }
 
     private void drawArrow(GuiGraphics g, int x, int y) {
-        // Simple right-pointing arrow: ▶
-        // Arrow body (horizontal line)
-        g.fill(x, y + 3, x + 16, y + 5, ARROW_COLOR);
-        // Arrow head
-        g.fill(x + 12, y + 1, x + 16, y + 2, ARROW_COLOR);
-        g.fill(x + 13, y + 2, x + 16, y + 3, ARROW_COLOR);
-        g.fill(x + 14, y + 3, x + 16, y + 5, ARROW_COLOR);
-        g.fill(x + 13, y + 5, x + 16, y + 6, ARROW_COLOR);
-        g.fill(x + 12, y + 6, x + 16, y + 7, ARROW_COLOR);
+        g.fill(x, y + 3, x + 18, y + 5, ARROW_COLOR);
+        g.fill(x + 12, y + 1, x + 18, y + 2, ARROW_COLOR);
+        g.fill(x + 13, y + 2, x + 18, y + 3, ARROW_COLOR);
+        g.fill(x + 14, y + 3, x + 18, y + 5, ARROW_COLOR);
+        g.fill(x + 13, y + 5, x + 18, y + 6, ARROW_COLOR);
+        g.fill(x + 12, y + 6, x + 18, y + 7, ARROW_COLOR);
     }
 }

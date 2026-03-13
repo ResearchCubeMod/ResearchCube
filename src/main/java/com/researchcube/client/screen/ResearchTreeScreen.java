@@ -1,0 +1,718 @@
+package com.researchcube.client.screen;
+
+import com.researchcube.block.ResearchTableBlockEntity;
+import com.researchcube.menu.ResearchTableMenu;
+import com.researchcube.network.StartResearchPacket;
+import com.researchcube.research.FluidCost;
+import com.researchcube.research.ItemCost;
+import com.researchcube.research.ResearchDefinition;
+import com.researchcube.research.ResearchRegistry;
+import com.researchcube.research.prerequisite.AndPrerequisite;
+import com.researchcube.research.prerequisite.NonePrerequisite;
+import com.researchcube.research.prerequisite.OrPrerequisite;
+import com.researchcube.research.prerequisite.Prerequisite;
+import com.researchcube.research.prerequisite.SinglePrerequisite;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Inventory;
+import net.neoforged.neoforge.network.PacketDistributor;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+
+/**
+ * Alternative research UI that visualizes the research dependency graph.
+ */
+public class ResearchTreeScreen extends AbstractContainerScreen<ResearchTableMenu> {
+
+    private static final int BG_OUTER = 0xFFC6C6C6;
+    private static final int PANEL_BG = 0xFF252838;
+    private static final int PANEL_DARK = 0xFF121521;
+    private static final int PANEL_LIGHT = 0xFF5A6078;
+    private static final int GRAPH_BG = 0xFF171A26;
+
+    private static final int EDGE_SINGLE = 0xFF9CA3AF;
+    private static final int EDGE_AND = 0xFF2DD4BF;
+    private static final int EDGE_OR = 0xFFF59E0B;
+
+    private static final int NODE_W = 116;
+    private static final int NODE_H = 36;
+    private static final int LAYER_X_GAP = 178;
+    private static final int LAYER_Y_GAP = 64;
+
+    private static final int GRAPH_X = 186;
+    private static final int GRAPH_Y = 34;
+    private static final int GRAPH_W = 314;
+        private static final int GRAPH_H = 112;
+
+    private enum EdgeStyle {
+        SINGLE,
+        AND,
+        OR
+    }
+
+    private static class NodeBox {
+        private final ResearchDefinition def;
+        private int worldX;
+        private int worldY;
+
+        private NodeBox(ResearchDefinition def) {
+            this.def = def;
+        }
+    }
+
+    private record GraphEdge(ResourceLocation from, ResourceLocation to, EdgeStyle style) {}
+
+    private record Dependency(ResourceLocation sourceId, EdgeStyle style) {}
+
+    private final List<NodeBox> nodeBoxes = new ArrayList<>();
+    private final List<GraphEdge> graphEdges = new ArrayList<>();
+    private final Map<ResourceLocation, NodeBox> nodesById = new HashMap<>();
+
+    private ResourceLocation selectedId;
+
+    private float zoom = 1.0f;
+    private int panX = 0;
+    private int panY = 0;
+    private boolean dragging;
+    private double dragLastX;
+    private double dragLastY;
+
+    private Button startButton;
+    private Button listButton;
+    private Button fitButton;
+    private Button zoomInButton;
+    private Button zoomOutButton;
+
+    private int graphMinX;
+    private int graphMinY;
+    private int graphMaxX;
+    private int graphMaxY;
+    private int refreshTicks = 0;
+
+    public ResearchTreeScreen(ResearchTableMenu menu, Inventory playerInv, Component title) {
+        super(menu, playerInv, title);
+        this.imageWidth = 520;
+        this.imageHeight = 286;
+        this.inventoryLabelX = 24;
+        this.inventoryLabelY = 158;
+    }
+
+    @Override
+    protected void init() {
+        super.init();
+
+        this.startButton = addRenderableWidget(Button.builder(Component.literal("Start Research"), b -> onStartResearch())
+                .bounds(leftPos + 22, topPos + 104, 140, 18)
+                .build());
+
+        this.listButton = addRenderableWidget(Button.builder(Component.literal("List View"), b -> openListView())
+                .bounds(leftPos + 22, topPos + 126, 62, 18)
+                .build());
+
+        this.fitButton = addRenderableWidget(Button.builder(Component.literal("Fit"), b -> fitGraphToViewport())
+                .bounds(leftPos + 88, topPos + 126, 36, 18)
+                .build());
+
+        this.zoomOutButton = addRenderableWidget(Button.builder(Component.literal("-"), b -> adjustZoom(-0.12f))
+                .bounds(leftPos + 128, topPos + 126, 18, 18)
+                .build());
+
+        this.zoomInButton = addRenderableWidget(Button.builder(Component.literal("+"), b -> adjustZoom(0.12f))
+                .bounds(leftPos + 150, topPos + 126, 18, 18)
+                .build());
+
+        buildGraph();
+        fitGraphToViewport();
+    }
+
+    @Override
+    public void containerTick() {
+        super.containerTick();
+        refreshTicks++;
+        if (refreshTicks % 20 == 0) {
+            buildGraph();
+            clampPan();
+        }
+
+        boolean canStart = !menu.isResearching() && selectedId != null;
+        if (canStart) {
+            ResearchDefinition selected = ResearchRegistry.get(selectedId);
+            canStart = selected != null && isPrerequisiteMet(selected);
+        }
+        startButton.active = canStart;
+    }
+
+    private void openListView() {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null) return;
+        mc.setScreen(new ResearchTableScreen(menu, mc.player.getInventory(), this.title));
+    }
+
+    private void onStartResearch() {
+        if (selectedId == null || menu.isResearching()) return;
+        ResearchDefinition def = ResearchRegistry.get(selectedId);
+        if (def == null || !isPrerequisiteMet(def)) return;
+
+        ResearchTableBlockEntity be = menu.getBlockEntity();
+        PacketDistributor.sendToServer(new StartResearchPacket(be.getBlockPos(), selectedId.toString()));
+    }
+
+    private boolean isPrerequisiteMet(ResearchDefinition def) {
+        return def.getPrerequisites().isSatisfied(menu.getCompletedResearch());
+    }
+
+    private void buildGraph() {
+        List<ResearchDefinition> defs = new ArrayList<>(ResearchRegistry.getAll());
+        defs.sort(Comparator.comparingInt((ResearchDefinition d) -> d.getTier().ordinal())
+                .thenComparing(ResearchDefinition::getDisplayName, String.CASE_INSENSITIVE_ORDER));
+
+        Map<ResourceLocation, List<Dependency>> dependencies = new HashMap<>();
+        for (ResearchDefinition def : defs) {
+            List<Dependency> deps = new ArrayList<>();
+            collectDependencies(def.getPrerequisites(), EdgeStyle.SINGLE, deps);
+            dependencies.put(def.getId(), deps);
+        }
+
+        Map<ResourceLocation, Integer> depthCache = new HashMap<>();
+        for (ResearchDefinition def : defs) {
+            computeDepth(def.getId(), dependencies, depthCache, new HashSet<>());
+        }
+
+        graphEdges.clear();
+        nodesById.clear();
+        nodeBoxes.clear();
+
+        Map<Integer, List<NodeBox>> layerMap = new HashMap<>();
+        for (ResearchDefinition def : defs) {
+            int depth = depthCache.getOrDefault(def.getId(), 0);
+            NodeBox box = new NodeBox(def);
+            nodesById.put(def.getId(), box);
+            layerMap.computeIfAbsent(depth, d -> new ArrayList<>()).add(box);
+            nodeBoxes.add(box);
+        }
+
+        for (Map.Entry<ResourceLocation, List<Dependency>> entry : dependencies.entrySet()) {
+            for (Dependency dep : entry.getValue()) {
+                if (nodesById.containsKey(dep.sourceId())) {
+                    graphEdges.add(new GraphEdge(dep.sourceId(), entry.getKey(), dep.style()));
+                }
+            }
+        }
+
+        int maxLayerSize = 1;
+        for (List<NodeBox> boxes : layerMap.values()) {
+            maxLayerSize = Math.max(maxLayerSize, boxes.size());
+        }
+
+        List<Integer> sortedLayers = new ArrayList<>(layerMap.keySet());
+        Collections.sort(sortedLayers);
+        for (Integer layer : sortedLayers) {
+            List<NodeBox> layerNodes = layerMap.get(layer);
+            layerNodes.sort(Comparator
+                    .comparingInt((NodeBox n) -> n.def.getTier().ordinal())
+                    .thenComparing(n -> n.def.getDisplayName(), String.CASE_INSENSITIVE_ORDER));
+
+            int n = layerNodes.size();
+            int rowOffset = (maxLayerSize - n) * (LAYER_Y_GAP / 2);
+            for (int i = 0; i < n; i++) {
+                NodeBox node = layerNodes.get(i);
+                node.worldX = layer * LAYER_X_GAP;
+                node.worldY = rowOffset + i * LAYER_Y_GAP;
+            }
+        }
+
+        recalcGraphBounds();
+
+        if (selectedId != null && !nodesById.containsKey(selectedId)) {
+            selectedId = null;
+        }
+    }
+
+    private static void collectDependencies(Prerequisite prereq, EdgeStyle inheritedStyle, List<Dependency> out) {
+        if (prereq instanceof NonePrerequisite) {
+            return;
+        }
+        if (prereq instanceof SinglePrerequisite single) {
+            ResourceLocation source = ResourceLocation.tryParse(single.getResearchId());
+            if (source != null) {
+                out.add(new Dependency(source, inheritedStyle));
+            }
+            return;
+        }
+        if (prereq instanceof AndPrerequisite and) {
+            for (Prerequisite child : and.getChildren()) {
+                collectDependencies(child, EdgeStyle.AND, out);
+            }
+            return;
+        }
+        if (prereq instanceof OrPrerequisite or) {
+            for (Prerequisite child : or.getChildren()) {
+                collectDependencies(child, EdgeStyle.OR, out);
+            }
+        }
+    }
+
+    private static int computeDepth(
+            ResourceLocation id,
+            Map<ResourceLocation, List<Dependency>> dependencies,
+            Map<ResourceLocation, Integer> depthCache,
+            Set<ResourceLocation> active
+    ) {
+        Integer cached = depthCache.get(id);
+        if (cached != null) {
+            return cached;
+        }
+        if (!active.add(id)) {
+            return 0;
+        }
+
+        List<Dependency> deps = dependencies.getOrDefault(id, List.of());
+        int depth;
+        if (deps.isEmpty()) {
+            depth = 0;
+        } else {
+            int max = 0;
+            for (Dependency dep : deps) {
+                max = Math.max(max, computeDepth(dep.sourceId(), dependencies, depthCache, active) + 1);
+            }
+            depth = max;
+        }
+
+        active.remove(id);
+        depthCache.put(id, depth);
+        return depth;
+    }
+
+    private void recalcGraphBounds() {
+        if (nodeBoxes.isEmpty()) {
+            graphMinX = 0;
+            graphMinY = 0;
+            graphMaxX = NODE_W;
+            graphMaxY = NODE_H;
+            return;
+        }
+
+        int minX = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE;
+        int minY = Integer.MAX_VALUE;
+        int maxY = Integer.MIN_VALUE;
+        for (NodeBox node : nodeBoxes) {
+            minX = Math.min(minX, node.worldX);
+            maxX = Math.max(maxX, node.worldX + NODE_W);
+            minY = Math.min(minY, node.worldY);
+            maxY = Math.max(maxY, node.worldY + NODE_H);
+        }
+        graphMinX = minX;
+        graphMinY = minY;
+        graphMaxX = maxX;
+        graphMaxY = maxY;
+    }
+
+    private void fitGraphToViewport() {
+        if (nodeBoxes.isEmpty()) {
+            panX = 0;
+            panY = 0;
+            return;
+        }
+
+        int graphWidth = Math.max(1, graphMaxX - graphMinX);
+        int graphHeight = Math.max(1, graphMaxY - graphMinY);
+        float fitX = (GRAPH_W - 16f) / graphWidth;
+        float fitY = (GRAPH_H - 16f) / graphHeight;
+        zoom = Math.max(0.20f, Math.min(1.2f, Math.min(fitX, fitY)));
+
+        int viewportCenterX = GRAPH_W / 2;
+        int viewportCenterY = GRAPH_H / 2;
+        int graphCenterX = graphMinX + graphWidth / 2;
+        int graphCenterY = graphMinY + graphHeight / 2;
+        panX = viewportCenterX - Math.round(graphCenterX * zoom);
+        panY = viewportCenterY - Math.round(graphCenterY * zoom);
+        clampPan();
+    }
+
+    private void adjustZoom(float delta) {
+        float prevZoom = zoom;
+        zoom = Math.max(0.20f, Math.min(2.0f, zoom + delta));
+        if (prevZoom == zoom) {
+            return;
+        }
+
+        float centerWorldX = (GRAPH_W * 0.5f - panX) / prevZoom;
+        float centerWorldY = (GRAPH_H * 0.5f - panY) / prevZoom;
+        panX = Math.round(GRAPH_W * 0.5f - centerWorldX * zoom);
+        panY = Math.round(GRAPH_H * 0.5f - centerWorldY * zoom);
+        clampPan();
+    }
+
+    private void clampPan() {
+        int scaledMinX = Math.round(graphMinX * zoom);
+        int scaledMaxX = Math.round(graphMaxX * zoom);
+        int scaledMinY = Math.round(graphMinY * zoom);
+        int scaledMaxY = Math.round(graphMaxY * zoom);
+
+        int minPanX = GRAPH_W - scaledMaxX - 8;
+        int maxPanX = 8 - scaledMinX;
+        int minPanY = GRAPH_H - scaledMaxY - 8;
+        int maxPanY = 8 - scaledMinY;
+
+        if (minPanX > maxPanX) {
+            int center = (minPanX + maxPanX) / 2;
+            minPanX = center;
+            maxPanX = center;
+        }
+        if (minPanY > maxPanY) {
+            int center = (minPanY + maxPanY) / 2;
+            minPanY = center;
+            maxPanY = center;
+        }
+
+        panX = Math.max(minPanX, Math.min(maxPanX, panX));
+        panY = Math.max(minPanY, Math.min(maxPanY, panY));
+    }
+
+    @Override
+    protected void renderBg(GuiGraphics g, float partialTick, int mouseX, int mouseY) {
+        int x = leftPos;
+        int y = topPos;
+
+        g.fill(x, y, x + imageWidth, y + imageHeight, BG_OUTER);
+        g.fill(x, y, x + imageWidth, y + 1, 0xFFFFFFFF);
+        g.fill(x, y, x + 1, y + imageHeight, 0xFFFFFFFF);
+        g.fill(x + imageWidth - 1, y, x + imageWidth, y + imageHeight, PANEL_DARK);
+        g.fill(x, y + imageHeight - 1, x + imageWidth, y + imageHeight, PANEL_DARK);
+
+        drawPanel(g, x + 10, y + 20, imageWidth - 20, 132);
+        drawPanel(g, x + 10, y + 156, imageWidth - 20, 122);
+
+        // Left utility/slot dock tied to the existing ResearchTableMenu slots.
+        drawPanel(g, x + 20, y + 34, 160, 118);
+        drawSlotBg(g, x + ResearchTableMenu.DRIVE_X, y + ResearchTableMenu.DRIVE_Y);
+        drawSlotBg(g, x + ResearchTableMenu.CUBE_X, y + ResearchTableMenu.CUBE_Y);
+        for (int row = 0; row < 2; row++) {
+            for (int col = 0; col < 3; col++) {
+                drawSlotBg(g, x + ResearchTableMenu.COST_X + col * 18, y + ResearchTableMenu.COST_Y + row * 18);
+            }
+        }
+        drawSlotBg(g, x + ResearchTableMenu.BUCKET_IN_X, y + ResearchTableMenu.BUCKET_IN_Y);
+        drawSlotBg(g, x + ResearchTableMenu.BUCKET_OUT_X, y + ResearchTableMenu.BUCKET_OUT_Y);
+        drawFluidGauge(g, x + 154, y + 36, 16, 58);
+
+        // Player inventory slot backgrounds
+        for (int row = 0; row < 3; row++) {
+            for (int col = 0; col < 9; col++) {
+                drawSlotBg(g, x + ResearchTableMenu.PLAYER_INV_X + col * 18, y + ResearchTableMenu.PLAYER_INV_Y + row * 18);
+            }
+        }
+        for (int col = 0; col < 9; col++) {
+            drawSlotBg(g, x + ResearchTableMenu.HOTBAR_X + col * 18, y + ResearchTableMenu.HOTBAR_Y);
+        }
+
+        // Header strip
+        g.fill(x + 20, y + 22, x + imageWidth - 20, y + 32, 0xFF1C2030);
+
+        int gx = x + GRAPH_X;
+        int gy = y + GRAPH_Y;
+        g.fill(gx, gy, gx + GRAPH_W, gy + GRAPH_H, GRAPH_BG);
+        g.fill(gx, gy, gx + GRAPH_W, gy + 1, PANEL_DARK);
+        g.fill(gx, gy, gx + 1, gy + GRAPH_H, PANEL_DARK);
+        g.fill(gx + GRAPH_W - 1, gy, gx + GRAPH_W, gy + GRAPH_H, PANEL_LIGHT);
+        g.fill(gx, gy + GRAPH_H - 1, gx + GRAPH_W, gy + GRAPH_H, PANEL_LIGHT);
+
+        g.enableScissor(gx + 1, gy + 1, gx + GRAPH_W - 1, gy + GRAPH_H - 1);
+        drawEdges(g, gx, gy);
+        drawNodes(g, gx, gy);
+        g.disableScissor();
+    }
+
+    private void drawSlotBg(GuiGraphics g, int sx, int sy) {
+        int x0 = sx - 1;
+        int y0 = sy - 1;
+        g.fill(x0, y0, x0 + 18, y0 + 18, 0xFF8B8B8B);
+        g.fill(x0 + 1, y0 + 1, x0 + 17, y0 + 17, 0xFF30303A);
+        g.fill(x0, y0, x0 + 18, y0 + 1, 0xFF151728);
+        g.fill(x0, y0, x0 + 1, y0 + 18, 0xFF151728);
+    }
+
+    private void drawFluidGauge(GuiGraphics g, int gx, int gy, int gw, int gh) {
+        g.fill(gx - 1, gy - 1, gx + gw + 1, gy + gh + 1, 0xFF121521);
+        g.fill(gx, gy, gx + gw, gy + gh, 0xFF1B2030);
+
+        int fluidAmount = menu.getFluidAmount();
+        int fluidType = menu.getFluidType();
+        if (fluidAmount > 0 && fluidType > 0) {
+            int fillHeight = Math.min(gh, Math.round((float) gh * fluidAmount / ResearchTableBlockEntity.TANK_CAPACITY));
+            int fillY = gy + gh - fillHeight;
+            int color = switch (fluidType) {
+                case 1 -> 0xFF00C8FF;
+                case 2 -> 0xFFB05DFF;
+                case 3 -> 0xFFFFC741;
+                case 4 -> 0xFFFF76D6;
+                default -> 0xFF6C768E;
+            };
+            g.fill(gx, fillY, gx + gw, gy + gh, color);
+        }
+    }
+
+    private void drawPanel(GuiGraphics g, int px, int py, int pw, int ph) {
+        g.fill(px, py, px + pw, py + ph, PANEL_BG);
+        g.fill(px, py, px + pw, py + 1, PANEL_DARK);
+        g.fill(px, py, px + 1, py + ph, PANEL_DARK);
+        g.fill(px + pw - 1, py, px + pw, py + ph, PANEL_LIGHT);
+        g.fill(px, py + ph - 1, px + pw, py + ph, PANEL_LIGHT);
+    }
+
+    private void drawEdges(GuiGraphics g, int graphScreenX, int graphScreenY) {
+        for (GraphEdge edge : graphEdges) {
+            NodeBox from = nodesById.get(edge.from());
+            NodeBox to = nodesById.get(edge.to());
+            if (from == null || to == null) continue;
+
+            int sx = worldToScreenX(from.worldX + NODE_W, graphScreenX);
+            int sy = worldToScreenY(from.worldY + NODE_H / 2, graphScreenY);
+            int tx = worldToScreenX(to.worldX, graphScreenX);
+            int ty = worldToScreenY(to.worldY + NODE_H / 2, graphScreenY);
+
+            int midX = sx + (tx - sx) / 2;
+            int color = switch (edge.style()) {
+                case AND -> EDGE_AND;
+                case OR -> EDGE_OR;
+                case SINGLE -> EDGE_SINGLE;
+            };
+
+            if (edge.style() == EdgeStyle.OR) {
+                drawPolyline(g, sx, sy - 1, midX, sy - 1, midX, ty - 1, tx, ty - 1, color);
+                drawPolyline(g, sx, sy + 1, midX, sy + 1, midX, ty + 1, tx, ty + 1, color);
+            } else {
+                drawPolyline(g, sx, sy, midX, sy, midX, ty, tx, ty, color);
+            }
+        }
+    }
+
+    private void drawPolyline(GuiGraphics g, int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4, int color) {
+        drawLine(g, x1, y1, x2, y2, color);
+        drawLine(g, x2, y2, x3, y3, color);
+        drawLine(g, x3, y3, x4, y4, color);
+    }
+
+    private void drawLine(GuiGraphics g, int x1, int y1, int x2, int y2, int color) {
+        if (x1 == x2) {
+            int minY = Math.min(y1, y2);
+            int maxY = Math.max(y1, y2);
+            g.fill(x1, minY, x1 + 1, maxY + 1, color);
+        } else if (y1 == y2) {
+            int minX = Math.min(x1, x2);
+            int maxX = Math.max(x1, x2);
+            g.fill(minX, y1, maxX + 1, y1 + 1, color);
+        }
+    }
+
+    private void drawNodes(GuiGraphics g, int graphScreenX, int graphScreenY) {
+        for (NodeBox node : nodeBoxes) {
+            int sx = worldToScreenX(node.worldX, graphScreenX);
+            int sy = worldToScreenY(node.worldY, graphScreenY);
+            int sw = Math.max(52, Math.round(NODE_W * zoom));
+            int sh = Math.max(20, Math.round(NODE_H * zoom));
+
+            boolean completed = menu.getCompletedResearch().contains(node.def.getId().toString());
+            boolean locked = !isPrerequisiteMet(node.def);
+            boolean selected = node.def.getId().equals(selectedId);
+
+            int tierColor = node.def.getTier().getColor() | 0xFF000000;
+            int fill = locked ? 0xFF30303A : 0xFF20242F;
+            if (completed) {
+                fill = 0xFF1E3A2A;
+            }
+
+            g.fill(sx, sy, sx + sw, sy + sh, fill);
+            g.fill(sx, sy, sx + sw, sy + 1, tierColor);
+            g.fill(sx, sy, sx + 1, sy + sh, tierColor);
+            g.fill(sx + sw - 1, sy, sx + sw, sy + sh, selected ? 0xFFFFFFFF : 0xFF5B617B);
+            g.fill(sx, sy + sh - 1, sx + sw, sy + sh, selected ? 0xFFFFFFFF : 0xFF5B617B);
+
+            String name = trimToWidth(node.def.getDisplayName(), sw - 8);
+            int textColor = locked ? 0xFF8D8D99 : 0xFFE4E7EF;
+            g.drawString(font, name, sx + 4, sy + 4, textColor, false);
+
+            if (zoom >= 0.72f) {
+                String stateText = completed ? "[DONE]" : (locked ? "[LOCKED]" : "[READY]");
+                int stateColor = completed ? 0xFF78DD78 : (locked ? 0xFFDD7777 : 0xFFAAD3FF);
+                g.drawString(font, stateText, sx + 4, sy + 17, stateColor, false);
+            }
+        }
+    }
+
+    private String trimToWidth(String text, int maxWidth) {
+        if (font.width(text) <= maxWidth) return text;
+        String cut = text;
+        while (cut.length() > 2 && font.width(cut + "...") > maxWidth) {
+            cut = cut.substring(0, cut.length() - 1);
+        }
+        return cut + "...";
+    }
+
+    private int worldToScreenX(int worldX, int graphScreenX) {
+        return graphScreenX + panX + Math.round(worldX * zoom);
+    }
+
+    private int worldToScreenY(int worldY, int graphScreenY) {
+        return graphScreenY + panY + Math.round(worldY * zoom);
+    }
+
+    private Optional<NodeBox> getHoveredNode(double mouseX, double mouseY) {
+        int gx = leftPos + GRAPH_X;
+        int gy = topPos + GRAPH_Y;
+
+        if (mouseX < gx || mouseX >= gx + GRAPH_W || mouseY < gy || mouseY >= gy + GRAPH_H) {
+            return Optional.empty();
+        }
+
+        for (NodeBox node : nodeBoxes) {
+            int sx = worldToScreenX(node.worldX, gx);
+            int sy = worldToScreenY(node.worldY, gy);
+            int sw = Math.max(52, Math.round(NODE_W * zoom));
+            int sh = Math.max(20, Math.round(NODE_H * zoom));
+            if (mouseX >= sx && mouseX < sx + sw && mouseY >= sy && mouseY < sy + sh) {
+                return Optional.of(node);
+            }
+        }
+        return Optional.empty();
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        Optional<NodeBox> hovered = getHoveredNode(mouseX, mouseY);
+        if (hovered.isPresent() && button == 0) {
+            selectedId = hovered.get().def.getId();
+            return true;
+        }
+
+        int gx = leftPos + GRAPH_X;
+        int gy = topPos + GRAPH_Y;
+        if (mouseX >= gx && mouseX < gx + GRAPH_W && mouseY >= gy && mouseY < gy + GRAPH_H && button == 1) {
+            dragging = true;
+            dragLastX = mouseX;
+            dragLastY = mouseY;
+            return true;
+        }
+        return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (dragging && button == 1) {
+            panX += (int) Math.round(mouseX - dragLastX);
+            panY += (int) Math.round(mouseY - dragLastY);
+            dragLastX = mouseX;
+            dragLastY = mouseY;
+            clampPan();
+            return true;
+        }
+        return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+    }
+
+    @Override
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (button == 1) {
+            dragging = false;
+        }
+        return super.mouseReleased(mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        int gx = leftPos + GRAPH_X;
+        int gy = topPos + GRAPH_Y;
+        if (mouseX < gx || mouseX >= gx + GRAPH_W || mouseY < gy || mouseY >= gy + GRAPH_H) {
+            return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+        }
+
+        float delta = scrollY > 0 ? 0.1f : -0.1f;
+        float prevZoom = zoom;
+        zoom = Math.max(0.20f, Math.min(2.0f, zoom + delta));
+        if (zoom != prevZoom) {
+            float worldX = (float) ((mouseX - gx - panX) / prevZoom);
+            float worldY = (float) ((mouseY - gy - panY) / prevZoom);
+            panX = Math.round((float) (mouseX - gx) - worldX * zoom);
+            panY = Math.round((float) (mouseY - gy) - worldY * zoom);
+            clampPan();
+        }
+        return true;
+    }
+
+    @Override
+    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        super.render(graphics, mouseX, mouseY, partialTick);
+
+        Optional<NodeBox> hovered = getHoveredNode(mouseX, mouseY);
+        hovered.ifPresent(node -> renderNodeTooltip(graphics, node, mouseX, mouseY));
+
+        renderTooltip(graphics, mouseX, mouseY);
+    }
+
+    private void renderNodeTooltip(GuiGraphics graphics, NodeBox node, int mouseX, int mouseY) {
+        List<Component> lines = new ArrayList<>();
+        boolean completed = menu.getCompletedResearch().contains(node.def.getId().toString());
+        boolean locked = !isPrerequisiteMet(node.def);
+
+        lines.add(Component.literal(node.def.getDisplayName())
+                .withStyle(s -> s.withColor(node.def.getTier().getColor())));
+        lines.add(Component.literal("Tier: " + node.def.getTier().getDisplayName())
+                .withStyle(s -> s.withColor(0xAAB0C0)));
+
+        String state = completed ? "Completed" : (locked ? "Locked" : "Available");
+        int stateColor = completed ? 0x55FF55 : (locked ? 0xFF6666 : 0x66B3FF);
+        lines.add(Component.literal("Status: " + state)
+                .withStyle(s -> s.withColor(stateColor)));
+
+        if (!node.def.getItemCosts().isEmpty()) {
+            lines.add(Component.literal("Costs:").withStyle(s -> s.withColor(0xDDCC66)));
+            for (ItemCost cost : node.def.getItemCosts()) {
+                lines.add(Component.literal(" - " + cost.getItem().getDescription().getString() + " x" + cost.count())
+                        .withStyle(s -> s.withColor(0xC9CEDC)));
+            }
+        }
+
+        FluidCost fluidCost = node.def.getFluidCost();
+        if (fluidCost != null) {
+            lines.add(Component.literal("Fluid: " + fluidCost.amount() + " mB " + fluidCost.getFluidName())
+                    .withStyle(s -> s.withColor(0x66D9EF)));
+        }
+
+        if (!(node.def.getPrerequisites() instanceof NonePrerequisite)) {
+            lines.add(Component.literal("Requires: " + node.def.getPrerequisites().describe())
+                    .withStyle(s -> s.withColor(0xA0A7BE)));
+        }
+
+        graphics.renderTooltip(font, lines, Optional.empty(), mouseX, mouseY);
+    }
+
+    @Override
+    protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
+        graphics.drawString(this.font, this.title, this.titleLabelX, this.titleLabelY, 0xFF202020, false);
+        graphics.drawString(this.font, this.playerInventoryTitle, this.inventoryLabelX, this.inventoryLabelY, 0xFF303030, false);
+        graphics.drawString(this.font, "Tree View  |  scroll = zoom, right-drag = pan", 22, 24, 0xFFE5E7EB, false);
+        graphics.drawString(this.font, "AND", 440, 24, EDGE_AND, false);
+        graphics.drawString(this.font, "OR", 468, 24, EDGE_OR, false);
+        graphics.drawString(this.font, "S", 486, 24, EDGE_SINGLE, false);
+        graphics.drawString(this.font, "Drive", 24, 36, 0xFFD3D7E5, false);
+        graphics.drawString(this.font, "Cube", 24, 72, 0xFFD3D7E5, false);
+        graphics.drawString(this.font, "Costs", 70, 36, 0xFFD3D7E5, false);
+        graphics.drawString(this.font, "Fluid", 154, 36, 0xFFD3D7E5, false);
+        if (menu.isResearching()) {
+            graphics.drawString(this.font, "\u25CF Researching", 22, 148, 0xFF77DD77, false);
+        }
+        graphics.drawString(this.font, "Zoom " + Math.round(zoom * 100f) + "%", 390, 24, 0xFFD9DDE7, false);
+    }
+}

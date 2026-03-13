@@ -33,6 +33,16 @@ public class ProcessingStationMenu extends AbstractContainerMenu {
     public static final int DATA_FLUID_OUT_AMOUNT = 4;
     public static final int DATA_COUNT = 5;
 
+    // Layout coordinates shared with screen rendering
+    public static final int INPUT_GRID_X = 24;
+    public static final int INPUT_GRID_Y = 36;
+    public static final int OUTPUT_GRID_X = 232;
+    public static final int OUTPUT_GRID_Y = 36;
+    public static final int PLAYER_INV_X = 72;
+    public static final int PLAYER_INV_Y = 124;
+    public static final int HOTBAR_X = 72;
+    public static final int HOTBAR_Y = 182;
+
     // Constructor for server-side
     public ProcessingStationMenu(int containerId, Inventory playerInv, ProcessingStationBlockEntity be) {
         super(ModMenus.PROCESSING_STATION.get(), containerId);
@@ -40,32 +50,32 @@ public class ProcessingStationMenu extends AbstractContainerMenu {
 
         IItemHandler inventory = be.getInventory();
 
-        // Input slots (4×4 grid) starting at x=8, y=18
+        // Input slots (4×4 grid)
         for (int row = 0; row < 4; row++) {
             for (int col = 0; col < 4; col++) {
                 int slotIndex = ProcessingStationBlockEntity.INPUT_SLOT_START + row * 4 + col;
-                addSlot(new SlotItemHandler(inventory, slotIndex, 8 + col * 18, 18 + row * 18));
+                addSlot(new SlotItemHandler(inventory, slotIndex, INPUT_GRID_X + col * 18, INPUT_GRID_Y + row * 18));
             }
         }
 
-        // Output slots (2×4 grid) starting at x=116, y=18
+        // Output slots (2×4 grid)
         for (int row = 0; row < 4; row++) {
             for (int col = 0; col < 2; col++) {
                 int slotIndex = ProcessingStationBlockEntity.OUTPUT_SLOT_START + row * 2 + col;
-                addSlot(new OutputSlot(inventory, slotIndex, 116 + col * 18, 18 + row * 18));
+                addSlot(new OutputSlot(inventory, slotIndex, OUTPUT_GRID_X + col * 18, OUTPUT_GRID_Y + row * 18));
             }
         }
 
-        // Player inventory (y=100)
+        // Player inventory
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
-                addSlot(new Slot(playerInv, col + row * 9 + 9, 8 + col * 18, 100 + row * 18));
+                addSlot(new Slot(playerInv, col + row * 9 + 9, PLAYER_INV_X + col * 18, PLAYER_INV_Y + row * 18));
             }
         }
 
-        // Player hotbar (y=158)
+        // Player hotbar
         for (int col = 0; col < 9; col++) {
-            addSlot(new Slot(playerInv, col, 8 + col * 18, 158));
+            addSlot(new Slot(playerInv, col, HOTBAR_X + col * 18, HOTBAR_Y));
         }
 
         // ContainerData for syncing

@@ -48,20 +48,20 @@ public class DriveCraftingTableMenu extends AbstractContainerMenu {
 
     // ── Slot layout constants ──
     // Drive slot pixel position
-    private static final int DRIVE_X = 15;
-    private static final int DRIVE_Y = 35;
+    public static final int DRIVE_X = 34;
+    public static final int DRIVE_Y = 38;
 
     // 3x3 grid top-left
-    private static final int GRID_X = 44;
-    private static final int GRID_Y = 17;
+    public static final int GRID_X = 88;
+    public static final int GRID_Y = 30;
 
     // Result slot position
-    private static final int RESULT_X = 134;
-    private static final int RESULT_Y = 35;
+    public static final int RESULT_X = 196;
+    public static final int RESULT_Y = 38;
 
     // Player inventory top-left
-    private static final int INV_X = 8;
-    private static final int INV_Y = 84;
+    public static final int INV_X = 43;
+    public static final int INV_Y = 106;
 
     // ── Server-side constructor (with real BE) ──
     public DriveCraftingTableMenu(int containerId, Inventory playerInv, DriveCraftingTableBlockEntity be) {

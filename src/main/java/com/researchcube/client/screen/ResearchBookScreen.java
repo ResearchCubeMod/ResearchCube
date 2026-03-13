@@ -23,8 +23,8 @@ public class ResearchBookScreen extends Screen {
     private final Set<String> completedResearch;
 
     // Layout
-    private static final int PANEL_WIDTH = 260;
-    private static final int PANEL_HEIGHT = 200;
+    private static final int PANEL_WIDTH = 340;
+    private static final int PANEL_HEIGHT = 232;
     private int panelX, panelY;
 
     // Scrolling
@@ -56,13 +56,13 @@ public class ResearchBookScreen extends Screen {
         super.init();
         panelX = (width - PANEL_WIDTH) / 2;
         panelY = (height - PANEL_HEIGHT) / 2;
-        visibleRows = (PANEL_HEIGHT - 30) / ROW_HEIGHT; // reserve top for title
+        visibleRows = (PANEL_HEIGHT - 76) / ROW_HEIGHT; // reserve header and footer areas
 
         buildEntryList();
 
         // Close button
         addRenderableWidget(Button.builder(Component.literal("Close"), btn -> onClose())
-                .bounds(panelX + PANEL_WIDTH - 45, panelY + PANEL_HEIGHT - 18, 40, 14)
+            .bounds(panelX + PANEL_WIDTH - 54, panelY + PANEL_HEIGHT - 22, 48, 16)
                 .build());
     }
 
@@ -118,21 +118,39 @@ public class ResearchBookScreen extends Screen {
 
         // Panel background
         graphics.fill(panelX - 2, panelY - 2, panelX + PANEL_WIDTH + 2, panelY + PANEL_HEIGHT + 2, 0xFF111111);
-        graphics.fill(panelX, panelY, panelX + PANEL_WIDTH, panelY + PANEL_HEIGHT, 0xFF1A1A2E);
+        graphics.fill(panelX, panelY, panelX + PANEL_WIDTH, panelY + PANEL_HEIGHT, 0xFF293047);
+        graphics.fill(panelX + 1, panelY + 1, panelX + PANEL_WIDTH - 1, panelY + PANEL_HEIGHT - 1, 0xFF1E2435);
+        graphics.fill(panelX + 6, panelY + 28, panelX + PANEL_WIDTH - 6, panelY + PANEL_HEIGHT - 30, 0xFF242D46);
 
         // Title
-        graphics.drawCenteredString(font, "Research Encyclopedia", panelX + PANEL_WIDTH / 2, panelY + 4, 0xFFFFAA);
+        graphics.drawCenteredString(font, "Research Encyclopedia", panelX + PANEL_WIDTH / 2, panelY + 6, 0xFFFFAA);
 
         // Stats line
         long totalResearch = ResearchRegistry.getAll().stream().filter(d -> d.getTier().isFunctional()).count();
         long completedCount = completedResearch.size();
         String statsText = "Progress: " + completedCount + "/" + totalResearch;
-        graphics.drawCenteredString(font, statsText, panelX + PANEL_WIDTH / 2, panelY + 16, 0x88AAFF);
+        graphics.drawCenteredString(font, statsText, panelX + PANEL_WIDTH / 2, panelY + 18, 0x88AAFF);
+
+        int progressBarX = panelX + 10;
+        int progressBarY = panelY + PANEL_HEIGHT - 36;
+        int progressBarW = PANEL_WIDTH - 70;
+        int progressBarH = 8;
+        float progressRatio = totalResearch <= 0 ? 0f : (float) completedCount / totalResearch;
+        int progressFill = Math.max(0, Math.min(progressBarW, Math.round(progressBarW * progressRatio)));
+        graphics.fill(progressBarX, progressBarY, progressBarX + progressBarW, progressBarY + progressBarH, 0xFF151A26);
+        graphics.fill(progressBarX, progressBarY, progressBarX + progressFill, progressBarY + progressBarH, 0xFF3BA55D);
+        graphics.fill(progressBarX + progressBarW, progressBarY, progressBarX + progressBarW + 1, progressBarY + progressBarH + 1, 0xFF68708C);
+        graphics.fill(progressBarX, progressBarY + progressBarH, progressBarX + progressBarW + 1, progressBarY + progressBarH + 1, 0xFF68708C);
 
         // Research list
-        int listY = panelY + 30;
+        int listY = panelY + 34;
         int maxScroll = Math.max(0, entries.size() - visibleRows);
         scrollOffset = Math.min(scrollOffset, maxScroll);
+
+        graphics.drawString(font, "Status", panelX + 10, listY - 10, 0xFF8EA3D1, false);
+        graphics.drawString(font, "Research", panelX + 48, listY - 10, 0xFF8EA3D1, false);
+        graphics.drawString(font, "Time", panelX + PANEL_WIDTH - 100, listY - 10, 0xFF8EA3D1, false);
+        graphics.drawString(font, "Category", panelX + PANEL_WIDTH - 54, listY - 10, 0xFF8EA3D1, false);
 
         for (int i = 0; i < visibleRows; i++) {
             int idx = scrollOffset + i;
@@ -143,7 +161,7 @@ public class ResearchBookScreen extends Screen {
 
             if (entry.isHeader()) {
                 // Tier header row
-                graphics.fill(panelX + 4, rowY, panelX + PANEL_WIDTH - 4, rowY + ROW_HEIGHT - 1, 0xFF222244);
+                graphics.fill(panelX + 8, rowY, panelX + PANEL_WIDTH - 8, rowY + ROW_HEIGHT - 1, 0xFF242E4F);
                 graphics.drawCenteredString(font, entry.headerText(), panelX + PANEL_WIDTH / 2, rowY + 2,
                         entry.headerColor() | 0xFF000000);
             } else {
@@ -152,33 +170,33 @@ public class ResearchBookScreen extends Screen {
                 boolean done = entry.completed();
 
                 // Row background (subtle alternation)
-                int bg = (idx % 2 == 0) ? 0xFF1E1E30 : 0xFF222240;
-                graphics.fill(panelX + 4, rowY, panelX + PANEL_WIDTH - 4, rowY + ROW_HEIGHT - 1, bg);
+                int bg = (idx % 2 == 0) ? 0xFF283252 : 0xFF2D375A;
+                graphics.fill(panelX + 8, rowY, panelX + PANEL_WIDTH - 8, rowY + ROW_HEIGHT - 1, bg);
 
                 // Completion icon
                 String icon = done ? "\u2714 " : "\u2718 ";
                 int iconColor = done ? 0xFF55FF55 : 0xFF555555;
-                graphics.drawString(font, icon, panelX + 8, rowY + 2, iconColor, false);
+                graphics.drawString(font, icon, panelX + 10, rowY + 2, iconColor, false);
 
                 // Research name (tier-colored if completed, grey if not)
                 int nameColor = done ? (def.getTier().getColor() | 0xFF000000) : 0xFF888888;
-                String name = def.getDisplayName();
-                graphics.drawString(font, name, panelX + 22, rowY + 2, nameColor, false);
+                String name = trimToWidth(def.getDisplayName(), 168);
+                graphics.drawString(font, name, panelX + 30, rowY + 2, nameColor, false);
 
                 // Category tag (right-aligned)
                 if (def.getCategory() != null) {
                     String cat = "[" + def.getCategory() + "]";
                     int catWidth = font.width(cat);
-                    graphics.drawString(font, cat, panelX + PANEL_WIDTH - 8 - catWidth, rowY + 2, 0xFF666600, false);
+                    graphics.drawString(font, cat, panelX + PANEL_WIDTH - 12 - catWidth, rowY + 2, 0xFF8E9457, false);
                 }
 
                 // Duration (right of name, before category)
                 String duration = String.format("%.0fs", def.getDurationSeconds());
                 int durWidth = font.width(duration);
                 int durX = def.getCategory() != null
-                        ? panelX + PANEL_WIDTH - 10 - font.width("[" + def.getCategory() + "]") - durWidth - 6
-                        : panelX + PANEL_WIDTH - 8 - durWidth;
-                graphics.drawString(font, duration, durX, rowY + 2, 0xFF555555, false);
+                        ? panelX + PANEL_WIDTH - 14 - font.width("[" + def.getCategory() + "]") - durWidth - 6
+                        : panelX + PANEL_WIDTH - 12 - durWidth;
+                graphics.drawString(font, duration, durX, rowY + 2, 0xFF93A0C2, false);
             }
         }
 
@@ -195,6 +213,17 @@ public class ResearchBookScreen extends Screen {
         renderEntryTooltip(graphics, mouseX, mouseY, listY);
 
         super.render(graphics, mouseX, mouseY, partialTick);
+    }
+
+    private String trimToWidth(String text, int maxWidth) {
+        if (font.width(text) <= maxWidth) {
+            return text;
+        }
+        String value = text;
+        while (value.length() > 2 && font.width(value + "...") > maxWidth) {
+            value = value.substring(0, value.length() - 1);
+        }
+        return value + "...";
     }
 
     private void renderEntryTooltip(GuiGraphics graphics, int mouseX, int mouseY, int listY) {
