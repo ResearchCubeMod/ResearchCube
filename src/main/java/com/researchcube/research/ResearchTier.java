@@ -13,8 +13,8 @@ public enum ResearchTier implements StringRepresentable {
     UNSTABLE     (1, 0xFFFFFF, "Unstable",       2),   // white
     BASIC        (2, 0x55FF55, "Basic",          4),   // green
     ADVANCED     (3, 0x5555FF, "Advanced",       8),   // blue
-    PRECISE      (4, 0xFFAA00, "Precise",       12),   // gold
-    FLAWLESS     (5, 0xAA00AA, "Flawless",      16),   // purple
+    PRECISE      (4, 0xAA00AA, "Precise",       12),   // purple
+    FLAWLESS     (5, 0xFFAA00, "Flawless",      16),   // gold
     SELF_AWARE   (6, 0xFF5555, "Self-Aware",    -1);   // red, unlimited
 
     private final int level;

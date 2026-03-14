@@ -6,7 +6,7 @@
   "pages": [
     {
       "type": "patchouli:text",
-      "text": "Research is organized into 7 tiers, each with a distinct color:$(br2)$(li)$(#888888)Irrecoverable$() — Broken, decorative only$(li)$(#FFFFFF)Unstable$() — Entry tier$(li)$(#55FF55)Basic$() — Core research$(li)$(#5555FF)Advanced$() — Mid-game$(li)$(#FFAA00)Precise$() — Late-game$(li)$(#AA00AA)Flawless$() — Endgame$(li)$(#FF5555)Self-Aware$() — Ultimate tier"
+      "text": "Research is organized into 7 tiers, each with a distinct color:$(br2)$(li)$(#888888)Irrecoverable$() — Broken, decorative only$(li)$(#FFFFFF)Unstable$() — Entry tier$(li)$(#55FF55)Basic$() — Core research$(li)$(#5555FF)Advanced$() — Mid-game$(li)$(#AA00AA)Precise$() — Late-game$(li)$(#FFAA00)Flawless$() — Endgame$(li)$(#FF5555)Self-Aware$() — Ultimate tier"
     },
     {
       "type": "patchouli:text",

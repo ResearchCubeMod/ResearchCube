@@ -112,8 +112,8 @@ Values in ordinal order (0–6): `IRRECOVERABLE`, `UNSTABLE`, `BASIC`, `ADVANCED
   - UNSTABLE = `0xFFFFFF` (white)
   - BASIC = `0x55FF55` (green)
   - ADVANCED = `0x5555FF` (blue)
-  - PRECISE = `0xFFAA00` (gold)
-  - FLAWLESS = `0xAA00AA` (purple)
+  - PRECISE = `0xAA00AA` (purple)
+  - FLAWLESS = `0xFFAA00` (gold)
   - SELF_AWARE = `0xFF5555` (red)
 - `hasRecipeLimit()` returns false only for SELF_AWARE. `isFunctional()` returns false only for IRRECOVERABLE.
 
