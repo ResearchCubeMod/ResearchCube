@@ -73,6 +73,16 @@
 - Regenerate data outputs: `.\gradlew.bat runData` (writes into `src/generated/resources`, already included in main resources)
 - No test suite is configured; validate changes with `build` + in-game `runClient` behavior.
 
+## Commit message convention
+- Use Conventional Commits for any suggested commit message: `type(scope): short imperative summary`.
+- Keep the summary concise, lowercase, and focused on the user-visible change or technical root cause.
+- Prefer these types: `feat`, `fix`, `refactor`, `docs`, `chore`, `test`, `build`, `ci`, `style`, `perf`.
+- Use scope when it adds clarity, usually a package, system, or feature area such as `research`, `ui`, `network`, `recipe`, or `data`.
+- Good examples:
+  - `fix(research): preserve selected research id during screen refresh`
+  - `feat(processing): add fluid tank sync to station menu`
+  - `docs(readme): clarify datapack research format`
+
 ## Project-specific conventions
 - Keep all new content namespaced with `ResearchCubeMod.rl(...)` and mod id `researchcube`.
 - Register new game objects using `DeferredRegister` in `registry/Mod*` classes, then ensure they are registered in `ResearchCubeMod` constructor.
