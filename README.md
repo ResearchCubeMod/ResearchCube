@@ -2,6 +2,8 @@
 
 A Minecraft NeoForge mod (1.21.1) that adds a research-gated crafting system. Perform research at a Research Station to unlock special recipes that can be crafted using imprinted drives.
 
+**[Full documentation → GitHub Wiki](https://github.com/ResearchCubeMod/ResearchCube/wiki)**
+
 ## Features
 
 - **Tiered Research System** — 7 tiers from Unstable to Self-Aware, each requiring matching drives and cubes
@@ -39,7 +41,7 @@ A Minecraft NeoForge mod (1.21.1) that adds a research-gated crafting system. Pe
 1. Place your imprinted **Drive** anywhere in the 3×3 grid
 2. Add the required **ingredients** in the remaining slots
 3. Take the **result** from the output slot
-4. The drive is NOT consumed — use it for multiple crafts!
+4. The drive is returned intact — use it for multiple crafts!
 
 ### Key Items
 
@@ -99,12 +101,12 @@ Create a JSON file in `data/<your_pack>/recipe/`:
 
 ### Full Documentation
 
-See **[DATAPACK.md](DATAPACK.md)** for the complete datapack developer guide including:
-- Full JSON schemas
-- Prerequisites syntax (AND/OR trees)
-- Weighted recipe pools
-- Tier reference table
-- Examples and troubleshooting
+See the **[GitHub Wiki](https://github.com/ResearchCubeMod/ResearchCube/wiki)** for the complete guide:
+
+- [Research Tiers](https://github.com/ResearchCubeMod/ResearchCube/wiki/Research-Tiers)
+- [Research Definition Schema](https://github.com/ResearchCubeMod/ResearchCube/wiki/Datapack-Research-Definition-Schema) — prerequisites (AND/OR trees), weighted recipe pools, fluid costs
+- [Drive Crafting Recipe Schema](https://github.com/ResearchCubeMod/ResearchCube/wiki/Datapack-Drive-Crafting-Recipe-Schema)
+- [Datapack Guide](https://github.com/ResearchCubeMod/ResearchCube/wiki/Datapack-Guide) — examples and troubleshooting
 
 ### Example Datapack
 
@@ -143,7 +145,7 @@ enableTeamSharing = true
 - Minecraft 1.21.1
 - NeoForge 21.1.x
 - GeckoLib 4.7.x (bundled)
-- JEI (optional, for recipe viewing)
+- JEI 19.21.x, EMI 1.1.x, Jade 15.x, Patchouli 1.21.x (all optional)
 
 ## License
 
