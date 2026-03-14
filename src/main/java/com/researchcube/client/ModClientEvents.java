@@ -1,13 +1,16 @@
 package com.researchcube.client;
 
 import com.researchcube.ResearchCubeMod;
+import com.researchcube.client.renderer.CubeItemRenderer;
 import com.researchcube.client.renderer.ResearchStationRenderer;
 import com.researchcube.client.screen.DriveCraftingTableScreen;
 import com.researchcube.client.screen.ProcessingStationScreen;
 import com.researchcube.client.screen.ResearchTableScreen;
 import com.researchcube.registry.ModBlockEntities;
 import com.researchcube.registry.ModFluids;
+import com.researchcube.registry.ModItems;
 import com.researchcube.registry.ModMenus;
+import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -16,6 +19,7 @@ import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions;
+import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions;
 import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent;
 
 /**
@@ -64,6 +68,27 @@ public class ModClientEvents {
         // Imagination Fluid — pink
         event.registerFluidType(createFluidExtensions(waterStill, waterFlow, ModFluids.COLOR_IMAGINATION),
                 ModFluids.IMAGINATION_FLUID_TYPE.get());
+
+        // ── GeoItem renderer for 3D Rubik's Cube items ──
+        // CUBE_UNSTABLE is excluded (no 3D model — keeps flat texture).
+        event.registerItem(
+                new IClientItemExtensions() {
+                    private CubeItemRenderer renderer;
+
+                    @Override
+                    public BlockEntityWithoutLevelRenderer getCustomRenderer() {
+                        if (renderer == null) {
+                            renderer = new CubeItemRenderer();
+                        }
+                        return renderer;
+                    }
+                },
+                ModItems.CUBE_BASIC.get(),
+                ModItems.CUBE_ADVANCED.get(),
+                ModItems.CUBE_PRECISE.get(),
+                ModItems.CUBE_FLAWLESS.get(),
+                ModItems.CUBE_SELF_AWARE.get()
+        );
     }
 
     private static IClientFluidTypeExtensions createFluidExtensions(

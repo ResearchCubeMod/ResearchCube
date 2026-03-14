@@ -17,26 +17,29 @@ import java.util.Set;
 
 /**
  * GeckoLib block entity renderer for the Research Station.
- * Renders the animated model with the rotating brain.
+ * Renders the animated model with a cube visual floating above it.
  * <p>
- * Brain visibility is tied to the cube slot:
- *   - No cube inserted → brain bones are hidden entirely.
- *   - Cube inserted → brain bones are visible, tinted with the tier's color,
- *     rendered at full brightness (emissive glow), with a subtle pulsing effect.
+ * The brain bone assembly (Brain, center, b1-b8) serves as the visual
+ * placeholder for the inserted cube:
+ *   - No cube inserted  → brain bones hidden entirely.
+ *   - Cube inserted     → brain bones visible, tinted with the tier's RGB
+ *     color, rendered at full brightness (emissive glow) with a pulsing effect.
  * <p>
- * The brain is rendered using a flat white texture so the tier color tint
- * IS the final displayed colour. The original research_station.png texture is
- * dark blue in the brain region, which would otherwise darken any tint applied.
+ * A flat white texture is used so the tier color tint IS the final colour.
+ * <p>
+ * TODO: Once Rubik's cube geo assets (cube_2x2.geo.json, cube_3x3.geo.json)
+ *       are created, replace the brain bone rendering with the actual cube
+ *       GeoModel rendered at the Brain bone's animated position. This will
+ *       require rendering a nested GeoModel or using a GeoRenderLayer.
  */
 public class ResearchStationRenderer extends GeoBlockRenderer<ResearchTableBlockEntity> {
 
-    /** Names of bones that belong to the brain assembly. */
+    /** Names of bones that belong to the brain/cube assembly. */
     private static final Set<String> BRAIN_BONES = Set.of(
             "Brain", "center", "b1", "b2", "b3", "b4", "b5", "b6", "b7", "b8"
     );
 
-    /** Flat white texture — tier colour tint is multiplied against this,
-     *  so the final colour matches the tier colour exactly. */
+    /** Flat white texture — tier colour tint is multiplied against this. */
     private static final ResourceLocation WHITE_TEXTURE =
             ResearchCubeMod.rl("textures/misc/white.png");
 
@@ -54,10 +57,8 @@ public class ResearchStationRenderer extends GeoBlockRenderer<ResearchTableBlock
             @Nullable ResearchTier cubeTier = animatable.getCubeTier();
 
             if (cubeTier == null || !cubeTier.isFunctional()) {
-                // No cube (or non-functional tier) — hide the brain entirely
                 bone.setHidden(true);
             } else {
-                // Cube present — show brain, tinted with tier colour on a white texture
                 bone.setHidden(false);
 
                 int tierRgb = cubeTier.getColor();
@@ -73,7 +74,6 @@ public class ResearchStationRenderer extends GeoBlockRenderer<ResearchTableBlock
                 colour = 0xFF000000 | (r << 16) | (g << 8) | b;
                 packedLight = LightTexture.FULL_BRIGHT;
 
-                // Solid cutout render type on a white texture: colour tint = final colour, no translucency
                 RenderType brainType = RenderType.entityCutoutNoCull(WHITE_TEXTURE);
                 VertexConsumer brainBuffer = bufferSource.getBuffer(brainType);
 

@@ -1,6 +1,3 @@
 {
-  "parent": "item/generated",
-  "textures": {
-    "layer0": "researchcube:item/cube_self_aware"
-  }
+  "parent": "builtin/entity"
 }
