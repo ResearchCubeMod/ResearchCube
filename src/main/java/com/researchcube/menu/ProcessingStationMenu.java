@@ -38,9 +38,9 @@ public class ProcessingStationMenu extends AbstractContainerMenu {
     public static final int INPUT_GRID_Y = 36;
     public static final int OUTPUT_GRID_X = 232;
     public static final int OUTPUT_GRID_Y = 36;
-    public static final int PLAYER_INV_X = 72;
+    public static final int PLAYER_INV_X = 99;
     public static final int PLAYER_INV_Y = 124;
-    public static final int HOTBAR_X = 72;
+    public static final int HOTBAR_X = 99;
     public static final int HOTBAR_Y = 182;
 
     // Constructor for server-side

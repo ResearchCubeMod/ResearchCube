@@ -61,9 +61,9 @@ public class ResearchTableMenu extends AbstractContainerMenu {
     public static final int BUCKET_IN_Y = 86;
     public static final int BUCKET_OUT_X = 92;
     public static final int BUCKET_OUT_Y = 86;
-    public static final int PLAYER_INV_X = 156;
+    public static final int PLAYER_INV_X = 179;
     public static final int PLAYER_INV_Y = 164;
-    public static final int HOTBAR_X = 156;
+    public static final int HOTBAR_X = 179;
     public static final int HOTBAR_Y = 222;
 
     // ── Constructor from server (block entity available) ──

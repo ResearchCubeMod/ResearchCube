@@ -54,19 +54,19 @@ public class DriveCraftingTableScreen extends AbstractContainerScreen<DriveCraft
 
         // ── Outer background ──
         graphics.fill(x, y, x + w, y + h, BG_OUTER);
-        // Dark border
-        graphics.fill(x, y, x + w, y + 1, PANEL_BORDER_DARK);
-        graphics.fill(x, y + h - 1, x + w, y + h, PANEL_BORDER_DARK);
-        graphics.fill(x, y, x + 1, y + h, PANEL_BORDER_DARK);
+        // Outer bevel: top/left highlight, bottom/right shadow
+        graphics.fill(x, y, x + w, y + 1, 0xFFFFFFFF);
+        graphics.fill(x, y, x + 1, y + h, 0xFFFFFFFF);
         graphics.fill(x + w - 1, y, x + w, y + h, PANEL_BORDER_DARK);
+        graphics.fill(x, y + h - 1, x + w, y + h, PANEL_BORDER_DARK);
 
         // ── Machine and inventory panels ──
         int panelX = x + 8;
         int panelY = y + 18;
         int panelW = w - 16;
         int panelH = 84;
-        drawBevelledPanel(graphics, panelX, panelY, panelW, panelH);
-        drawBevelledPanel(graphics, x + 8, y + 104, w - 16, 88);
+        drawInsetPanel(graphics, panelX, panelY, panelW, panelH);
+        drawInsetPanel(graphics, x + 8, y + 104, w - 16, 88);
 
         // ── Draw all slots ──
         drawSlot(graphics, x + DriveCraftingTableMenu.DRIVE_X, y + DriveCraftingTableMenu.DRIVE_Y);
@@ -88,7 +88,7 @@ public class DriveCraftingTableScreen extends AbstractContainerScreen<DriveCraft
         graphics.drawString(this.font, "Drive", x + 30, y + 24, SUBLABEL_COLOR, false);
         graphics.drawString(this.font, "Craft Matrix", x + 88, y + 20, SUBLABEL_COLOR, false);
         graphics.drawString(this.font, "Result", x + 192, y + 24, SUBLABEL_COLOR, false);
-        graphics.drawString(this.font, "craft", x + 170, y + 34, 0xFF9EA8C8, false);
+
 
         // Player inventory slots visual
         for (int row = 0; row < 3; row++) {
@@ -120,21 +120,21 @@ public class DriveCraftingTableScreen extends AbstractContainerScreen<DriveCraft
 
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
-        graphics.drawString(this.font, this.title, this.titleLabelX, 6, LABEL_COLOR, false);
+        graphics.drawString(this.font, this.title, this.titleLabelX, 6, 0xFF404040, false);
         graphics.drawString(this.font, this.playerInventoryTitle, this.inventoryLabelX, this.inventoryLabelY, LABEL_COLOR, false);
     }
 
     // ── Drawing helpers ──
 
-    private void drawBevelledPanel(GuiGraphics g, int x, int y, int w, int h) {
+    private void drawInsetPanel(GuiGraphics g, int x, int y, int w, int h) {
         g.fill(x, y, x + w, y + h, PANEL_BG);
         g.fill(x + 1, y + 1, x + w - 1, y + h - 1, PANEL_INNER);
-        // Top and left borders (lighter)
-        g.fill(x, y, x + w, y + 1, PANEL_BORDER_LIGHT);
-        g.fill(x, y, x + 1, y + h, PANEL_BORDER_LIGHT);
-        // Bottom and right borders (darker)
-        g.fill(x, y + h - 1, x + w, y + h, PANEL_BORDER_DARK);
-        g.fill(x + w - 1, y, x + w, y + h, PANEL_BORDER_DARK);
+        // Top and left borders (darker — inset shadow)
+        g.fill(x, y, x + w, y + 1, PANEL_BORDER_DARK);
+        g.fill(x, y, x + 1, y + h, PANEL_BORDER_DARK);
+        // Bottom and right borders (lighter — inset highlight)
+        g.fill(x, y + h - 1, x + w, y + h, PANEL_BORDER_LIGHT);
+        g.fill(x + w - 1, y, x + w, y + h, PANEL_BORDER_LIGHT);
     }
 
     private void drawSlot(GuiGraphics g, int x, int y) {

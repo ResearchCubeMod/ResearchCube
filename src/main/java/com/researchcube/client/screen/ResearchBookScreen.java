@@ -200,13 +200,13 @@ public class ResearchBookScreen extends Screen {
             }
         }
 
-        // Scroll indicators
+        // Scroll indicators (compact arrows at right edge of list)
         if (scrollOffset > 0) {
-            graphics.drawCenteredString(font, "\u25B2 Scroll Up", panelX + PANEL_WIDTH / 2, listY - 10, 0xFF888888);
+            graphics.drawString(font, "\u25B2", panelX + PANEL_WIDTH - 18, listY + 2, 0xFF888888, false);
         }
         if (scrollOffset + visibleRows < entries.size()) {
-            graphics.drawCenteredString(font, "\u25BC Scroll Down",
-                    panelX + PANEL_WIDTH / 2, listY + visibleRows * ROW_HEIGHT + 2, 0xFF888888);
+            graphics.drawString(font, "\u25BC", panelX + PANEL_WIDTH - 18,
+                    listY + (visibleRows - 1) * ROW_HEIGHT + 2, 0xFF888888, false);
         }
 
         // Tooltip on hover

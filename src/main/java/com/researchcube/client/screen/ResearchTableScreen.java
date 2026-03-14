@@ -101,7 +101,7 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         super(menu, playerInv, title);
         this.imageWidth = 520;
         this.imageHeight = 286;
-        this.inventoryLabelX = 156;
+        this.inventoryLabelX = 179;
         this.inventoryLabelY = 154;
     }
 

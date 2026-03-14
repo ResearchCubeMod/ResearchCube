@@ -105,7 +105,7 @@ public class ResearchTreeScreen extends AbstractContainerScreen<ResearchTableMen
         super(menu, playerInv, title);
         this.imageWidth = 520;
         this.imageHeight = 286;
-        this.inventoryLabelX = 24;
+        this.inventoryLabelX = 179;
         this.inventoryLabelY = 158;
     }
 
@@ -701,7 +701,7 @@ public class ResearchTreeScreen extends AbstractContainerScreen<ResearchTableMen
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
         graphics.drawString(this.font, this.title, this.titleLabelX, this.titleLabelY, 0xFF202020, false);
-        graphics.drawString(this.font, this.playerInventoryTitle, this.inventoryLabelX, this.inventoryLabelY, 0xFF303030, false);
+        graphics.drawString(this.font, this.playerInventoryTitle, this.inventoryLabelX, this.inventoryLabelY, 0xFFE6EAF5, false);
         graphics.drawString(this.font, "Tree View  |  scroll = zoom, right-drag = pan", 22, 24, 0xFFE5E7EB, false);
         graphics.drawString(this.font, "AND", 440, 24, EDGE_AND, false);
         graphics.drawString(this.font, "OR", 468, 24, EDGE_OR, false);
