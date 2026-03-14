@@ -20,11 +20,12 @@ import java.util.Map;
  * They have no NBT data—only a fixed tier.
  * <p>
  * Implements GeoItem for 3D Rubik's Cube rendering via GeckoLib.
- * Tiers BASIC through SELF_AWARE get 3D models; UNSTABLE keeps a flat texture.
+ * Tiers UNSTABLE through SELF_AWARE get 3D models.
  */
 public class CubeItem extends Item implements GeoItem {
 
     private static final Map<ResearchTier, String> ANIM_NAMES = Map.of(
+            ResearchTier.UNSTABLE, "animation.cube_basic.idle",
             ResearchTier.BASIC, "animation.cube_basic.idle",
             ResearchTier.ADVANCED, "cube_advanced",
             ResearchTier.PRECISE, "cube_advanced",

@@ -70,7 +70,6 @@ public class ModClientEvents {
                 ModFluids.IMAGINATION_FLUID_TYPE.get());
 
         // ── GeoItem renderer for 3D Rubik's Cube items ──
-        // CUBE_UNSTABLE is excluded (no 3D model — keeps flat texture).
         event.registerItem(
                 new IClientItemExtensions() {
                     private CubeItemRenderer renderer;
@@ -83,6 +82,7 @@ public class ModClientEvents {
                         return renderer;
                     }
                 },
+                ModItems.CUBE_UNSTABLE.get(),
                 ModItems.CUBE_BASIC.get(),
                 ModItems.CUBE_ADVANCED.get(),
                 ModItems.CUBE_PRECISE.get(),

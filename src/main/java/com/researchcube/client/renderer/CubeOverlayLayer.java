@@ -75,6 +75,10 @@ public class CubeOverlayLayer extends GeoRenderLayer<ResearchTableBlockEntity> {
         // The cube's own animation (master bone) handles bob + rotation.
         poseStack.translate(brain.getPivotX() / 16f, brain.getPivotY() / 16f, brain.getPivotZ() / 16f);
 
+        // Scale down the cube to fit comfortably above the station
+        float stationScale = 0.6f;
+        poseStack.scale(stationScale, stationScale, stationScale);
+
         // Set up the item renderer's internal state (currentItemStack, animatable)
         // so GeoItemRenderer.getInstanceId() doesn't NPE
         cubeRenderer.prepareForStationRender(cubeItem, cubeStack);
