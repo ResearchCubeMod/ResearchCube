@@ -1,0 +1,22 @@
+{
+  "name": "Research Station",
+  "icon": "researchcube:research_station_item",
+  "category": "researchcube:getting_started",
+  "sortnum": 0,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "The $(item)Research Station$() is the core block of the ResearchCube mod. It allows you to research new recipes by consuming items and fluids over time.$(br2)To begin, place the Research Station and right-click it to open the interface."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Setup",
+      "text": "You need three things to start research:$(br2)$(li)A $(thing)Cube$() in the cube slot (determines max tier)$(li)A $(thing)Drive$() in the drive slot (must match research tier)$(li)$(thing)Item costs$() in the cost slots$(br2)The cube tier must be $(thing)at least$() the research tier. The drive tier must $(thing)exactly match$() the research tier."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Researching",
+      "text": "Click $(thing)Start$() to begin. The progress bar fills over time. When complete, a random recipe from the research's pool is imprinted onto the drive.$(br2)You can $(thing)cancel$() at any time — item and fluid costs are fully refunded.$(br2)The Research Station emits a redstone signal proportional to research progress (0 when idle, 1–14 during, 15 on completion)."
+    }
+  ]
+}

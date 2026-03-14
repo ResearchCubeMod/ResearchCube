@@ -5,6 +5,7 @@ import com.researchcube.research.prerequisite.NonePrerequisite;
 import com.researchcube.util.RecipeOutputResolver;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -34,6 +35,8 @@ public class ResearchBookScreen extends Screen {
 
     // Data
     private List<DisplayEntry> entries = new ArrayList<>();
+    private EditBox searchBox;
+    private String searchFilter = "";
 
     /** A row in the display list — either a tier header or a research entry. */
     private record DisplayEntry(boolean isHeader, String headerText, int headerColor,
@@ -56,9 +59,21 @@ public class ResearchBookScreen extends Screen {
         super.init();
         panelX = (width - PANEL_WIDTH) / 2;
         panelY = (height - PANEL_HEIGHT) / 2;
-        visibleRows = (PANEL_HEIGHT - 76) / ROW_HEIGHT; // reserve header and footer areas
+        visibleRows = (PANEL_HEIGHT - 90) / ROW_HEIGHT; // reserve header, search box, and footer areas
 
         buildEntryList();
+
+        // Search box above the list
+        searchBox = new EditBox(font, panelX + 8, panelY + 28, PANEL_WIDTH - 16, 12,
+                Component.literal("Search..."));
+        searchBox.setMaxLength(50);
+        searchBox.setHint(Component.literal("Search...").withStyle(s -> s.withColor(0xFF666666)));
+        searchBox.setResponder(query -> {
+            searchFilter = query.toLowerCase();
+            scrollOffset = 0;
+            buildEntryList();
+        });
+        addRenderableWidget(searchBox);
 
         // Close button
         addRenderableWidget(Button.builder(Component.literal("Close"), btn -> onClose())
@@ -79,6 +94,15 @@ public class ResearchBookScreen extends Screen {
         for (ResearchDefinition def : ResearchRegistry.getAll()) {
             ResearchTier tier = def.getTier();
             if (byTier.containsKey(tier)) {
+                // Apply search filter
+                if (!searchFilter.isEmpty()) {
+                    String name = def.getDisplayName().toLowerCase();
+                    String cat = def.getCategory() != null ? def.getCategory().toLowerCase() : "";
+                    String tierName = tier.getDisplayName().toLowerCase();
+                    if (!name.contains(searchFilter) && !cat.contains(searchFilter) && !tierName.contains(searchFilter)) {
+                        continue;
+                    }
+                }
                 byTier.get(tier).add(def);
             }
         }
@@ -143,7 +167,7 @@ public class ResearchBookScreen extends Screen {
         graphics.fill(progressBarX, progressBarY + progressBarH, progressBarX + progressBarW + 1, progressBarY + progressBarH + 1, 0xFF68708C);
 
         // Research list
-        int listY = panelY + 34;
+        int listY = panelY + 48;
         int maxScroll = Math.max(0, entries.size() - visibleRows);
         scrollOffset = Math.min(scrollOffset, maxScroll);
 
@@ -310,6 +334,26 @@ public class ResearchBookScreen extends Screen {
             return true;
         }
         return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+    }
+
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (keyCode == 256 && searchBox != null && searchBox.isFocused() && !searchBox.getValue().isEmpty()) {
+            searchBox.setValue("");
+            return true;
+        }
+        if (searchBox != null && searchBox.isFocused()) {
+            return searchBox.keyPressed(keyCode, scanCode, modifiers) || super.keyPressed(keyCode, scanCode, modifiers);
+        }
+        return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    @Override
+    public boolean charTyped(char c, int modifiers) {
+        if (searchBox != null && searchBox.isFocused()) {
+            return searchBox.charTyped(c, modifiers);
+        }
+        return super.charTyped(c, modifiers);
     }
 
     @Override

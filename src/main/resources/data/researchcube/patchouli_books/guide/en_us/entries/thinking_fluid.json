@@ -1,0 +1,18 @@
+{
+  "name": "Thinking Fluid",
+  "icon": "researchcube:thinking_fluid_bucket",
+  "category": "researchcube:fluids",
+  "sortnum": 0,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "$(thing)Thinking Fluid$() is the most basic research fluid, used for $(#55FF55)Basic$() tier research.$(br2)It is a $(#00BBFF)cyan-colored$() fluid stored in the Research Station's internal tank (up to 8000 mB = 8 buckets)."
+    },
+    {
+      "type": "patchouli:crafting",
+      "title": "Recipe",
+      "recipe": "researchcube:thinking_fluid_bucket",
+      "text": "Craft from a Water Bucket and 2 Redstone."
+    }
+  ]
+}

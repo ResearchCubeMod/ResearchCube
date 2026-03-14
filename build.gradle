@@ -25,6 +25,20 @@ repositories {
             includeGroup("mezz.jei")
         }
     }
+    maven {
+        name = 'TerraformersMC'
+        url = 'https://maven.terraformersmc.com/'
+        content {
+            includeGroup("dev.emi")
+        }
+    }
+    maven {
+        name = 'Modrinth'
+        url = 'https://api.modrinth.com/maven'
+        content {
+            includeGroup("maven.modrinth")
+        }
+    }
 }
 
 base {
@@ -76,6 +90,15 @@ dependencies {
     compileOnly "mezz.jei:jei-1.21.1-neoforge-api:${jei_version}"
     // Uncomment for in-dev JEI testing:
     // runtimeOnly "mezz.jei:jei-1.21.1-neoforge:${jei_version}"
+
+    // EMI — compileOnly, loaded via @EmiEntrypoint annotation
+    compileOnly "dev.emi:emi-neoforge:${emi_version}"
+
+    // Jade — compileOnly, loaded via @WailaPlugin annotation
+    compileOnly "maven.modrinth:jade:${jade_version}"
+
+    // Patchouli — compileOnly, optional guidebook integration
+    compileOnly "maven.modrinth:patchouli:${patchouli_version}"
 }
 
 tasks.withType(ProcessResources).configureEach {

@@ -29,3 +29,24 @@ type = "required"
 versionRange = "[4.7,)"
 ordering = "NONE"
 side = "BOTH"
+
+[[dependencies.${mod_id}]]
+modId = "emi"
+type = "optional"
+versionRange = "[1.1,)"
+ordering = "AFTER"
+side = "CLIENT"
+
+[[dependencies.${mod_id}]]
+modId = "jade"
+type = "optional"
+versionRange = "[15.0,)"
+ordering = "AFTER"
+side = "CLIENT"
+
+[[dependencies.${mod_id}]]
+modId = "patchouli"
+type = "optional"
+versionRange = "[1.21,)"
+ordering = "AFTER"
+side = "BOTH"

@@ -17,6 +17,7 @@ import com.researchcube.research.prerequisite.NonePrerequisite;
 import com.researchcube.util.RecipeOutputResolver;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
@@ -96,6 +97,8 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
     private Button cancelButton;
     private Button wipeButton;
     private Button treeViewButton;
+    private EditBox searchBox;
+    private String searchFilter = "";
 
     public ResearchTableScreen(ResearchTableMenu menu, Inventory playerInv, Component title) {
         super(menu, playerInv, title);
@@ -130,6 +133,18 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
                 .build();
         addRenderableWidget(treeViewButton);
 
+        // Search box above the research list
+        searchBox = new EditBox(font, leftPos + LIST_X, topPos + LIST_Y - 14, LIST_W, 12,
+                Component.literal("Search..."));
+        searchBox.setMaxLength(50);
+        searchBox.setHint(Component.literal("Search...").withStyle(s -> s.withColor(0xFF666666)));
+        searchBox.setResponder(query -> {
+            searchFilter = query.toLowerCase();
+            scrollOffset = 0;
+            refreshResearchList();
+        });
+        addRenderableWidget(searchBox);
+
         refreshResearchList();
     }
 
@@ -149,6 +164,16 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
             raw = new ArrayList<>(ResearchRegistry.getUpToTier(cube.getTier()));
         } else {
             raw = new ArrayList<>(ResearchRegistry.getAll());
+        }
+
+        // Apply search filter
+        if (!searchFilter.isEmpty()) {
+            raw.removeIf(def -> {
+                String name = def.getDisplayName().toLowerCase();
+                String cat = def.getCategory() != null ? def.getCategory().toLowerCase() : "";
+                String tier = def.getTier().getDisplayName().toLowerCase();
+                return !name.contains(searchFilter) && !cat.contains(searchFilter) && !tier.contains(searchFilter);
+            });
         }
 
         // Group by category
@@ -661,6 +686,28 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         }
 
         return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+    }
+
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        // If search box is focused and Escape is pressed, clear the search first
+        if (keyCode == 256 && searchBox != null && searchBox.isFocused() && !searchBox.getValue().isEmpty()) {
+            searchBox.setValue("");
+            return true;
+        }
+        // If search box is focused, let it consume typing keys instead of closing the screen
+        if (searchBox != null && searchBox.isFocused()) {
+            return searchBox.keyPressed(keyCode, scanCode, modifiers) || super.keyPressed(keyCode, scanCode, modifiers);
+        }
+        return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    @Override
+    public boolean charTyped(char c, int modifiers) {
+        if (searchBox != null && searchBox.isFocused()) {
+            return searchBox.charTyped(c, modifiers);
+        }
+        return super.charTyped(c, modifiers);
     }
 
     @Override

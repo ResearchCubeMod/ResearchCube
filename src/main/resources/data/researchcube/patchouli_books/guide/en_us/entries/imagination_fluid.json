@@ -1,0 +1,18 @@
+{
+  "name": "Imagination Fluid",
+  "icon": "researchcube:imagination_fluid_bucket",
+  "category": "researchcube:fluids",
+  "sortnum": 3,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "$(thing)Imagination Fluid$() is the rarest fluid, used for $(#FF5555)Self-Aware$() tier research.$(br2)It is a $(#FF69B4)pink-colored$() fluid."
+    },
+    {
+      "type": "patchouli:crafting",
+      "title": "Recipe",
+      "recipe": "researchcube:imagination_fluid_bucket",
+      "text": "Craft from a Reasoning Fluid Bucket, an Ender Pearl, and Chorus Fruit."
+    }
+  ]
+}

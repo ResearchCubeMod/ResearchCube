@@ -5,9 +5,13 @@ import com.researchcube.util.NbtUtil;
 import com.researchcube.util.RecipeOutputResolver;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.level.Level;
 
 import java.util.List;
 
@@ -57,6 +61,29 @@ public class DriveItem extends Item {
      */
     public boolean isFunctional() {
         return tier.isFunctional();
+    }
+
+    /**
+     * Right-click a filled drive in hand (not on a block) to open the Drive Inspector screen.
+     * Only works client-side when the drive has recipes.
+     */
+    @Override
+    public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
+        ItemStack stack = player.getItemInHand(hand);
+        if (level.isClientSide() && hasRecipes(stack)) {
+            openInspectorScreen(stack);
+            return InteractionResultHolder.success(stack);
+        }
+        if (hasRecipes(stack)) {
+            return InteractionResultHolder.success(stack);
+        }
+        return InteractionResultHolder.pass(stack);
+    }
+
+    /** Client-only method to open the inspector screen. */
+    private void openInspectorScreen(ItemStack stack) {
+        net.minecraft.client.Minecraft.getInstance().setScreen(
+                new com.researchcube.client.screen.DriveInspectorScreen(stack));
     }
 
     @Override

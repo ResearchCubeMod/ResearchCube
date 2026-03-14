@@ -13,6 +13,7 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
+import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions;
 import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent;
@@ -35,6 +36,11 @@ public class ModClientEvents {
     public static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerBlockEntityRenderer(ModBlockEntities.RESEARCH_STATION.get(),
                 ctx -> new ResearchStationRenderer());
+    }
+
+    @SubscribeEvent
+    public static void onRegisterGuiLayers(RegisterGuiLayersEvent event) {
+        ResearchHudOverlay.register(event);
     }
 
     @SubscribeEvent

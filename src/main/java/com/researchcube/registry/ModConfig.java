@@ -39,6 +39,16 @@ public class ModConfig {
             .comment("Multiplier for processing recipe duration. Higher values = longer processing times.")
             .defineInRange("processingDurationMultiplier", 1.0, 0.1, 10.0);
 
+    // ── HUD Settings ──
+
+    private static final ModConfigSpec.BooleanValue SHOW_RESEARCH_HUD = BUILDER
+            .comment("Whether to show the research progress HUD overlay when research is active.")
+            .define("showResearchHUD", true);
+
+    private static final ModConfigSpec.IntValue RESEARCH_HUD_CORNER = BUILDER
+            .comment("HUD corner position: 0=top-left, 1=top-right, 2=bottom-left, 3=bottom-right.")
+            .defineInRange("researchHUDCorner", 1, 0, 3);
+
     public static final ModConfigSpec SPEC = BUILDER.build();
 
     // ── Cached values (updated on config load/reload) ──
@@ -47,6 +57,8 @@ public class ModConfig {
     private static double researchCostMultiplier = 1.0;
     private static boolean enableTeamSharing = true;
     private static double processingDurationMultiplier = 1.0;
+    private static boolean showResearchHUD = true;
+    private static int researchHUDCorner = 1;
 
     @SubscribeEvent
     static void onLoad(final ModConfigEvent event) {
@@ -55,6 +67,8 @@ public class ModConfig {
             researchCostMultiplier = RESEARCH_COST_MULTIPLIER.get();
             enableTeamSharing = ENABLE_TEAM_SHARING.get();
             processingDurationMultiplier = PROCESSING_DURATION_MULTIPLIER.get();
+            showResearchHUD = SHOW_RESEARCH_HUD.get();
+            researchHUDCorner = RESEARCH_HUD_CORNER.get();
 
             ResearchCubeMod.LOGGER.info("[ResearchCube] Config loaded: durationMult={}, costMult={}, teamSharing={}, processingMult={}",
                     researchDurationMultiplier, researchCostMultiplier, enableTeamSharing, processingDurationMultiplier);
@@ -100,5 +114,15 @@ public class ModConfig {
      */
     public static double getProcessingDurationMultiplier() {
         return processingDurationMultiplier;
+    }
+
+    /** Whether the research progress HUD overlay should be shown. */
+    public static boolean isShowResearchHUD() {
+        return showResearchHUD;
+    }
+
+    /** HUD corner: 0=top-left, 1=top-right, 2=bottom-left, 3=bottom-right. */
+    public static int getResearchHUDCorner() {
+        return researchHUDCorner;
     }
 }

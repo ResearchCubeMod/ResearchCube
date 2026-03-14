@@ -1,6 +1,7 @@
 package com.researchcube.menu;
 
 import com.researchcube.block.ResearchTableBlockEntity;
+import com.researchcube.client.ClientResearchData;
 import com.researchcube.item.CubeItem;
 import com.researchcube.item.DriveItem;
 import com.researchcube.item.ResearchFluidBucketItem;
@@ -77,6 +78,11 @@ public class ResearchTableMenu extends AbstractContainerMenu {
         this.blockEntity = be;
         this.access = ContainerLevelAccess.create(be.getLevel(), be.getBlockPos());
         this.completedResearch = completed;
+
+        // Update client-side research cache for JEI/EMI tooltip integration
+        if (playerInv.player.level().isClientSide() && !completed.isEmpty()) {
+            ClientResearchData.updateCompleted(completed);
+        }
 
         ItemStackHandler inv = be.getInventory();
 

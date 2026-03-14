@@ -11,6 +11,7 @@ import com.researchcube.research.*;
 import com.researchcube.research.criterion.CompleteResearchTrigger;
 import com.researchcube.util.NbtUtil;
 import com.researchcube.util.TierUtil;
+import com.researchcube.network.SyncResearchProgressPacket;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.particles.ParticleTypes;
@@ -39,6 +40,7 @@ import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.fluids.capability.templates.FluidTank;
 import net.neoforged.neoforge.items.ItemStackHandler;
+import net.neoforged.neoforge.network.PacketDistributor;
 import org.jetbrains.annotations.Nullable;
 import software.bernie.geckolib.animatable.GeoBlockEntity;
 import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
@@ -322,6 +324,7 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
 
     /**
      * Server-side tick. Checks research completion against duration.
+     * Broadcasts HUD progress to the researching player every 20 ticks.
      */
     public static void serverTick(Level level, BlockPos pos, BlockState state, ResearchTableBlockEntity be) {
         // Process bucket input → tank fill every tick
@@ -335,7 +338,7 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
         if (definition == null) {
             // Definition was removed (datapack reload?) — cancel research
             ResearchCubeMod.LOGGER.warn("Active research '{}' no longer exists, cancelling.", be.activeResearchId);
-            be.clearResearch();
+            be.clearResearchAndNotify(level);
             return;
         }
 
@@ -343,7 +346,7 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
         ItemStack driveStack = be.inventory.getStackInSlot(SLOT_DRIVE);
         if (driveStack.isEmpty() || !(driveStack.getItem() instanceof DriveItem)) {
             ResearchCubeMod.LOGGER.debug("Drive removed during research, cancelling.");
-            be.clearResearch();
+            be.clearResearchAndNotify(level);
             return;
         }
 
@@ -352,6 +355,9 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
         int adjustedDuration = (int) (definition.getDuration() * ModConfig.getResearchDurationMultiplier());
         if (elapsed >= adjustedDuration) {
             be.completeResearch(definition);
+        } else if (level.getGameTime() % 20 == 0) {
+            // Send HUD progress packet every second
+            be.sendProgressPacket(level, definition, elapsed, adjustedDuration);
         }
     }
 
@@ -420,7 +426,7 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
                     10, 0.3, 0.3, 0.3, 0.05);
         }
 
-        clearResearch();
+        clearResearchAndNotify(level);
     }
 
     // ── Item Cost Validation & Consumption ──
@@ -506,6 +512,54 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
     }
 
     /**
+     * Clears research and sends a "not active" HUD packet to the researching player.
+     */
+    private void clearResearchAndNotify(Level level) {
+        String key = this.researchKey;
+        clearResearch();
+        if (key != null && level instanceof ServerLevel serverLevel) {
+            sendClearPacket(serverLevel, key);
+        }
+    }
+
+    /**
+     * Send a progress update packet to the player who started this research.
+     */
+    private void sendProgressPacket(Level level, ResearchDefinition definition, long elapsed, int adjustedDuration) {
+        if (researchKey == null || !(level instanceof ServerLevel serverLevel)) return;
+
+        float progress = Math.min(1.0f, (float) elapsed / adjustedDuration);
+        int remainingTicks = (int) (adjustedDuration - elapsed);
+        int remainingSeconds = Math.max(0, remainingTicks / 20);
+
+        SyncResearchProgressPacket packet = new SyncResearchProgressPacket(
+                definition.getDisplayName(),
+                progress,
+                remainingSeconds,
+                definition.getTier().getColor(),
+                true
+        );
+
+        for (ServerPlayer player : serverLevel.players()) {
+            if (researchKey.equals(ResearchSavedData.getResearchKey(player))) {
+                PacketDistributor.sendToPlayer(player, packet);
+            }
+        }
+    }
+
+    /**
+     * Send a "research inactive" packet to clear the HUD for the researching player.
+     */
+    private void sendClearPacket(ServerLevel serverLevel, String key) {
+        SyncResearchProgressPacket packet = new SyncResearchProgressPacket("", 0f, 0, 0xFFFFFF, false);
+        for (ServerPlayer player : serverLevel.players()) {
+            if (key.equals(ResearchSavedData.getResearchKey(player))) {
+                PacketDistributor.sendToPlayer(player, packet);
+            }
+        }
+    }
+
+    /**
      * Cancel active research and refund item costs back into cost slots.
      * Called from CancelResearchPacket handler.
      */
@@ -541,7 +595,11 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
         }
 
         ResearchCubeMod.LOGGER.debug("Research '{}' cancelled with refund.", activeResearchId);
-        clearResearch();
+        if (level != null) {
+            clearResearchAndNotify(level);
+        } else {
+            clearResearch();
+        }
     }
 
     /**

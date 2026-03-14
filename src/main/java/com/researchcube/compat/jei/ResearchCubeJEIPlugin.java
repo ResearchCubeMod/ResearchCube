@@ -1,22 +1,30 @@
 package com.researchcube.compat.jei;
 
 import com.researchcube.ResearchCubeMod;
+import com.researchcube.item.DriveItem;
 import com.researchcube.recipe.DriveCraftingRecipe;
 import com.researchcube.recipe.ProcessingRecipe;
 import com.researchcube.registry.ModItems;
 import com.researchcube.registry.ModRecipeTypes;
+import com.researchcube.util.NbtUtil;
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
+import mezz.jei.api.constants.VanillaTypes;
+import mezz.jei.api.ingredients.subtypes.IIngredientSubtypeInterpreter;
+import mezz.jei.api.ingredients.subtypes.UidContext;
 import mezz.jei.api.registration.IRecipeCatalystRegistration;
 import mezz.jei.api.registration.IRecipeCategoryRegistration;
 import mezz.jei.api.registration.IRecipeRegistration;
+import mezz.jei.api.registration.ISubtypeRegistration;
 import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.RecipeManager;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * JEI plugin for ResearchCube.
@@ -34,6 +42,25 @@ public class ResearchCubeJEIPlugin implements IModPlugin {
     @Override
     public ResourceLocation getPluginUid() {
         return PLUGIN_UID;
+    }
+
+    @Override
+    public void registerItemSubtypes(ISubtypeRegistration registration) {
+        // Drives with different stored recipes should be treated as different subtypes
+        IIngredientSubtypeInterpreter<ItemStack> driveInterpreter = (stack, context) -> {
+            if (!(stack.getItem() instanceof DriveItem)) return IIngredientSubtypeInterpreter.NONE;
+            List<String> recipes = NbtUtil.readRecipes(stack);
+            if (recipes.isEmpty()) return IIngredientSubtypeInterpreter.NONE;
+            return recipes.stream().sorted().collect(Collectors.joining(","));
+        };
+
+        registration.registerSubtypeInterpreter(VanillaTypes.ITEM_STACK, ModItems.METADATA_IRRECOVERABLE.get(), driveInterpreter);
+        registration.registerSubtypeInterpreter(VanillaTypes.ITEM_STACK, ModItems.METADATA_UNSTABLE.get(), driveInterpreter);
+        registration.registerSubtypeInterpreter(VanillaTypes.ITEM_STACK, ModItems.METADATA_RECLAIMED.get(), driveInterpreter);
+        registration.registerSubtypeInterpreter(VanillaTypes.ITEM_STACK, ModItems.METADATA_ENHANCED.get(), driveInterpreter);
+        registration.registerSubtypeInterpreter(VanillaTypes.ITEM_STACK, ModItems.METADATA_ELABORATE.get(), driveInterpreter);
+        registration.registerSubtypeInterpreter(VanillaTypes.ITEM_STACK, ModItems.METADATA_CYBERNETIC.get(), driveInterpreter);
+        registration.registerSubtypeInterpreter(VanillaTypes.ITEM_STACK, ModItems.METADATA_SELF_AWARE.get(), driveInterpreter);
     }
 
     @Override
@@ -69,28 +96,45 @@ public class ResearchCubeJEIPlugin implements IModPlugin {
 
         registration.addRecipes(ProcessingCategory.RECIPE_TYPE, processingRecipes);
 
-        // Add info page for the Research Station
+        // Multi-page info for the Research Station
         registration.addIngredientInfo(
                 new ItemStack(ModItems.RESEARCH_STATION_ITEM.get()),
-                mezz.jei.api.constants.VanillaTypes.ITEM_STACK,
-                net.minecraft.network.chat.Component.literal(
-                        "The Research Station is used to research new recipes. " +
-                        "Insert a Drive and a Cube of the appropriate tier, provide item costs, " +
-                        "then start research. On completion, a recipe ID is imprinted onto the Drive. " +
-                        "Use the Drive in a crafting grid with the required materials to craft the result."
-                )
+                VanillaTypes.ITEM_STACK,
+                Component.literal("Research Workflow"),
+                Component.literal("1. Place a Cube and Drive of matching tier."),
+                Component.literal("2. Add item costs to cost slots."),
+                Component.literal("3. Fill the tank with the required research fluid."),
+                Component.literal("4. Click Start — research progresses over time."),
+                Component.literal("5. On completion, a recipe is imprinted onto the Drive."),
+                Component.literal("6. Use the Drive in a Drive Crafting Table."),
+                Component.literal(""),
+                Component.literal("Fluid Tiers:"),
+                Component.literal("  Thinking (cyan) — Basic tier"),
+                Component.literal("  Pondering (purple) — Advanced tier"),
+                Component.literal("  Reasoning (gold) — Precise/Flawless tier"),
+                Component.literal("  Imagination (pink) — Self-Aware tier"),
+                Component.literal(""),
+                Component.literal("Drive Capacity (max recipes):"),
+                Component.literal("  Unstable: 2, Reclaimed: 4, Enhanced: 8"),
+                Component.literal("  Elaborate: 12, Cybernetic: 16"),
+                Component.literal("  Self-Aware: unlimited")
         );
 
-        // Add info page for the Processing Station
+        // Multi-page info for the Processing Station
         registration.addIngredientInfo(
                 new ItemStack(ModItems.PROCESSING_STATION_ITEM.get()),
-                mezz.jei.api.constants.VanillaTypes.ITEM_STACK,
-                net.minecraft.network.chat.Component.literal(
-                        "The Processing Station is a general-purpose machine. " +
-                        "It can accept up to 16 item inputs, 2 fluid inputs, " +
-                        "and produces up to 8 item outputs and 1 fluid output. " +
-                        "Processing recipes are defined via datapack."
-                )
+                VanillaTypes.ITEM_STACK,
+                Component.literal("Processing Station"),
+                Component.literal("A general-purpose machine for complex recipes."),
+                Component.literal(""),
+                Component.literal("Capacity:"),
+                Component.literal("  Up to 16 item inputs"),
+                Component.literal("  Up to 2 fluid inputs (8000 mB each)"),
+                Component.literal("  Up to 8 item outputs"),
+                Component.literal("  Up to 1 fluid output (8000 mB)"),
+                Component.literal(""),
+                Component.literal("Recipes are defined via datapack."),
+                Component.literal("Pipes can insert/extract fluids from any side.")
         );
     }
 

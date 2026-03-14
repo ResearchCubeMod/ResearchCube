@@ -1,0 +1,17 @@
+{
+  "name": "Processing Station",
+  "icon": "researchcube:processing_station",
+  "category": "researchcube:processing",
+  "sortnum": 0,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "The $(item)Processing Station$() is a general-purpose machine for complex recipes.$(br2)It supports:$(br)$(li)Up to 16 item inputs$(li)Up to 2 fluid inputs (8000 mB each)$(li)Up to 8 item outputs$(li)1 fluid output (8000 mB)"
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Usage",
+      "text": "Place items in the input grid and fill the fluid tanks using buckets or pipes. Click $(thing)Start$() to begin processing.$(br2)The processing time varies per recipe. A progress bar shows the current state.$(br2)Processing recipes are defined via $(thing)datapack$(), making them fully customizable by modpack creators.$(br2)Pipes can interact with any side of the machine to insert/extract fluids."
+    }
+  ]
+}

@@ -331,110 +331,75 @@ PHASE 10 — UI & Visual Improvements
 - [DONE] [AI] Handle edge cases: large research trees, overlapping nodes, single-node selections
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PHASE 18 — Custom Drive Crafting Table
-(Dedicated crafting station block for drive_crafting recipe execution.)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-- [AI] [MAJOR] DriveCraftingTableBlock + DriveCraftingTableBlockEntity: 
-  - Exposes 3×3 crafting grid + dedicated Drive input slot + output slot
-  - Matches drive_crafting recipes against the grid
-  - On craft, drives Drive, updates inventory
-
-- [AI] [MAJOR] DriveCraftingTableMenu + DriveCraftingTableScreen (new UI):
-  - Display 3×3 grid, Drive slot, output slot
-  - Show matched recipe preview (if valid drive + ingredients present)
-  - "Craft" button (enabled only when valid recipe found)
-
-- [AI] [MAJOR] Networking: CraftDriveRecipePacket (client→server) to trigger craft
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PHASE 19 — EMI Integration
+[DONE — PHASE 18 — EMI Integration]
 (EMI is a popular alternative recipe viewer; full parity with the existing JEI plugin.)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-- [AI] EMI plugin entry point: ResearchCubeEMIPlugin (@EmiEntrypoint, implements EmiPlugin)
-  - Register all three recipe categories: DriveCrafting, Processing Station, Research Station info.
-  - Add recipe catalysts: DriveCraftingTableBlock item → DriveCrafting category,
-    ProcessingStationBlock item → Processing category.
+- [DONE] [AI] EMI plugin entry point: ResearchCubeEMIPlugin (@EmiEntrypoint, implements EmiPlugin)
+  - Registers DriveCrafting + Processing categories, workstations, recipes, and info pages.
 
-- [AI] EMI DriveCrafting category (EmiRecipeCategory + EmiRecipe):
-  - Render drive slot + 3×3 shaped or shapeless ingredient grid + result slot.
-  - Resolve pre-loaded drive (correct tier + recipe_id baked in) as the drive ingredient —
-    same logic as JEI (RecipeOutputResolver / unlocking research lookup).
-  - Tooltip line "Unlocked by: <Research Name> (<Tier>)" on drive slot.
-  - Support both shaped and shapeless layouts matching the JEI category.
+- [DONE] [AI] EMI DriveCrafting category (EmiDriveCraftingRecipe):
+  - Pre-loaded drive with recipe_id, shaped/shapeless layouts, "Unlocked by" tooltip
+    with completion indicator (✔/✘ via ClientResearchData).
 
-- [AI] EMI Processing Station category (EmiRecipeCategory + EmiRecipe):
-  - 4×4 input grid, fluid input widgets (EmiIngredient from FluidStack), 2×4 output grid,
-    fluid output widget, arrow progress widget.
-  - Full parity with existing ProcessingCategory in JEI.
+- [DONE] [AI] EMI Processing Station category (EmiProcessingRecipe):
+  - 4×4 input grid, fluid inputs, 2×4 output grid, fluid output, arrow with duration tooltip.
 
-- [AI] EMI Research Station info page:
-  - EmiInfoRecipe listing all ResearchCube items with a short description of the mod workflow.
+- [DONE] [AI] EMI Research Station info page:
+  - Multi-step workflow guide, fluid tiers, drive capacity table.
 
-- [AI] compileOnly EMI dependency in build.gradle (emi 1.1.x, 1.21.1 NeoForge).
-  - Guard plugin class with @EmiEntrypoint only; no hard runtime dependency.
+- [DONE] [AI] compileOnly EMI dependency in build.gradle + optional dependency in neoforge.mods.toml.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PHASE 20 — JEI & EMI UI Improvements
+[DONE — PHASE 19 — JEI & EMI UI Improvements]
 (Polish the existing JEI plugin and the new EMI plugin for clarity and completeness.)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-- [AI] JEI DriveCrafting category: visual overhaul
-  - Draw a proper background panel (bevelled, matching in-game screen style) instead of
-    the raw slot outlines.
-  - Add a labelled "Drive" badge / slot border so the drive slot is immediately obvious.
-  - Show fluid cost (if any) as a mini fluid gauge below the ingredient area.
+- [DONE] [AI] JEI DriveCrafting category: visual overhaul
+  - draw() renders bevelled panel background, "Drive" label, slot outlines, arrow,
+    and completion indicator (✔/✘) in the corner.
 
-- [AI] JEI Processing Station category: visual overhaul
-  - Render fluid input/output as proper JEI fluid ingredient widgets with the vanilla tank
-    texture so they blend naturally with JEI's look.
-  - Group input slots and output slots with labelled headers ("Inputs" / "Outputs").
-  - Show recipe duration (ticks) in the tooltip of the arrow progress widget.
+- [DONE] [AI] JEI Processing Station category: visual overhaul
+  - draw() renders bevelled panel, "Inputs"/"Outputs" headers, slot outlines,
+    arrow with duration text, fluid slot outlines.
 
-- [AI] JEI/EMI: Research Station info page improvement
-  - Replace the plain text info page with an illustrated multi-page guide:
-    Page 1 — Research workflow (cube → station → drive → craft table).
-    Page 2 — Fluid tiers overview (Thinking → Imagination, with cost scale).
-    Page 3 — Drive capacity table per tier.
+- [DONE] [AI] JEI/EMI: Research Station info page — multi-page guide
+  - Research workflow steps, fluid tier overview, drive capacity table per tier.
 
-- [AI] JEI/EMI: "Show recipes" on Drive item
-  - When the player opens "Uses" on a filled Drive in JEI/EMI, display all
-    DriveCrafting recipes whose recipe_id matches one stored on the drive.
+- [DONE] [AI] JEI: "Show recipes" on Drive item via subtype interpreter
+  - registerItemSubtypes() registers all 7 drive items with a custom interpreter
+    that keys on sorted recipe IDs. Pre-loaded drives in categories work with "show uses".
 
-- [AI] JEI/EMI: Research completion status indicator
-  - In DriveCrafting recipe view, if the server-synced completed-research set is
-    available client-side, overlay a green ✔ or red ✘ on the "Unlocked by" tooltip
-    to indicate whether the viewing player has already completed the research.
+- [DONE] [AI] JEI/EMI: Research completion status indicator
+  - JEI DriveCraftingCategory tooltip and draw() overlay show green ✔ or red ✘
+    based on ClientResearchData.isCompleted(). EMI EmiDriveCraftingRecipe already
+    had ✔/✘ in buildDriveTooltip().
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PHASE 21 — User Visibility & Usability QoL
+[DONE — PHASE 20 — User Visibility & Usability QoL]
 (Features that reduce friction and make the mod's state readable at a glance.)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-- [AI] Research progress HUD overlay
-  While a research is active, render a compact overlay in a configurable screen corner
-  (default: top-right) showing the research name (tier-colored), a mini progress bar,
-  and estimated time remaining. Hidden when no research is running.
-  Toggled by a config option (showResearchHUD, default true).
+- [DONE] [AI] Research progress HUD overlay
+  ResearchHudOverlay renders a compact 140×28 panel in a configurable screen corner
+  showing research name (tier-colored), progress bar, and ETA. Config options:
+  showResearchHUD (default true), researchHUDCorner (0–3, default top-right).
+  SyncResearchProgressPacket sent every 20 ticks from ResearchTableBlockEntity.serverTick()
+  and cleared on research complete/cancel.
 
-- [AI] Jade / WAILA block tooltip integration
-  compileOnly Jade dependency. JadePlugin registers a block component provider for
-  ResearchTableBlock and ProcessingStationBlock:
-  - Research Station: shows "Researching: <name> (XX%)" or "Idle".
-  - Processing Station: shows "Processing: <recipe id> (XX%)" or "Idle".
-  - Both: show active fluid amounts in the tank.
+- [DONE] [AI] Jade / WAILA block tooltip integration
+  ResearchCubeJadePlugin, ResearchStationProvider, ProcessingStationProvider.
+  Shows "Researching: <name> (XX%)" or "Idle" + fluid amounts.
 
-- [AI] In-screen search bar in ResearchTableScreen and ResearchBookScreen
-  A small text input field above the research list filters entries by name, category,
-  or tier in real time (client-side only, no network). Pressing Escape clears the filter.
+- [DONE] [AI] In-screen search bar in ResearchTableScreen and ResearchBookScreen
+  Client-side text filter by name, category, or tier. Escape clears.
 
-- [AI] Drive inspector screen
-  Right-clicking a filled Drive item (not on a block) opens a read-only DriveInspectorScreen.
-  Lists all recipes stored on the drive, resolved to output item names + counts, with a
-  small item icon per row and a "Show in JEI/EMI" button per recipe.
+- [DONE] [AI] Drive inspector screen
+  DriveInspectorScreen lists all stored recipes resolved to output item names + counts,
+  with item icons. Opened via DriveItem.use() on right-click.
 
-- [AI] [LOW PRIO] Patchouli in-game guidebook integration
-  compileOnly Patchouli dependency. A "ResearchCube Guide" book item opens a Patchouli book
-  with chapters mirroring the JEI info pages (workflow, fluids, drive crafting, processing).
-  Book handed to the player on first join via an advancement reward.
+- [DONE] [AI] Patchouli in-game guidebook integration
+  Patchouli book definition + 4 categories (Getting Started, Fluids, Drives & Crafting,
+  Processing) + 9 entries with multi-page content covering research station workflow,
+  tiers, all 4 fluids with crafting references, drives, drive crafting table,
+  and processing station. Book auto-registered by Patchouli as researchcube:guide.

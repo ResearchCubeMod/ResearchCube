@@ -45,5 +45,11 @@ public class ModNetworking {
                 OpenResearchBookPacket.STREAM_CODEC,
                 OpenResearchBookPacket::handle
         );
+
+        registrar.playToClient(
+                SyncResearchProgressPacket.TYPE,
+                SyncResearchProgressPacket.STREAM_CODEC,
+                SyncResearchProgressPacket::handle
+        );
     }
 }

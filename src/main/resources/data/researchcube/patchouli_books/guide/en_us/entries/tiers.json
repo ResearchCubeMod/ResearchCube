@@ -1,0 +1,17 @@
+{
+  "name": "Research Tiers",
+  "icon": "researchcube:cube_advanced",
+  "category": "researchcube:getting_started",
+  "sortnum": 1,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Research is organized into 7 tiers, each with a distinct color:$(br2)$(li)$(#888888)Irrecoverable$() — Broken, decorative only$(li)$(#FFFFFF)Unstable$() — Entry tier$(li)$(#55FF55)Basic$() — Core research$(li)$(#5555FF)Advanced$() — Mid-game$(li)$(#FFAA00)Precise$() — Late-game$(li)$(#AA00AA)Flawless$() — Endgame$(li)$(#FF5555)Self-Aware$() — Ultimate tier"
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Tier Rules",
+      "text": "When starting research:$(br2)$(li)The $(thing)Cube$() tier must be ≥ the research tier$(li)The $(thing)Drive$() tier must exactly match the research tier$(br2)Higher-tier research may have $(thing)prerequisites$() — other research that must be completed first. Check the Research Encyclopedia for details."
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "name": "Drive Crafting Table",
+  "icon": "researchcube:drive_crafting_table",
+  "category": "researchcube:drives",
+  "sortnum": 1,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "The $(item)Drive Crafting Table$() is a dedicated crafting station for drive-based recipes.$(br2)Place a filled $(thing)Drive$() in the drive slot and arrange the recipe ingredients in the 3×3 grid. If the drive contains the required recipe ID and the ingredients match, the result appears in the output slot."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Shaped & Shapeless",
+      "text": "Drive crafting recipes can be either $(thing)shaped$() (position matters in the grid) or $(thing)shapeless$() (order doesn't matter).$(br2)The drive is $(thing)not consumed$() — it stays in the drive slot after crafting, allowing you to craft the same recipe repeatedly."
+    }
+  ]
+}

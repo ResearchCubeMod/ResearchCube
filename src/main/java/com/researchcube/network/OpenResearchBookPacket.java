@@ -1,6 +1,7 @@
 package com.researchcube.network;
 
 import com.researchcube.ResearchCubeMod;
+import com.researchcube.client.ClientResearchData;
 import com.researchcube.client.screen.ResearchBookScreen;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -54,6 +55,7 @@ public record OpenResearchBookPacket(Set<ResourceLocation> completedResearch) im
             for (ResourceLocation rl : packet.completedResearch) {
                 completedStrings.add(rl.toString());
             }
+            ClientResearchData.updateCompleted(completedStrings);
             Minecraft.getInstance().setScreen(new ResearchBookScreen(completedStrings));
         });
     }

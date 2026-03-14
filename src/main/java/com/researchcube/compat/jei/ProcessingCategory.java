@@ -7,11 +7,15 @@ import com.researchcube.registry.ModItems;
 import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.drawable.IDrawable;
+import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
 import mezz.jei.api.helpers.IGuiHelper;
 import mezz.jei.api.recipe.IFocusGroup;
 import mezz.jei.api.recipe.RecipeIngredientRole;
 import mezz.jei.api.recipe.RecipeType;
 import mezz.jei.api.recipe.category.IRecipeCategory;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
@@ -62,6 +66,68 @@ public class ProcessingCategory implements IRecipeCategory<ProcessingRecipe> {
     @Override
     public IDrawable getIcon() {
         return icon;
+    }
+
+    @Override
+    public void draw(ProcessingRecipe recipe, IRecipeSlotsView recipeSlotsView, GuiGraphics g, double mouseX, double mouseY) {
+        // Background panel
+        g.fill(0, 0, 176, 100, 0xFF1A1A2E);
+        // Top/bottom border
+        g.fill(0, 0, 176, 1, 0xFF3A3A5E);
+        g.fill(0, 99, 176, 100, 0xFF111122);
+        // Left/right border
+        g.fill(0, 0, 1, 100, 0xFF3A3A5E);
+        g.fill(175, 0, 176, 100, 0xFF111122);
+
+        Font font = Minecraft.getInstance().font;
+
+        // "Inputs" header
+        g.drawString(font, "Inputs", 1, -10, 0xFFAAAAAA, false);
+
+        // "Outputs" header
+        g.drawString(font, "Outputs", 114, -10, 0xFFAAAAAA, false);
+
+        // Input grid slot outlines (4x4)
+        for (int row = 0; row < 4; row++) {
+            for (int col = 0; col < 4; col++) {
+                drawSlotOutline(g, col * 18, row * 18, 18, 18);
+            }
+        }
+
+        // Fluid input slot outlines
+        drawSlotOutline(g, 0, 75, 18, 18);
+        drawSlotOutline(g, 18, 75, 18, 18);
+
+        // Arrow with duration
+        int arrowX = 82;
+        int arrowY = 36;
+        g.fill(arrowX, arrowY + 3, arrowX + 16, arrowY + 5, 0xFF555577);
+        g.fill(arrowX + 14, arrowY + 1, arrowX + 16, arrowY + 7, 0xFF555577);
+        g.fill(arrowX + 16, arrowY + 2, arrowX + 18, arrowY + 6, 0xFF555577);
+        g.fill(arrowX + 18, arrowY + 3, arrowX + 20, arrowY + 5, 0xFF555577);
+
+        // Duration text below arrow
+        float seconds = recipe.getDuration() / 20.0f;
+        String durationStr = String.format("%.1fs", seconds);
+        int durationW = font.width(durationStr);
+        g.drawString(font, durationStr, arrowX + 10 - durationW / 2, arrowY + 10, 0xFF888888, false);
+
+        // Output grid slot outlines (2x4)
+        for (int row = 0; row < 4; row++) {
+            for (int col = 0; col < 2; col++) {
+                drawSlotOutline(g, 113 + col * 18, row * 18, 18, 18);
+            }
+        }
+
+        // Fluid output slot outline
+        drawSlotOutline(g, 155, 75, 18, 18);
+    }
+
+    private static void drawSlotOutline(GuiGraphics g, int x, int y, int w, int h) {
+        g.fill(x, y, x + w, y + 1, 0xFF333355);
+        g.fill(x, y + h - 1, x + w, y + h, 0xFF222244);
+        g.fill(x, y, x + 1, y + h, 0xFF333355);
+        g.fill(x + w - 1, y, x + w, y + h, 0xFF222244);
     }
 
     @Override

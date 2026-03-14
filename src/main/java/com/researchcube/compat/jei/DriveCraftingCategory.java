@@ -1,6 +1,7 @@
 package com.researchcube.compat.jei;
 
 import com.researchcube.ResearchCubeMod;
+import com.researchcube.client.ClientResearchData;
 import com.researchcube.recipe.DriveCraftingRecipe;
 import com.researchcube.registry.ModItems;
 import com.researchcube.research.ResearchDefinition;
@@ -9,11 +10,15 @@ import com.researchcube.util.RecipeOutputResolver;
 import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.drawable.IDrawable;
+import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
 import mezz.jei.api.helpers.IGuiHelper;
 import mezz.jei.api.recipe.IFocusGroup;
 import mezz.jei.api.recipe.RecipeIngredientRole;
 import mezz.jei.api.recipe.RecipeType;
 import mezz.jei.api.recipe.category.IRecipeCategory;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
@@ -66,6 +71,74 @@ public class DriveCraftingCategory implements IRecipeCategory<DriveCraftingRecip
     }
 
     @Override
+    public void draw(DriveCraftingRecipe recipe, IRecipeSlotsView recipeSlotsView, GuiGraphics g, double mouseX, double mouseY) {
+        // Background panel
+        g.fill(0, 0, 150, 72, 0xFF1A1A2E);
+        // Top/bottom border
+        g.fill(0, 0, 150, 1, 0xFF3A3A5E);
+        g.fill(0, 71, 150, 72, 0xFF111122);
+        // Left/right border
+        g.fill(0, 0, 1, 72, 0xFF3A3A5E);
+        g.fill(149, 0, 150, 72, 0xFF111122);
+
+        Font font = Minecraft.getInstance().font;
+
+        // "Drive" label above drive slot
+        g.drawString(font, "Drive", 1, -10, 0xFFAAAAAA, false);
+
+        // Slot outline for drive slot (at 1,1, size 16x16)
+        drawSlotOutline(g, 0, 0, 18, 18);
+
+        // Ingredient area slot outlines (at 22,1 — either 3x3 or 4x2)
+        if (recipe.isShaped() && recipe.getShapedPattern() != null) {
+            int w = recipe.getShapedPattern().width();
+            int h = recipe.getShapedPattern().height();
+            for (int row = 0; row < h; row++) {
+                for (int col = 0; col < w; col++) {
+                    drawSlotOutline(g, 21 + col * 18, row * 18, 18, 18);
+                }
+            }
+        } else {
+            int count = (int) recipe.getIngredients().stream().filter(i -> i != null && !i.isEmpty()).count();
+            for (int i = 0; i < count; i++) {
+                int col = i % 4;
+                int row = i / 4;
+                drawSlotOutline(g, 21 + col * 18, row * 18, 18, 18);
+            }
+        }
+
+        // Arrow (from ingredients to output)
+        int arrowX = 100;
+        int arrowY = 24;
+        g.fill(arrowX, arrowY + 3, arrowX + 16, arrowY + 5, 0xFF555577);
+        // Arrowhead
+        g.fill(arrowX + 14, arrowY + 1, arrowX + 16, arrowY + 7, 0xFF555577);
+        g.fill(arrowX + 16, arrowY + 2, arrowX + 18, arrowY + 6, 0xFF555577);
+        g.fill(arrowX + 18, arrowY + 3, arrowX + 20, arrowY + 5, 0xFF555577);
+
+        // Output slot outline
+        drawSlotOutline(g, 127, 17, 18, 18);
+
+        // Completion indicator
+        String requiredRecipeId = recipe.getRequiredRecipeId();
+        List<ResearchDefinition> unlocking = RecipeOutputResolver.findResearchForRecipe(requiredRecipeId);
+        if (!unlocking.isEmpty()) {
+            boolean completed = unlocking.stream()
+                    .anyMatch(def -> ClientResearchData.isCompleted(def.getId().toString()));
+            String indicator = completed ? "\u2714" : "\u2718";
+            int color = completed ? 0xFF22CC55 : 0xFFCC3333;
+            g.drawString(font, indicator, 139, 60, color, false);
+        }
+    }
+
+    private static void drawSlotOutline(GuiGraphics g, int x, int y, int w, int h) {
+        g.fill(x, y, x + w, y + 1, 0xFF333355);
+        g.fill(x, y + h - 1, x + w, y + h, 0xFF222244);
+        g.fill(x, y, x + 1, y + h, 0xFF333355);
+        g.fill(x + w - 1, y, x + w, y + h, 0xFF222244);
+    }
+
+    @Override
     public void setRecipe(IRecipeLayoutBuilder builder, DriveCraftingRecipe recipe, IFocusGroup focuses) {
         // Resolve which research unlocks this recipe and determine the correct drive tier
         String requiredRecipeId = recipe.getRequiredRecipeId();
@@ -87,10 +160,12 @@ public class DriveCraftingCategory implements IRecipeCategory<DriveCraftingRecip
                 .addItemStack(preloadedDrive)
                 .addTooltipCallback((recipeSlotView, tooltip) -> {
                     tooltip.add(Component.literal("\u00A77Requires recipe: \u00A7e" + requiredRecipeId));
-                    // Show which research unlocks this recipe
+                    // Show which research unlocks this recipe with completion status
                     if (!unlockingResearch.isEmpty()) {
                         for (ResearchDefinition def : unlockingResearch) {
-                            tooltip.add(Component.literal("\u00A7aUnlocked by: \u00A7f" + def.getDisplayName()
+                            boolean completed = ClientResearchData.isCompleted(def.getId().toString());
+                            String status = completed ? "\u00A7a\u2714 " : "\u00A7c\u2718 ";
+                            tooltip.add(Component.literal(status + "\u00A7aUnlocked by: \u00A7f" + def.getDisplayName()
                                     + " \u00A77(" + def.getTier().getDisplayName() + ")"));
                         }
                     }
