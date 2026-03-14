@@ -22,37 +22,38 @@ public class CubeItemModel extends GeoModel<CubeItem> {
 
     private static final ResourceLocation GEO_1X1 = ResearchCubeMod.rl("geo/cube_basic.geo.json");
     private static final ResourceLocation GEO_2X2 = ResearchCubeMod.rl("geo/cube_advanced.geo.json");
-    private static final ResourceLocation GEO_3X3 = ResearchCubeMod.rl("geo/cube_3x3.geo.json");
+    private static final ResourceLocation GEO_3X3 = ResearchCubeMod.rl("geo/cube_flawless.geo.json");
 
     private static final ResourceLocation ANIM_1X1 = ResearchCubeMod.rl("animations/cube_basic.geo.json.animation.json");
     private static final ResourceLocation ANIM_2X2 = ResearchCubeMod.rl("animations/cube_advanced.geo.json.animation.json");
-    private static final ResourceLocation ANIM_3X3 = ResearchCubeMod.rl("animations/cube_3x3.animation.json");
+    private static final ResourceLocation ANIM_3X3 = ResearchCubeMod.rl("animations/cube_flawless.geo.json.animation.json");
 
     private static final ResourceLocation TEX_1X1 = ResearchCubeMod.rl("textures/cube/cube_basic.png");
     private static final ResourceLocation TEX_2X2 = ResearchCubeMod.rl("textures/cube/cube_advanced.png");
+    private static final ResourceLocation TEX_3X3 = ResearchCubeMod.rl("textures/cube/cube_flawless.png");
 
     private static final Map<ResearchTier, ResourceLocation> GEO_MAP = Map.of(
             ResearchTier.BASIC, GEO_1X1,
             ResearchTier.ADVANCED, GEO_2X2,
             ResearchTier.PRECISE, GEO_2X2,
-            ResearchTier.FLAWLESS, GEO_2X2,
-            ResearchTier.SELF_AWARE, GEO_2X2
+            ResearchTier.FLAWLESS, GEO_3X3,
+            ResearchTier.SELF_AWARE, GEO_3X3
     );
 
     private static final Map<ResearchTier, ResourceLocation> ANIM_MAP = Map.of(
             ResearchTier.BASIC, ANIM_1X1,
             ResearchTier.ADVANCED, ANIM_2X2,
             ResearchTier.PRECISE, ANIM_2X2,
-            ResearchTier.FLAWLESS, ANIM_2X2,
-            ResearchTier.SELF_AWARE, ANIM_2X2
+            ResearchTier.FLAWLESS, ANIM_3X3,
+            ResearchTier.SELF_AWARE, ANIM_3X3
     );
 
     private static final Map<ResearchTier, ResourceLocation> TEX_MAP = Map.of(
             ResearchTier.BASIC, TEX_1X1,
             ResearchTier.ADVANCED, TEX_2X2,
             ResearchTier.PRECISE, TEX_2X2,
-            ResearchTier.FLAWLESS, TEX_2X2,
-            ResearchTier.SELF_AWARE, TEX_2X2
+            ResearchTier.FLAWLESS, TEX_3X3,
+            ResearchTier.SELF_AWARE, TEX_3X3
     );
 
     @Override

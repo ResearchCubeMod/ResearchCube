@@ -28,8 +28,8 @@ public class CubeItem extends Item implements GeoItem {
             ResearchTier.BASIC, "animation.cube_basic.idle",
             ResearchTier.ADVANCED, "cube_advanced",
             ResearchTier.PRECISE, "cube_advanced",
-            ResearchTier.FLAWLESS, "cube_advanced",
-            ResearchTier.SELF_AWARE, "cube_advanced"
+            ResearchTier.FLAWLESS, "cube_flawless",
+            ResearchTier.SELF_AWARE, "cube_flawless"
     );
 
     private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);

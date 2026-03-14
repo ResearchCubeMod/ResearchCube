@@ -6,6 +6,7 @@ import com.researchcube.item.CubeItem;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 import software.bernie.geckolib.cache.object.GeoBone;
 import software.bernie.geckolib.renderer.GeoItemRenderer;
@@ -19,6 +20,15 @@ public class CubeItemRenderer extends GeoItemRenderer<CubeItem> {
 
     public CubeItemRenderer() {
         super(new CubeItemModel());
+    }
+
+    /**
+     * Set up internal state for rendering outside the normal item pipeline
+     * (e.g. inside the Research Station). Must be called before actuallyRender().
+     */
+    public void prepareForStationRender(CubeItem cubeItem, ItemStack stack) {
+        this.animatable = cubeItem;
+        this.currentItemStack = stack;
     }
 
     @Override
