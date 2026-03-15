@@ -1,5 +1,8 @@
 {
   "variants": {
-    "": {"model":  "researchcube:block/research_station"}
+    "facing=north": {"model": "researchcube:block/research_station"},
+    "facing=south": {"model": "researchcube:block/research_station"},
+    "facing=east":  {"model": "researchcube:block/research_station"},
+    "facing=west":  {"model": "researchcube:block/research_station"}
   }
 }
