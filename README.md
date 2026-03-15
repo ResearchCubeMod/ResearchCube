@@ -55,6 +55,19 @@ A Minecraft NeoForge mod (1.21.1) that adds a research-gated crafting system. Pe
 | Research Chip | Transfer completed research between players |
 | Fluid Buckets | Fill the Research Station's tank |
 
+## Commands
+
+All commands require OP level 2. See the [Commands Reference](wiki/Commands.md) for full details.
+
+| Command | Description |
+|---------|-------------|
+| `/researchcube unlock <player> <research> [force]` | Unlock a research for a player |
+| `/researchcube unlockAll <player>` | Unlock all research for a player |
+| `/researchcube lock <player> <research>` | Lock a completed research |
+| `/researchcube getDrive <player> <research>` | Give an imprinted drive for a research |
+| `/researchcube addToDrive <research> [force]` | Add research recipes to held drive |
+| `/researchcube help` | Show in-game help |
+
 ## Quick Start for Pack Developers
 
 ### Adding Custom Research
