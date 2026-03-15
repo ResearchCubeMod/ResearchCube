@@ -1,0 +1,8 @@
+{
+  "replace": false,
+  "values": [
+    "researchcube:research_station",
+    "researchcube:drive_crafting_table",
+    "researchcube:processing_station"
+  ]
+}
