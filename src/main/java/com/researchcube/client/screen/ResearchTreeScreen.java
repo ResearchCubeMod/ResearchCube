@@ -100,6 +100,8 @@ public class ResearchTreeScreen extends AbstractContainerScreen<ResearchTableMen
     private int graphMaxX;
     private int graphMaxY;
     private int refreshTicks = 0;
+    private int lastRegistrySize = -1;
+    private boolean graphDirty = true;
 
     public ResearchTreeScreen(ResearchTableMenu menu, Inventory playerInv, Component title) {
         super(menu, playerInv, title);
@@ -142,6 +144,14 @@ public class ResearchTreeScreen extends AbstractContainerScreen<ResearchTableMen
         super.containerTick();
         refreshTicks++;
         if (refreshTicks % 20 == 0) {
+            int currentSize = ResearchRegistry.size();
+            if (currentSize != lastRegistrySize) {
+                graphDirty = true;
+                lastRegistrySize = currentSize;
+            }
+        }
+        if (graphDirty) {
+            graphDirty = false;
             buildGraph();
             clampPan();
         }
