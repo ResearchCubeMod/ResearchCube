@@ -2,6 +2,7 @@ package com.researchcube.client;
 
 import com.researchcube.ResearchCubeMod;
 import com.researchcube.client.renderer.CubeItemRenderer;
+import com.researchcube.client.renderer.ResearchStationItemRenderer;
 import com.researchcube.client.renderer.ResearchStationRenderer;
 import com.researchcube.client.screen.DriveCraftingTableScreen;
 import com.researchcube.client.screen.ProcessingStationScreen;
@@ -88,6 +89,22 @@ public class ModClientEvents {
                 ModItems.CUBE_PRECISE.get(),
                 ModItems.CUBE_FLAWLESS.get(),
                 ModItems.CUBE_SELF_AWARE.get()
+        );
+
+        // ── BEWLR for Research Station block item (3D model in inventory/hand) ──
+        event.registerItem(
+                new IClientItemExtensions() {
+                    private ResearchStationItemRenderer renderer;
+
+                    @Override
+                    public BlockEntityWithoutLevelRenderer getCustomRenderer() {
+                        if (renderer == null) {
+                            renderer = new ResearchStationItemRenderer();
+                        }
+                        return renderer;
+                    }
+                },
+                ModItems.RESEARCH_STATION_ITEM.get()
         );
     }
 
