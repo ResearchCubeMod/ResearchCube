@@ -1,0 +1,29 @@
+{
+  "name": "Forbidden Crystal Synthesis",
+  "description": "A dangerous experiment requiring a special authorization chip to begin.",
+  "category": "materials",
+  "tier": "ADVANCED",
+  "duration": 4800,
+  "item_costs": [
+    { "item": "minecraft:amethyst_shard", "count": 16 },
+    { "item": "minecraft:diamond", "count": 4 }
+  ],
+  "fluid_cost": {
+    "fluid": "researchcube:pondering_fluid",
+    "amount": 2000
+  },
+  "idea_chip": {
+    "id": "researchcube:metadata_irrecoverable",
+    "components": {
+      "minecraft:custom_name": "\"Idea: Forbidden Crystal\"",
+      "minecraft:custom_data": { "researchcube_chip_id": "forbidden_crystal" }
+    }
+  },
+  "prerequisites": {
+    "type": "ALL",
+    "values": ["example:crystal_resonance"]
+  },
+  "recipe_pool": [
+    "example:resonant_crystal_recipe"
+  ]
+}

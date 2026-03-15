@@ -19,6 +19,7 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.ArrayList;
@@ -698,6 +699,12 @@ public class ResearchTreeScreen extends AbstractContainerScreen<ResearchTableMen
         if (fluidCost != null) {
             lines.add(Component.literal("Fluid: " + fluidCost.amount() + " mB " + fluidCost.getFluidName())
                     .withStyle(s -> s.withColor(0x66D9EF)));
+        }
+
+        if (node.def.getIdeaChip().isPresent()) {
+            ItemStack chip = node.def.getIdeaChip().get();
+            lines.add(Component.literal("Idea Chip: " + chip.getHoverName().getString())
+                    .withStyle(s -> s.withColor(0xFFAA55)));
         }
 
         if (!(node.def.getPrerequisites() instanceof NonePrerequisite)) {

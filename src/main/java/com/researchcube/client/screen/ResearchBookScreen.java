@@ -294,6 +294,13 @@ public class ResearchBookScreen extends Screen {
             }
         }
 
+        // Idea chip requirement
+        if (def.getIdeaChip().isPresent()) {
+            ItemStack chip = def.getIdeaChip().get();
+            tooltip.add(Component.literal("Idea Chip: " + chip.getHoverName().getString())
+                    .withStyle(s -> s.withColor(0xFFAA55)));
+        }
+
         // Prerequisites
         if (!(def.getPrerequisites() instanceof NonePrerequisite)) {
             boolean met = def.getPrerequisites().isSatisfied(completedResearch);

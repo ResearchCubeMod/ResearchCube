@@ -412,7 +412,7 @@ Research Station and is consumed when research begins. Distribution to players i
 entirely by the pack dev via quests, loot tables, or other means.)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-- [ ] [AI] ResearchDefinition: add optional `idea_chip` field
+- [x] [AI] ResearchDefinition: add optional `idea_chip` field
   ResearchDefinition gains an Optional<ItemStack> ideaChip field (default Optional.empty()).
   The field is parsed from an optional "idea_chip" JSON object in the research definition file:
     {
@@ -427,7 +427,7 @@ entirely by the pack dev via quests, loot tables, or other means.)
   Codec: use ItemStack.CODEC (or a manual MapCodec) wrapped in Codec.optionalField().
   ResearchManager must pass through the new field when constructing ResearchDefinition.
 
-- [ ] [AI] ItemStack partial-match helper utility
+- [x] [AI] ItemStack partial-match helper utility
   Add a static helper IdeaChipMatcher.matches(ItemStack required, ItemStack candidate):
     - Item registry name must be equal.
     - For each DataComponentType declared in required.getComponents(), the candidate must
@@ -437,7 +437,7 @@ entirely by the pack dev via quests, loot tables, or other means.)
   without having to enumerate every default component on the item.
   Place in com.researchcube.util.IdeaChipMatcher.
 
-- [ ] [AI] ResearchTableBlockEntity: idea chip inventory slot
+- [x] [AI] ResearchTableBlockEntity: idea chip inventory slot
   Add one new inventory slot (index 9, shifting previous slot count from 9 to 10).
   Slot is unrestricted by item type (any item may be placed there by the player).
   In tryStartResearch(): after all existing validation, if the selected research definition
@@ -452,12 +452,12 @@ entirely by the pack dev via quests, loot tables, or other means.)
   (ContainerHelper.saveAllItems / loadAllItems already iterates all slots by index, so no
   extra NBT changes needed as long as the slot count constant is updated).
 
-- [ ] [AI] ResearchTableMenu: register the new slot
+- [x] [AI] ResearchTableMenu: register the new slot
   Increment slot count constant from 9 to 10. Add the idea chip slot to the container
   with a SlotItemHandler at slot index 9. Position: TBD during screen layout step below.
   Ensure the slot is included in the shift-click quick-move logic.
 
-- [ ] [AI] ResearchTableScreen: render the idea chip slot + contextual feedback
+- [x] [AI] ResearchTableScreen: render the idea chip slot + contextual feedback
   Add a dedicated visual slot to the Research Station GUI for the idea chip (index 9).
   Suggested position: below the drive slot or next to the Start button, clearly separated
   from the cost item slots. Render a subtle "chip" icon or label ("Idea") above the slot.
@@ -473,7 +473,7 @@ entirely by the pack dev via quests, loot tables, or other means.)
   The slot state is determined client-side by comparing the idea chip requirement (synced
   from the server) against the current slot contents (synced automatically by the container).
 
-- [ ] [AI] Network sync: send ideaChip to client
+- [x] [AI] Network sync: send ideaChip to client
   ResearchTableScreen needs to show the tooltip name of the required chip client-side.
   Options (pick simplest):
     a) Include ideaChip ItemStack in the existing openMenu FriendlyByteBuf payload
@@ -486,13 +486,13 @@ entirely by the pack dev via quests, loot tables, or other means.)
   Either way the client must be able to read the required chip's display name and
   components to compare against the slot contents and render the tooltip correctly.
 
-- [ ] [AI] Broken drive item: ensure it can carry arbitrary components (no-op if already works)
+- [x] [AI] Broken drive item: ensure it can carry arbitrary components (no-op if already works)
   Verify that metadata_broken (BrokenDriveItem or however the broken drive is registered)
   does not strip or override custom_name / custom_data components. If it does, ensure these
   pass through cleanly so pack devs can attach names and data via item_modifiers or
   give commands without the item resetting them.
 
-- [ ] [AI] Update example research JSONs + DATAPACK.md
+- [x] [AI] Update example research JSONs + DATAPACK.md
   Add idea_chip to one example research definition (e.g. a new "gated_example" or an
   amendment to an existing one) to validate end-to-end functionality.
   Add an "Idea Chips" section to DATAPACK.md explaining:
@@ -503,7 +503,7 @@ entirely by the pack dev via quests, loot tables, or other means.)
     - Recommended practice: use a unique minecraft:custom_data tag as a stable ID, and
       set a human-readable minecraft:custom_name for player-facing display.
 
-- [ ] [AI] Update example_datapack/ with a gated research example
+- [x] [AI] Update example_datapack/ with a gated research example
   Add a research definition that uses idea_chip and a matching drive crafting recipe.
   Include a sample loot_table or item_modifier JSON showing how a pack dev would
   distribute the chip (e.g. as a reward item in a loot table).

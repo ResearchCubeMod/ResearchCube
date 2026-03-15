@@ -30,6 +30,7 @@ import java.util.Set;
  *   Slots 2-7: Item cost inputs (6 slots)
  *   Slot 8: Bucket input (accepts fluid buckets)
  *   Slot 9: Bucket output (output only — empty buckets)
+ *   Slot 10: Idea chip (unrestricted)
  *   Player inventory: standard 27 + 9 hotbar
  *
  * Data slots sync research progress, state, and fluid info from server to client.
@@ -62,6 +63,8 @@ public class ResearchTableMenu extends AbstractContainerMenu {
     public static final int BUCKET_IN_Y = 86;
     public static final int BUCKET_OUT_X = 92;
     public static final int BUCKET_OUT_Y = 86;
+    public static final int IDEA_CHIP_X = 134;
+    public static final int IDEA_CHIP_Y = 60;
     public static final int PLAYER_INV_X = 179;
     public static final int PLAYER_INV_Y = 164;
     public static final int HOTBAR_X = 179;
@@ -163,6 +166,9 @@ public class ResearchTableMenu extends AbstractContainerMenu {
             }
         });
 
+        // Slot 10: Idea chip (unrestricted — any item may be placed)
+        addSlot(new SlotItemHandler(inv, ResearchTableBlockEntity.SLOT_IDEA_CHIP, IDEA_CHIP_X, IDEA_CHIP_Y));
+
         // ── Player Inventory (27 slots) ──
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
@@ -239,7 +245,7 @@ public class ResearchTableMenu extends AbstractContainerMenu {
             ItemStack slotStack = slot.getItem();
             result = slotStack.copy();
 
-            int beSlots = ResearchTableBlockEntity.TOTAL_SLOTS; // 10
+            int beSlots = ResearchTableBlockEntity.TOTAL_SLOTS; // 11
             int playerStart = beSlots;
             int playerEnd = playerStart + 36;
 

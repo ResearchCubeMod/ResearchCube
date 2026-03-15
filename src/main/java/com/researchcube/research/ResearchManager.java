@@ -8,15 +8,18 @@ import com.google.gson.JsonObject;
 import com.researchcube.ResearchCubeMod;
 import com.researchcube.research.prerequisite.Prerequisite;
 import com.researchcube.research.prerequisite.PrerequisiteParser;
+import com.mojang.serialization.JsonOps;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 import net.minecraft.util.profiling.ProfilerFiller;
+import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Datapack reload listener that loads research definitions from:
@@ -112,7 +115,8 @@ public class ResearchManager extends SimpleJsonResourceReloadListener {
         }
 
         return new ResearchDefinition(id, tier, duration, prerequisites, itemCosts, weightedRecipePool,
-                parseName(json), parseDescription(json), parseCategory(json), parseFluidCost(json));
+                parseName(json), parseDescription(json), parseCategory(json), parseFluidCost(json),
+                parseIdeaChip(json));
     }
 
     @Nullable
@@ -140,5 +144,17 @@ public class ResearchManager extends SimpleJsonResourceReloadListener {
         ResourceLocation fluidId = ResourceLocation.parse(fluidObj.get("fluid").getAsString());
         int amount = fluidObj.has("amount") ? fluidObj.get("amount").getAsInt() : 1000;
         return new FluidCost(fluidId, amount);
+    }
+
+    /**
+     * Parse optional idea chip: an ItemStack decoded via ItemStack.CODEC.
+     * Example: { "idea_chip": { "id": "researchcube:metadata_irrecoverable", "components": { ... } } }
+     */
+    private Optional<ItemStack> parseIdeaChip(JsonObject json) {
+        if (!json.has("idea_chip")) return Optional.empty();
+        JsonElement chipElement = json.get("idea_chip");
+        return ItemStack.CODEC.parse(JsonOps.INSTANCE, chipElement)
+                .resultOrPartial(error -> ResearchCubeMod.LOGGER.error("Failed to parse idea_chip: {}", error))
+                .filter(stack -> !stack.isEmpty());
     }
 }

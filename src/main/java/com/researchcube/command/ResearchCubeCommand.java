@@ -70,6 +70,11 @@ public class ResearchCubeCommand {
                                 .executes(ctx -> addToDrive(ctx, false))
                                 .then(Commands.argument("force", BoolArgumentType.bool())
                                         .executes(ctx -> addToDrive(ctx, BoolArgumentType.getBool(ctx, "force"))))))
+                .then(Commands.literal("giveChip")
+                        .then(Commands.argument("player", EntityArgument.player())
+                                .then(Commands.argument("research", ResourceLocationArgument.id())
+                                        .suggests(SUGGEST_RESEARCH)
+                                        .executes(ResearchCubeCommand::giveChip))))
                 .then(Commands.literal("help")
                         .executes(ResearchCubeCommand::help))
         );
@@ -233,6 +238,32 @@ public class ResearchCubeCommand {
         return 1;
     }
 
+    private static int giveChip(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        ServerPlayer player = EntityArgument.getPlayer(ctx, "player");
+        ResourceLocation researchId = ResourceLocationArgument.getId(ctx, "research");
+        CommandSourceStack source = ctx.getSource();
+
+        ResearchDefinition def = ResearchRegistry.get(researchId);
+        if (def == null) {
+            source.sendFailure(Component.literal("Unknown research: " + researchId));
+            return 0;
+        }
+
+        if (def.getIdeaChip().isEmpty()) {
+            source.sendFailure(Component.literal("Research " + researchId + " does not require an idea chip."));
+            return 0;
+        }
+
+        ItemStack chip = def.getIdeaChip().get().copy();
+        if (!player.getInventory().add(chip)) {
+            player.drop(chip, false);
+        }
+
+        source.sendSuccess(() -> Component.literal("Gave idea chip for " + researchId + " to "
+                + player.getName().getString()), true);
+        return 1;
+    }
+
     private static int help(CommandContext<CommandSourceStack> ctx) {
         CommandSourceStack source = ctx.getSource();
         source.sendSuccess(() -> Component.literal("=== ResearchCube Commands ===")
@@ -252,6 +283,9 @@ public class ResearchCubeCommand {
         source.sendSuccess(() -> Component.literal("/researchcube addToDrive <research> [force]")
                 .withStyle(ChatFormatting.YELLOW)
                 .append(Component.literal(" - Add research recipes to held drive").withStyle(ChatFormatting.GRAY)), false);
+        source.sendSuccess(() -> Component.literal("/researchcube giveChip <player> <research>")
+                .withStyle(ChatFormatting.YELLOW)
+                .append(Component.literal(" - Give the idea chip for a research").withStyle(ChatFormatting.GRAY)), false);
         source.sendSuccess(() -> Component.literal("/researchcube help")
                 .withStyle(ChatFormatting.YELLOW)
                 .append(Component.literal(" - Show this help message").withStyle(ChatFormatting.GRAY)), false);

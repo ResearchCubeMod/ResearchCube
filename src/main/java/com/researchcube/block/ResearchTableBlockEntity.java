@@ -11,6 +11,7 @@ import com.researchcube.research.*;
 import com.researchcube.research.criterion.CompleteResearchTrigger;
 import com.researchcube.util.NbtUtil;
 import com.researchcube.util.TierUtil;
+import com.researchcube.util.IdeaChipMatcher;
 import com.researchcube.network.SyncResearchProgressPacket;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
@@ -58,7 +59,10 @@ import java.util.Set;
  * Slots:
  *   0 = Drive
  *   1 = Cube
- *   2+ = Item cost inputs (expandable)
+ *   2-7 = Item cost inputs
+ *   8 = Bucket input
+ *   9 = Bucket output
+ *   10 = Idea chip
  *
  * NBT:
  *   ActiveResearch: ResourceLocation string of current research
@@ -72,7 +76,8 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
     public static final int COST_SLOT_START = 2;
     public static final int SLOT_BUCKET_IN = 8;
     public static final int SLOT_BUCKET_OUT = 9;
-    public static final int TOTAL_SLOTS = 10; // 2 fixed + 6 cost + 2 bucket slots
+    public static final int SLOT_IDEA_CHIP = 10;
+    public static final int TOTAL_SLOTS = 11; // 2 fixed + 6 cost + 2 bucket + 1 idea chip
     public static final int TANK_CAPACITY = 8000; // 8 buckets (in mB)
 
     // GeckoLib animation
@@ -297,6 +302,17 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
             }
         }
 
+        // Validate idea chip (if defined)
+        if (definition.getIdeaChip().isPresent()) {
+            ItemStack required = definition.getIdeaChip().get();
+            ItemStack candidate = inventory.getStackInSlot(SLOT_IDEA_CHIP);
+            if (!IdeaChipMatcher.matches(required, candidate)) {
+                ResearchCubeMod.LOGGER.warn("[ResearchCube] Cannot start '{}': missing idea chip: {}",
+                        researchId, required.getHoverName().getString());
+                return false;
+            }
+        }
+
         // All checks passed — snapshot costs for potential refund, then consume
         this.consumedCosts = definition.getItemCosts();
         this.consumedFluidCost = fluidCost;
@@ -306,6 +322,11 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
         if (fluidCost != null) {
             FluidStack toDrain = new FluidStack(fluidCost.getFluid(), fluidCost.amount());
             fluidTank.drain(toDrain, IFluidHandler.FluidAction.EXECUTE);
+        }
+
+        // Consume idea chip (not refunded on cancel — it is the entry price)
+        if (definition.getIdeaChip().isPresent()) {
+            inventory.getStackInSlot(SLOT_IDEA_CHIP).shrink(1);
         }
 
         // Start research
@@ -563,6 +584,7 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
     /**
      * Cancel active research and refund item costs back into cost slots.
      * Called from CancelResearchPacket handler.
+     * Note: the idea chip is NOT refunded — it was consumed as the entry price.
      */
     public void cancelResearchWithRefund() {
         if (!isResearching()) return;

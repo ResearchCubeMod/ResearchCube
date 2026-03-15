@@ -4,9 +4,11 @@ import com.researchcube.research.prerequisite.Prerequisite;
 import com.researchcube.research.prerequisite.NonePrerequisite;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Immutable definition of a single research entry, loaded from datapack JSON.
@@ -41,12 +43,14 @@ public class ResearchDefinition {
     private final String category;     // optional grouping category (e.g., "circuits", "energy")
     @Nullable
     private final FluidCost fluidCost; // optional fluid cost for this research
+    private final Optional<ItemStack> ideaChip; // optional idea chip required to start this research
 
     public ResearchDefinition(ResourceLocation id, ResearchTier tier, int duration,
                               Prerequisite prerequisites, List<ItemCost> itemCosts,
                               List<WeightedRecipe> weightedRecipePool,
                               @Nullable String name, @Nullable String description,
-                              @Nullable String category, @Nullable FluidCost fluidCost) {
+                              @Nullable String category, @Nullable FluidCost fluidCost,
+                              Optional<ItemStack> ideaChip) {
         this.id = id;
         this.tier = tier;
         this.duration = duration;
@@ -58,10 +62,23 @@ public class ResearchDefinition {
         this.description = description;
         this.category = category;
         this.fluidCost = fluidCost;
+        this.ideaChip = ideaChip != null ? ideaChip : Optional.empty();
     }
 
     /**
-     * Constructor without fluidCost (backwards-compatible).
+     * Constructor without ideaChip (backwards-compatible).
+     */
+    public ResearchDefinition(ResourceLocation id, ResearchTier tier, int duration,
+                              Prerequisite prerequisites, List<ItemCost> itemCosts,
+                              List<WeightedRecipe> weightedRecipePool,
+                              @Nullable String name, @Nullable String description,
+                              @Nullable String category, @Nullable FluidCost fluidCost) {
+        this(id, tier, duration, prerequisites, itemCosts, weightedRecipePool,
+                name, description, category, fluidCost, Optional.empty());
+    }
+
+    /**
+     * Constructor without fluidCost or ideaChip (backwards-compatible).
      */
     public ResearchDefinition(ResourceLocation id, ResearchTier tier, int duration,
                               Prerequisite prerequisites, List<ItemCost> itemCosts,
@@ -183,6 +200,14 @@ public class ResearchDefinition {
     @Nullable
     public FluidCost getFluidCost() {
         return fluidCost;
+    }
+
+    /**
+     * Optional idea chip required to start this research.
+     * If present, the player must place a matching item in the idea chip slot.
+     */
+    public Optional<ItemStack> getIdeaChip() {
+        return ideaChip;
     }
 
     /**

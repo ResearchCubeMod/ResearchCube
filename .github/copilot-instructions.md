@@ -47,9 +47,9 @@
 | Package | Purpose |
 |---|---|
 | `com.researchcube` | `ResearchCubeMod` — entry point, `rl()` helper, DeferredRegister wiring, `IFluidHandler` capability registration |
-| `block` | `ResearchTableBlock` (opens menu on right-click), `ResearchTableBlockEntity` (GeoBlockEntity, ticking, 10-slot inventory + FluidTank, `getUpdateTag`/`getUpdatePacket` for client sync), `DriveCraftingTableBlock`, `DriveCraftingTableBlockEntity`, `ProcessingStationBlock`, `ProcessingStationBlockEntity` |
+| `block` | `ResearchTableBlock` (opens menu on right-click), `ResearchTableBlockEntity` (GeoBlockEntity, ticking, 11-slot inventory + FluidTank, `getUpdateTag`/`getUpdatePacket` for client sync), `DriveCraftingTableBlock`, `DriveCraftingTableBlockEntity`, `ProcessingStationBlock`, `ProcessingStationBlockEntity` |
 | `item` | `DriveItem` (tiered, stores recipe IDs in CustomData, `isFull()` capacity check, foil effect, opens `DriveInspectorScreen` on right-click), `CubeItem` (tiered, validation only), `ResearchBookItem` (opens research book screen via packet), `ResearchChipItem`, `ResearchFluidBucketItem` (custom bucket for research fluids) |
-| `menu` | `ResearchTableMenu` — 10 BE slots + player inventory, 4-value `SimpleContainerData`, `completedResearch` set from buf; `DriveCraftingTableMenu` — drive crafting container; `ProcessingStationMenu` — processing station container |
+| `menu` | `ResearchTableMenu` — 11 BE slots + player inventory, 4-value `SimpleContainerData`, `completedResearch` set from buf; `DriveCraftingTableMenu` — drive crafting container; `ProcessingStationMenu` — processing station container |
 | `client` | `ModClientEvents` — registers screens + GeckoLib renderer + sound (Dist.CLIENT, MOD bus); `ClientSoundHandler` — starts/stops `ResearchStationSoundInstance`; `ClientResearchData` — client-side cache of completed research for JEI/EMI integration; `ResearchHudOverlay` — on-screen HUD showing active research progress |
 | `client/screen` | `ResearchTableScreen` — scrollable research list with tier colors + lock icons, prereq tooltip, fluid gauge, gradient progress bar, Start/Stop buttons; `DriveCraftingTableScreen`; `ProcessingStationScreen`; `ResearchBookScreen` — read-only research encyclopedia; `ResearchTreeScreen` — tree visualization; `DriveInspectorScreen` — shows recipes stored on a drive; `ScreenRenderHelper` — shared rendering utilities |
 | `client/renderer` | `ResearchStationModel`, `ResearchStationRenderer` — GeckoLib geo/animation/texture wiring |
@@ -59,11 +59,11 @@
 | `compat/jade` | `ResearchCubeJadePlugin`, `ResearchStationProvider`, `ProcessingStationProvider` — Jade block overlays |
 | `network` | `StartResearchPacket`, `CancelResearchPacket`, `WipeTankPacket`, `OpenResearchBookPacket`, `StartProcessingPacket` (all client→server); `SyncResearchProgressPacket` (server→client); `ModNetworking` (PayloadRegistrar) |
 | `recipe` | `DriveCraftingRecipe`, `DriveCraftingRecipeSerializer`, `ProcessingRecipe`, `ProcessingRecipeSerializer`, `ProcessingFluidStack` |
-| `research` | `ResearchDefinition` (id, tier, duration, prerequisites, itemCosts, fluidCost, recipePool, name, description, category), `ResearchRegistry`, `ResearchManager`, `ResearchTier` (with `maxRecipes` and `getColor()`), `ItemCost`, `FluidCost`, `WeightedRecipe`, `ResearchSavedData` |
+| `research` | `ResearchDefinition` (id, tier, duration, prerequisites, itemCosts, fluidCost, recipePool, name, description, category, ideaChip), `ResearchRegistry`, `ResearchManager`, `ResearchTier` (with `maxRecipes` and `getColor()`), `ItemCost`, `FluidCost`, `WeightedRecipe`, `ResearchSavedData` |
 | `research/prerequisite` | `Prerequisite` interface (with `describe()`), `AndPrerequisite`, `OrPrerequisite`, `SinglePrerequisite`, `NonePrerequisite`, `PrerequisiteParser` |
 | `research/criterion` | `CompleteResearchTrigger` — advancement criterion fired on research completion |
 | `registry` | `ModItems`, `ModBlocks`, `ModBlockEntities`, `ModMenus`, `ModCreativeTabs`, `ModRecipeTypes`, `ModRecipeSerializers`, `ModFluids`, `ModConfig`, `ModCriterionTriggers` |
-| `util` | `NbtUtil` (CustomData read/write), `TierUtil` (canResearch validation), `RecipeOutputResolver` |
+| `util` | `NbtUtil` (CustomData read/write), `TierUtil` (canResearch validation), `RecipeOutputResolver`, `IdeaChipMatcher` (partial ItemStack matching for idea chip validation) |
 | `event` | `ModServerEvents` (AddReloadListenerEvent) |
 
 ## Critical workflows
@@ -88,7 +88,7 @@
 - Register new game objects using `DeferredRegister` in `registry/Mod*` classes, then ensure they are registered in `ResearchCubeMod` constructor.
 - **Server authority**: never start/complete/cancel research from client code. Client screens send packets; server validates.
 - Preserve slot semantics in `ResearchTableBlockEntity` / `ResearchTableMenu`:
-  - slot 0 = drive, slot 1 = cube, slots 2–7 = item costs, slot 8 = bucket_in, slot 9 = bucket_out (`SLOT_DRIVE=0`, `SLOT_CUBE=1`, `COST_SLOT_START=2`, `SLOT_BUCKET_IN=8`, `SLOT_BUCKET_OUT=9`, `TOTAL_SLOTS=10`).
+  - slot 0 = drive, slot 1 = cube, slots 2–7 = item costs, slot 8 = bucket_in, slot 9 = bucket_out, slot 10 = idea_chip (`SLOT_DRIVE=0`, `SLOT_CUBE=1`, `COST_SLOT_START=2`, `SLOT_BUCKET_IN=8`, `SLOT_BUCKET_OUT=9`, `SLOT_IDEA_CHIP=10`, `TOTAL_SLOTS=11`).
   - When iterating cost slots, always loop `COST_SLOT_START` to `SLOT_BUCKET_IN` (exclusive), i.e. slots 2–7 only. Never include bucket slots in item-cost validation or consumption.
   - The block entity also holds a `FluidTank` (capacity `TANK_CAPACITY = 8000` mB). Fluid cost is validated and drained separately from item costs.
 - Enforce tier rules through `TierUtil.canResearch(cubeTier, driveTier, researchTier)` — cube tier ≥ research tier AND drive tier == research tier.

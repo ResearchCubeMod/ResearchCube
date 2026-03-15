@@ -14,6 +14,7 @@ import com.researchcube.research.ResearchTier;
 import com.researchcube.research.ItemCost;
 import com.researchcube.research.FluidCost;
 import com.researchcube.research.prerequisite.NonePrerequisite;
+import com.researchcube.util.IdeaChipMatcher;
 import com.researchcube.util.RecipeOutputResolver;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -25,6 +26,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.PacketDistributor;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
@@ -232,6 +234,7 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
 
         ResearchDefinition def = availableResearch.get(selectedIndex);
         if (!isPrerequisiteMet(def)) return;
+        if (!isIdeaChipSatisfied(def)) return;
 
         ResearchTableBlockEntity be = menu.getBlockEntity();
         PacketDistributor.sendToServer(new StartResearchPacket(be.getBlockPos(), def.getId().toString()));
@@ -260,7 +263,8 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         refreshResearchList();
 
         boolean canStart = !menu.isResearching() && selectedIndex >= 0 && selectedIndex < availableResearch.size()
-                && isPrerequisiteMet(availableResearch.get(selectedIndex));
+                && isPrerequisiteMet(availableResearch.get(selectedIndex))
+                && isIdeaChipSatisfied(availableResearch.get(selectedIndex));
         startButton.active = canStart;
         cancelButton.active = menu.isResearching();
         wipeButton.active = menu.getFluidAmount() > 0;
@@ -270,6 +274,47 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
     private boolean isPrerequisiteMet(ResearchDefinition def) {
         Set<String> completed = menu.getCompletedResearch();
         return def.getPrerequisites().isSatisfied(completed);
+    }
+
+    /**
+     * Returns true if the selected research has no idea chip requirement,
+     * or if the requirement is satisfied by the current slot contents.
+     */
+    private boolean isIdeaChipSatisfied(ResearchDefinition def) {
+        if (def.getIdeaChip().isEmpty()) return true;
+        ItemStack required = def.getIdeaChip().get();
+        ItemStack candidate = menu.getBlockEntity().getInventory()
+                .getStackInSlot(ResearchTableBlockEntity.SLOT_IDEA_CHIP);
+        return IdeaChipMatcher.matches(required, candidate);
+    }
+
+    /**
+     * Render contextual overlay on the idea chip slot:
+     * - Dimmed when no requirement for the selected research
+     * - Red border when requirement exists but not satisfied
+     * - Normal when satisfied
+     */
+    private void renderIdeaChipOverlay(GuiGraphics g, int sx, int sy) {
+        ResearchDefinition selected = getSelectedDefinition();
+        if (selected == null || selected.getIdeaChip().isEmpty()) {
+            // No requirement: dimmed grey overlay
+            g.fill(sx, sy, sx + 16, sy + 16, 0x88000000);
+        } else if (!isIdeaChipSatisfied(selected)) {
+            // Requirement not met: red-tinted border
+            int x0 = sx - 1;
+            int y0 = sy - 1;
+            g.fill(x0, y0, x0 + 18, y0 + 1, 0xFFFF3333);
+            g.fill(x0, y0 + 17, x0 + 18, y0 + 18, 0xFFFF3333);
+            g.fill(x0, y0, x0 + 1, y0 + 18, 0xFFFF3333);
+            g.fill(x0 + 17, y0, x0 + 18, y0 + 18, 0xFFFF3333);
+        }
+        // Otherwise: slot renders normally (requirement satisfied)
+    }
+
+    @Nullable
+    private ResearchDefinition getSelectedDefinition() {
+        if (selectedIndex < 0 || selectedIndex >= availableResearch.size()) return null;
+        return availableResearch.get(selectedIndex);
     }
 
     // ══════════════════════════════════════════════════════════════
@@ -330,6 +375,11 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         drawSlotBg(g, x + ResearchTableMenu.BUCKET_OUT_X, y + ResearchTableMenu.BUCKET_OUT_Y);
         g.drawString(font, "\u25BC", x + ResearchTableMenu.BUCKET_IN_X + 3, y + ResearchTableMenu.BUCKET_IN_Y - 4, 0xFF55CCFF, false);
         g.drawString(font, "\u25B2", x + ResearchTableMenu.BUCKET_OUT_X + 3, y + ResearchTableMenu.BUCKET_OUT_Y - 4, 0xFF999999, false);
+
+        // ── Idea chip slot ──
+        drawSlotBg(g, x + ResearchTableMenu.IDEA_CHIP_X, y + ResearchTableMenu.IDEA_CHIP_Y);
+        g.drawString(font, "Idea", x + ResearchTableMenu.IDEA_CHIP_X - 2, y + ResearchTableMenu.IDEA_CHIP_Y - 10, 0xFFD3D7E5, false);
+        renderIdeaChipOverlay(g, x + ResearchTableMenu.IDEA_CHIP_X, y + ResearchTableMenu.IDEA_CHIP_Y);
 
         // ── Fluid gauge ──
         drawFluidGauge(g, x + GAUGE_X, y + GAUGE_Y, GAUGE_W, GAUGE_H);
@@ -445,6 +495,9 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
 
         // Tooltip on fluid gauge hover
         renderFluidGaugeTooltip(graphics, mouseX, mouseY);
+
+        // Tooltip on idea chip slot hover
+        renderIdeaChipTooltip(graphics, mouseX, mouseY);
 
         renderTooltip(graphics, mouseX, mouseY);
     }
@@ -582,6 +635,16 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
                     .withStyle(s -> s.withColor(0x55CCFF)));
         }
 
+        // Idea chip requirement
+        if (def.getIdeaChip().isPresent()) {
+            ItemStack chip = def.getIdeaChip().get();
+            boolean satisfied = isIdeaChipSatisfied(def);
+            String icon = satisfied ? "\u2714" : "\u2718";
+            int color = satisfied ? 0x55FF55 : 0xFF5555;
+            tooltip.add(Component.literal("Idea Chip: " + icon + " " + chip.getHoverName().getString())
+                    .withStyle(s -> s.withColor(color)));
+        }
+
         // Prerequisites status
         if (!(def.getPrerequisites() instanceof NonePrerequisite)) {
             boolean met = isPrerequisiteMet(def);
@@ -636,6 +699,41 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         }
         tooltip.add(Component.literal("Insert fluid buckets below")
                 .withStyle(s -> s.withColor(0x666666).withItalic(true)));
+
+        graphics.renderTooltip(font, tooltip, Optional.empty(), mouseX, mouseY);
+    }
+
+    /**
+     * Renders a tooltip when hovering over the idea chip slot.
+     */
+    private void renderIdeaChipTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
+        int sx = leftPos + ResearchTableMenu.IDEA_CHIP_X;
+        int sy = topPos + ResearchTableMenu.IDEA_CHIP_Y;
+
+        if (mouseX < sx - 1 || mouseX >= sx + 17 || mouseY < sy - 1 || mouseY >= sy + 17) {
+            return;
+        }
+
+        // Don't show custom tooltip if a slot item tooltip is already being shown
+        ItemStack slotStack = menu.getBlockEntity().getInventory()
+                .getStackInSlot(ResearchTableBlockEntity.SLOT_IDEA_CHIP);
+        if (!slotStack.isEmpty()) return;
+
+        List<Component> tooltip = new ArrayList<>();
+        ResearchDefinition selected = getSelectedDefinition();
+
+        if (selected == null || selected.getIdeaChip().isEmpty()) {
+            tooltip.add(Component.literal("Idea Chip Slot")
+                    .withStyle(s -> s.withColor(0x888888)));
+            tooltip.add(Component.literal("No idea chip required for this research.")
+                    .withStyle(s -> s.withColor(0x666666).withItalic(true)));
+        } else {
+            ItemStack required = selected.getIdeaChip().get();
+            tooltip.add(Component.literal("Idea Chip Slot")
+                    .withStyle(s -> s.withColor(0xFF5555)));
+            tooltip.add(Component.literal("Requires: " + required.getHoverName().getString())
+                    .withStyle(s -> s.withColor(0xFFAAAA)));
+        }
 
         graphics.renderTooltip(font, tooltip, Optional.empty(), mouseX, mouseY);
     }
