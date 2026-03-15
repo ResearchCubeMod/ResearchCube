@@ -1,0 +1,15 @@
+{
+  "type": "researchcube:drive_crafting",
+  "recipe_id": "researchcube:soul_extraction_recipe_1",
+  "pattern": [
+    "SAS",
+    "ABA",
+    "SAS"
+  ],
+  "key": {
+    "S": { "item": "minecraft:soul_sand" },
+    "A": { "item": "minecraft:amethyst_shard" },
+    "B": { "item": "minecraft:blaze_powder" }
+  },
+  "result": { "id": "minecraft:soul_lantern", "count": 4 }
+}

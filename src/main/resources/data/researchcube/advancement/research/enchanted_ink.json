@@ -1,0 +1,20 @@
+{
+  "parent": "researchcube:root",
+  "display": {
+    "icon": {
+      "id": "researchcube:cube_advanced"
+    },
+    "title": "Enchanted Ink",
+    "description": "Complete the Enchanted Ink research",
+    "show_toast": true,
+    "announce_to_chat": true
+  },
+  "criteria": {
+    "research_complete": {
+      "trigger": "researchcube:complete_research",
+      "conditions": {
+        "research_id": "researchcube:enchanted_ink"
+      }
+    }
+  }
+}

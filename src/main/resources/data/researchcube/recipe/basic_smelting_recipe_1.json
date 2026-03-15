@@ -1,0 +1,15 @@
+{
+  "type": "researchcube:processing",
+  "inputs": [
+    { "item": "minecraft:raw_iron" },
+    { "item": "minecraft:raw_iron" },
+    { "item": "minecraft:coal" }
+  ],
+  "fluid_inputs": [
+    { "fluid": "researchcube:thinking_fluid", "amount": 250 }
+  ],
+  "outputs": [
+    { "id": "minecraft:iron_ingot", "count": 3 }
+  ],
+  "duration": 200
+}

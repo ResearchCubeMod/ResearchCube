@@ -1,0 +1,29 @@
+{
+  "name": "Ender Weaving",
+  "description": "Weave ender energy into items. Requires an Irrecoverable Drive as an idea chip and AND prerequisites (lapis_infusion AND potion_brewing).",
+  "category": "magic",
+  "tier": "FLAWLESS",
+  "duration": 8000,
+  "prerequisites": {
+    "type": "AND",
+    "values": [
+      "researchcube:lapis_infusion",
+      "researchcube:potion_brewing"
+    ]
+  },
+  "item_costs": [
+    { "item": "minecraft:ender_pearl", "count": 8 },
+    { "item": "minecraft:blaze_powder", "count": 4 },
+    { "item": "minecraft:phantom_membrane", "count": 4 }
+  ],
+  "fluid_cost": { "fluid": "researchcube:reasoning_fluid", "amount": 2000 },
+  "idea_chip": {
+    "id": "researchcube:metadata_irrecoverable",
+    "components": {
+      "minecraft:custom_name": "{\"text\":\"Ender Fragment\",\"italic\":false,\"color\":\"dark_green\"}"
+    }
+  },
+  "recipe_pool": [
+    "researchcube:ender_weaving_recipe_1"
+  ]
+}

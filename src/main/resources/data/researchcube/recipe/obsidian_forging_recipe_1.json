@@ -1,0 +1,14 @@
+{
+  "type": "researchcube:drive_crafting",
+  "recipe_id": "researchcube:obsidian_forging_recipe_1",
+  "pattern": [
+    "OOO",
+    "ODO",
+    "OOO"
+  ],
+  "key": {
+    "O": { "item": "minecraft:obsidian" },
+    "D": { "item": "minecraft:diamond" }
+  },
+  "result": { "id": "minecraft:enchanting_table", "count": 1 }
+}

@@ -1,0 +1,15 @@
+{
+  "type": "researchcube:drive_crafting",
+  "recipe_id": "researchcube:wood_crafting_recipe_1",
+  "ingredients": [
+    { "item": "minecraft:oak_planks" },
+    { "item": "minecraft:oak_planks" },
+    { "item": "minecraft:oak_planks" },
+    { "item": "minecraft:stick" },
+    { "item": "minecraft:stick" }
+  ],
+  "result": {
+    "id": "minecraft:bookshelf",
+    "count": 4
+  }
+}

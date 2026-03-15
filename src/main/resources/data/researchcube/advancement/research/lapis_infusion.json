@@ -1,0 +1,20 @@
+{
+  "parent": "researchcube:root",
+  "display": {
+    "icon": {
+      "id": "researchcube:cube_precise"
+    },
+    "title": "Lapis Infusion",
+    "description": "Complete the Lapis Infusion research",
+    "show_toast": true,
+    "announce_to_chat": true
+  },
+  "criteria": {
+    "research_complete": {
+      "trigger": "researchcube:complete_research",
+      "conditions": {
+        "research_id": "researchcube:lapis_infusion"
+      }
+    }
+  }
+}

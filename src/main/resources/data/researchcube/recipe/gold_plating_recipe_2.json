@@ -1,0 +1,15 @@
+{
+  "type": "researchcube:processing",
+  "inputs": [
+    { "item": "minecraft:gold_ingot" },
+    { "item": "minecraft:gold_ingot" },
+    { "item": "minecraft:iron_ingot" }
+  ],
+  "fluid_inputs": [
+    { "fluid": "researchcube:pondering_fluid", "amount": 500 }
+  ],
+  "outputs": [
+    { "id": "minecraft:gold_block", "count": 1 }
+  ],
+  "duration": 400
+}

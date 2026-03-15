@@ -1,0 +1,18 @@
+{
+  "name": "Alloy Blending",
+  "description": "Combine metals into stronger alloys. Demonstrates a weighted recipe pool with two processing recipes — one more common than the other.",
+  "category": "processing",
+  "tier": "ADVANCED",
+  "duration": 2000,
+  "prerequisites": "researchcube:iron_working",
+  "item_costs": [
+    { "item": "minecraft:iron_ingot", "count": 8 },
+    { "item": "minecraft:copper_ingot", "count": 8 },
+    { "item": "minecraft:coal", "count": 4 }
+  ],
+  "fluid_cost": { "fluid": "researchcube:pondering_fluid", "amount": 1200 },
+  "recipe_pool": [
+    { "id": "researchcube:alloy_blending_recipe_1", "weight": 3 },
+    { "id": "researchcube:alloy_blending_recipe_2", "weight": 1 }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "type": "researchcube:drive_crafting",
+  "recipe_id": "researchcube:iron_working_recipe_1",
+  "pattern": [
+    "III",
+    "ICI",
+    "III"
+  ],
+  "key": {
+    "I": { "item": "minecraft:iron_ingot" },
+    "C": { "item": "minecraft:coal" }
+  },
+  "result": { "id": "minecraft:iron_block", "count": 2 }
+}

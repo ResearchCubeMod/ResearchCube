@@ -1,0 +1,17 @@
+{
+  "name": "Dye Mixing",
+  "description": "Create new color combinations through research. A shapeless drive crafting recipe from the wood crafting branch.",
+  "category": "materials",
+  "tier": "ADVANCED",
+  "duration": 1600,
+  "prerequisites": "researchcube:wood_crafting",
+  "item_costs": [
+    { "item": "minecraft:red_dye", "count": 4 },
+    { "item": "minecraft:blue_dye", "count": 4 },
+    { "item": "minecraft:yellow_dye", "count": 4 }
+  ],
+  "fluid_cost": { "fluid": "researchcube:pondering_fluid", "amount": 800 },
+  "recipe_pool": [
+    "researchcube:dye_mixing_recipe_1"
+  ]
+}

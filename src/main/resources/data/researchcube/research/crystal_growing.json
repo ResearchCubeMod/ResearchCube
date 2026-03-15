@@ -1,0 +1,16 @@
+{
+  "name": "Crystal Growing",
+  "description": "Grow crystals in a controlled environment using the Processing Station. A processing-only recipe at PRECISE tier.",
+  "category": "processing",
+  "tier": "PRECISE",
+  "duration": 3200,
+  "prerequisites": "researchcube:glass_blowing",
+  "item_costs": [
+    { "item": "minecraft:amethyst_shard", "count": 8 },
+    { "item": "minecraft:quartz", "count": 8 }
+  ],
+  "fluid_cost": { "fluid": "researchcube:reasoning_fluid", "amount": 1000 },
+  "recipe_pool": [
+    "researchcube:crystal_growing_recipe_1"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "type": "researchcube:drive_crafting",
+  "recipe_id": "researchcube:cosmic_assembly_recipe_3",
+  "pattern": [
+    "BDB",
+    "DSD",
+    "BDB"
+  ],
+  "key": {
+    "B": { "item": "minecraft:dragon_breath" },
+    "D": { "item": "minecraft:diamond_block" },
+    "S": { "item": "minecraft:nether_star" }
+  },
+  "result": { "id": "minecraft:conduit", "count": 2 }
+}

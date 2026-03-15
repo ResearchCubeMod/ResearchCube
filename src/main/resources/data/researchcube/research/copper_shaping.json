@@ -1,0 +1,16 @@
+{
+  "name": "Copper Shaping",
+  "description": "Learn to shape copper into useful components. Demonstrates a shaped drive crafting recipe with pattern and key.",
+  "category": "materials",
+  "tier": "BASIC",
+  "duration": 800,
+  "prerequisites": "researchcube:basic_smelting",
+  "item_costs": [
+    { "item": "minecraft:copper_ingot", "count": 12 },
+    { "item": "minecraft:coal", "count": 4 }
+  ],
+  "fluid_cost": { "fluid": "researchcube:thinking_fluid", "amount": 800 },
+  "recipe_pool": [
+    "researchcube:copper_shaping_recipe_1"
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "name": "Cosmic Assembly",
+  "description": "The ultimate capstone research — assemble cosmic-tier items. Demonstrates a 3-recipe weighted pool at the highest tier. Requires both star_forging and void_synthesis.",
+  "category": "endgame",
+  "tier": "SELF_AWARE",
+  "duration": 48000,
+  "prerequisites": {
+    "type": "AND",
+    "values": [
+      "researchcube:star_forging",
+      "researchcube:void_synthesis"
+    ]
+  },
+  "item_costs": [
+    { "item": "minecraft:nether_star", "count": 2 },
+    { "item": "minecraft:netherite_ingot", "count": 1 },
+    { "item": "minecraft:dragon_breath", "count": 4 },
+    { "item": "minecraft:diamond_block", "count": 2 }
+  ],
+  "fluid_cost": { "fluid": "researchcube:imagination_fluid", "amount": 4000 },
+  "recipe_pool": [
+    { "id": "researchcube:cosmic_assembly_recipe_1", "weight": 1 },
+    { "id": "researchcube:cosmic_assembly_recipe_2", "weight": 2 },
+    { "id": "researchcube:cosmic_assembly_recipe_3", "weight": 1 }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "type": "researchcube:processing",
+  "inputs": [
+    { "item": "minecraft:netherrack" },
+    { "item": "minecraft:netherrack" },
+    { "item": "minecraft:netherrack" },
+    { "item": "minecraft:netherrack" },
+    { "item": "minecraft:gold_ingot" },
+    { "item": "minecraft:quartz" }
+  ],
+  "fluid_inputs": [
+    { "fluid": "researchcube:reasoning_fluid", "amount": 750 }
+  ],
+  "outputs": [
+    { "id": "minecraft:nether_brick", "count": 16 }
+  ],
+  "duration": 600
+}

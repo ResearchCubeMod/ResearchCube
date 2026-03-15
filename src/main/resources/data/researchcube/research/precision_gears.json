@@ -1,0 +1,23 @@
+{
+  "name": "Precision Gears",
+  "description": "Craft finely tuned mechanical gears. Requires an Irrecoverable Drive as an idea chip — demonstrating idea chips at mid-tier progression.",
+  "category": "machinery",
+  "tier": "PRECISE",
+  "duration": 4000,
+  "prerequisites": "researchcube:alloy_blending",
+  "item_costs": [
+    { "item": "minecraft:iron_ingot", "count": 12 },
+    { "item": "minecraft:gold_ingot", "count": 4 },
+    { "item": "minecraft:redstone", "count": 8 }
+  ],
+  "fluid_cost": { "fluid": "researchcube:reasoning_fluid", "amount": 1500 },
+  "idea_chip": {
+    "id": "researchcube:metadata_irrecoverable",
+    "components": {
+      "minecraft:custom_name": "{\"text\":\"Mechanical Blueprint\",\"italic\":false,\"color\":\"gold\"}"
+    }
+  },
+  "recipe_pool": [
+    "researchcube:precision_gears_recipe_1"
+  ]
+}

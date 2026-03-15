@@ -1,0 +1,17 @@
+{
+  "name": "Nether Refining",
+  "description": "Refine nether materials in the Processing Station. A processing-only research at FLAWLESS tier.",
+  "category": "processing",
+  "tier": "FLAWLESS",
+  "duration": 7200,
+  "prerequisites": "researchcube:diamond_cutting",
+  "item_costs": [
+    { "item": "minecraft:netherrack", "count": 32 },
+    { "item": "minecraft:gold_ingot", "count": 8 },
+    { "item": "minecraft:quartz", "count": 8 }
+  ],
+  "fluid_cost": { "fluid": "researchcube:reasoning_fluid", "amount": 1800 },
+  "recipe_pool": [
+    "researchcube:nether_refining_recipe_1"
+  ]
+}

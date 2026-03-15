@@ -1,0 +1,23 @@
+{
+  "name": "Potion Brewing",
+  "description": "Advanced brewing techniques combining glass and dye knowledge. Demonstrates AND prerequisites merging two branches (glass_blowing AND dye_mixing).",
+  "category": "magic",
+  "tier": "PRECISE",
+  "duration": 3600,
+  "prerequisites": {
+    "type": "AND",
+    "values": [
+      "researchcube:glass_blowing",
+      "researchcube:dye_mixing"
+    ]
+  },
+  "item_costs": [
+    { "item": "minecraft:nether_wart", "count": 8 },
+    { "item": "minecraft:blaze_powder", "count": 4 },
+    { "item": "minecraft:glass_bottle", "count": 4 }
+  ],
+  "fluid_cost": { "fluid": "researchcube:reasoning_fluid", "amount": 1200 },
+  "recipe_pool": [
+    "researchcube:potion_brewing_recipe_1"
+  ]
+}

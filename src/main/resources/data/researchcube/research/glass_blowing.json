@@ -1,0 +1,16 @@
+{
+  "name": "Glass Blowing",
+  "description": "Shape molten glass into advanced forms using the Processing Station. Demonstrates a processing-only recipe unlock.",
+  "category": "processing",
+  "tier": "ADVANCED",
+  "duration": 1800,
+  "prerequisites": "researchcube:copper_shaping",
+  "item_costs": [
+    { "item": "minecraft:glass", "count": 16 },
+    { "item": "minecraft:sand", "count": 8 }
+  ],
+  "fluid_cost": { "fluid": "researchcube:pondering_fluid", "amount": 1000 },
+  "recipe_pool": [
+    "researchcube:glass_blowing_recipe_1"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "type": "researchcube:drive_crafting",
+  "recipe_id": "researchcube:stone_refinement_recipe_1",
+  "ingredients": [
+    { "item": "minecraft:cobblestone" },
+    { "item": "minecraft:cobblestone" },
+    { "item": "minecraft:cobblestone" },
+    { "item": "minecraft:cobblestone" }
+  ],
+  "result": {
+    "id": "minecraft:stone_bricks",
+    "count": 8
+  }
+}

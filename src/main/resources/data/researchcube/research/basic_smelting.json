@@ -1,0 +1,15 @@
+{
+  "name": "Basic Smelting",
+  "description": "Discover efficient smelting techniques using the Processing Station. Demonstrates a processing recipe unlock.",
+  "category": "processing",
+  "tier": "UNSTABLE",
+  "duration": 600,
+  "item_costs": [
+    { "item": "minecraft:iron_ore", "count": 4 },
+    { "item": "minecraft:coal", "count": 8 }
+  ],
+  "fluid_cost": { "fluid": "researchcube:thinking_fluid", "amount": 500 },
+  "recipe_pool": [
+    "researchcube:basic_smelting_recipe_1"
+  ]
+}

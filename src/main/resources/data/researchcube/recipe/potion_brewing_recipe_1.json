@@ -1,0 +1,14 @@
+{
+  "type": "researchcube:drive_crafting",
+  "recipe_id": "researchcube:potion_brewing_recipe_1",
+  "ingredients": [
+    { "item": "minecraft:nether_wart" },
+    { "item": "minecraft:blaze_powder" },
+    { "item": "minecraft:glass_bottle" },
+    { "item": "minecraft:sugar" }
+  ],
+  "result": {
+    "id": "minecraft:fermented_spider_eye",
+    "count": 4
+  }
+}

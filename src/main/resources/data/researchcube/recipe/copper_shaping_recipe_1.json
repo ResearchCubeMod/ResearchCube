@@ -1,0 +1,13 @@
+{
+  "type": "researchcube:drive_crafting",
+  "recipe_id": "researchcube:copper_shaping_recipe_1",
+  "pattern": [
+    "CC ",
+    "C C",
+    "CC "
+  ],
+  "key": {
+    "C": { "item": "minecraft:copper_ingot" }
+  },
+  "result": { "id": "minecraft:lightning_rod", "count": 4 }
+}

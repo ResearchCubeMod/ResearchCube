@@ -1,0 +1,17 @@
+{
+  "name": "Gold Plating",
+  "description": "Apply gold plating to items for enhanced properties. Uses pondering fluid and demonstrates the ADVANCED tier.",
+  "category": "materials",
+  "tier": "ADVANCED",
+  "duration": 2000,
+  "prerequisites": "researchcube:iron_working",
+  "item_costs": [
+    { "item": "minecraft:gold_ingot", "count": 8 },
+    { "item": "minecraft:iron_ingot", "count": 4 }
+  ],
+  "fluid_cost": { "fluid": "researchcube:pondering_fluid", "amount": 1000 },
+  "recipe_pool": [
+    "researchcube:gold_plating_recipe_1",
+    "researchcube:gold_plating_recipe_2"
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "name": "Void Synthesis",
+  "description": "Synthesize void energy into tangible form. Requires an Irrecoverable Drive as an idea chip — demonstrating endgame idea chip gating. Uses AND prerequisites.",
+  "category": "endgame",
+  "tier": "SELF_AWARE",
+  "duration": 24000,
+  "prerequisites": {
+    "type": "AND",
+    "values": [
+      "researchcube:ender_weaving",
+      "researchcube:soul_extraction"
+    ]
+  },
+  "item_costs": [
+    { "item": "minecraft:ender_pearl", "count": 16 },
+    { "item": "minecraft:chorus_fruit", "count": 8 },
+    { "item": "minecraft:end_stone", "count": 16 }
+  ],
+  "fluid_cost": { "fluid": "researchcube:imagination_fluid", "amount": 3000 },
+  "idea_chip": {
+    "id": "researchcube:metadata_irrecoverable",
+    "components": {
+      "minecraft:custom_name": "{\"text\":\"Void Echo\",\"italic\":false,\"color\":\"dark_gray\"}"
+    }
+  },
+  "recipe_pool": [
+    "researchcube:void_synthesis_recipe_1",
+    "researchcube:void_synthesis_recipe_2"
+  ]
+}

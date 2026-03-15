@@ -1,0 +1,24 @@
+{
+  "name": "Obsidian Forging",
+  "description": "Forge obsidian into refined tools and blocks. Requires both diamond_cutting AND precision_gears — merging the materials and machinery branches.",
+  "category": "materials",
+  "tier": "FLAWLESS",
+  "duration": 8000,
+  "prerequisites": {
+    "type": "AND",
+    "values": [
+      "researchcube:diamond_cutting",
+      "researchcube:precision_gears"
+    ]
+  },
+  "item_costs": [
+    { "item": "minecraft:obsidian", "count": 8 },
+    { "item": "minecraft:diamond", "count": 4 },
+    { "item": "minecraft:blaze_powder", "count": 4 }
+  ],
+  "fluid_cost": { "fluid": "researchcube:reasoning_fluid", "amount": 2000 },
+  "recipe_pool": [
+    "researchcube:obsidian_forging_recipe_1",
+    "researchcube:obsidian_forging_recipe_2"
+  ]
+}

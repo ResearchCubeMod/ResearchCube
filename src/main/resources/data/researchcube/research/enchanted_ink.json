@@ -1,0 +1,29 @@
+{
+  "name": "Enchanted Ink",
+  "description": "Brew ink infused with magical properties. Demonstrates AND prerequisites (requires both redstone_basics AND iron_working) and uses an idea chip.",
+  "category": "magic",
+  "tier": "ADVANCED",
+  "duration": 2400,
+  "prerequisites": {
+    "type": "AND",
+    "values": [
+      "researchcube:redstone_basics",
+      "researchcube:iron_working"
+    ]
+  },
+  "item_costs": [
+    { "item": "minecraft:ink_sac", "count": 8 },
+    { "item": "minecraft:lapis_lazuli", "count": 4 },
+    { "item": "minecraft:glowstone_dust", "count": 4 }
+  ],
+  "fluid_cost": { "fluid": "researchcube:pondering_fluid", "amount": 1500 },
+  "idea_chip": {
+    "id": "researchcube:metadata_irrecoverable",
+    "components": {
+      "minecraft:custom_name": "{\"text\":\"Arcane Knowledge\",\"italic\":false,\"color\":\"dark_purple\"}"
+    }
+  },
+  "recipe_pool": [
+    "researchcube:enchanted_ink_recipe_1"
+  ]
+}

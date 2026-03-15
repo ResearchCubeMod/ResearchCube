@@ -1,0 +1,14 @@
+{
+  "type": "researchcube:drive_crafting",
+  "recipe_id": "researchcube:redstone_basics_recipe_1",
+  "ingredients": [
+    { "item": "minecraft:redstone" },
+    { "item": "minecraft:redstone" },
+    { "item": "minecraft:redstone" },
+    { "item": "minecraft:iron_ingot" }
+  ],
+  "result": {
+    "id": "minecraft:repeater",
+    "count": 4
+  }
+}

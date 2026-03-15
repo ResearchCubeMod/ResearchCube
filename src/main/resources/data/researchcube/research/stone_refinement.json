@@ -1,0 +1,15 @@
+{
+  "name": "Stone Refinement",
+  "description": "Learn to process raw stone into refined building materials. A simple entry-level research with no prerequisites.",
+  "category": "materials",
+  "tier": "UNSTABLE",
+  "duration": 600,
+  "item_costs": [
+    { "item": "minecraft:cobblestone", "count": 16 },
+    { "item": "minecraft:coal", "count": 4 }
+  ],
+  "fluid_cost": { "fluid": "researchcube:thinking_fluid", "amount": 500 },
+  "recipe_pool": [
+    "researchcube:stone_refinement_recipe_1"
+  ]
+}

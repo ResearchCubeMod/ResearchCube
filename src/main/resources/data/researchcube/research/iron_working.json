@@ -1,0 +1,17 @@
+{
+  "name": "Iron Working",
+  "description": "Master iron crafting techniques. Demonstrates a simple prerequisite and unlocks both a shaped drive crafting recipe and a processing recipe.",
+  "category": "materials",
+  "tier": "BASIC",
+  "duration": 1000,
+  "prerequisites": "researchcube:stone_refinement",
+  "item_costs": [
+    { "item": "minecraft:iron_ingot", "count": 8 },
+    { "item": "minecraft:coal", "count": 4 }
+  ],
+  "fluid_cost": { "fluid": "researchcube:thinking_fluid", "amount": 1000 },
+  "recipe_pool": [
+    "researchcube:iron_working_recipe_1",
+    "researchcube:iron_working_recipe_2"
+  ]
+}

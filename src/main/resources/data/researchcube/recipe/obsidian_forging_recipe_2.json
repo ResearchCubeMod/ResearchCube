@@ -1,0 +1,17 @@
+{
+  "type": "researchcube:processing",
+  "inputs": [
+    { "item": "minecraft:obsidian" },
+    { "item": "minecraft:obsidian" },
+    { "item": "minecraft:obsidian" },
+    { "item": "minecraft:obsidian" },
+    { "item": "minecraft:diamond" }
+  ],
+  "fluid_inputs": [
+    { "fluid": "researchcube:reasoning_fluid", "amount": 1000 }
+  ],
+  "outputs": [
+    { "id": "minecraft:crying_obsidian", "count": 4 }
+  ],
+  "duration": 800
+}

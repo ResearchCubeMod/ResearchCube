@@ -1,0 +1,16 @@
+{
+  "type": "researchcube:processing",
+  "inputs": [
+    { "item": "minecraft:glass" },
+    { "item": "minecraft:glass" },
+    { "item": "minecraft:glass" },
+    { "item": "minecraft:glass" }
+  ],
+  "fluid_inputs": [
+    { "fluid": "researchcube:pondering_fluid", "amount": 500 }
+  ],
+  "outputs": [
+    { "id": "minecraft:glass_pane", "count": 16 }
+  ],
+  "duration": 300
+}

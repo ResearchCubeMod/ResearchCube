@@ -41,6 +41,16 @@ public class ResearchCubeCommand {
         );
     };
 
+    private static final SuggestionProvider<CommandSourceStack> SUGGEST_RESEARCH_WITH_IDEA_CHIP = (context, builder) -> {
+        Collection<ResearchDefinition> all = ResearchRegistry.getAll();
+        return SharedSuggestionProvider.suggestResource(
+                all.stream()
+                        .filter(def -> def.getIdeaChip().isPresent())
+                        .map(ResearchDefinition::getId),
+                builder
+        );
+    };
+
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(Commands.literal("researchcube")
                 .requires(src -> src.hasPermission(2))
@@ -70,11 +80,11 @@ public class ResearchCubeCommand {
                                 .executes(ctx -> addToDrive(ctx, false))
                                 .then(Commands.argument("force", BoolArgumentType.bool())
                                         .executes(ctx -> addToDrive(ctx, BoolArgumentType.getBool(ctx, "force"))))))
-                .then(Commands.literal("giveChip")
+                .then(Commands.literal("ideaChip")
                         .then(Commands.argument("player", EntityArgument.player())
                                 .then(Commands.argument("research", ResourceLocationArgument.id())
-                                        .suggests(SUGGEST_RESEARCH)
-                                        .executes(ResearchCubeCommand::giveChip))))
+                                        .suggests(SUGGEST_RESEARCH_WITH_IDEA_CHIP)
+                                        .executes(ResearchCubeCommand::giveIdeaChip))))
                 .then(Commands.literal("help")
                         .executes(ResearchCubeCommand::help))
         );
@@ -238,7 +248,7 @@ public class ResearchCubeCommand {
         return 1;
     }
 
-    private static int giveChip(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+    private static int giveIdeaChip(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         ServerPlayer player = EntityArgument.getPlayer(ctx, "player");
         ResourceLocation researchId = ResourceLocationArgument.getId(ctx, "research");
         CommandSourceStack source = ctx.getSource();
@@ -283,7 +293,7 @@ public class ResearchCubeCommand {
         source.sendSuccess(() -> Component.literal("/researchcube addToDrive <research> [force]")
                 .withStyle(ChatFormatting.YELLOW)
                 .append(Component.literal(" - Add research recipes to held drive").withStyle(ChatFormatting.GRAY)), false);
-        source.sendSuccess(() -> Component.literal("/researchcube giveChip <player> <research>")
+        source.sendSuccess(() -> Component.literal("/researchcube ideaChip <player> <research>")
                 .withStyle(ChatFormatting.YELLOW)
                 .append(Component.literal(" - Give the idea chip for a research").withStyle(ChatFormatting.GRAY)), false);
         source.sendSuccess(() -> Component.literal("/researchcube help")

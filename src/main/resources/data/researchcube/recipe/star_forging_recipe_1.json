@@ -1,0 +1,15 @@
+{
+  "type": "researchcube:drive_crafting",
+  "recipe_id": "researchcube:star_forging_recipe_1",
+  "pattern": [
+    "DND",
+    "NSN",
+    "DND"
+  ],
+  "key": {
+    "D": { "item": "minecraft:diamond" },
+    "N": { "item": "minecraft:netherite_scrap" },
+    "S": { "item": "minecraft:nether_star" }
+  },
+  "result": { "id": "minecraft:beacon", "count": 1 }
+}

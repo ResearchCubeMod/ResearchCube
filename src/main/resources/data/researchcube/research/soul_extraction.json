@@ -1,0 +1,17 @@
+{
+  "name": "Soul Extraction",
+  "description": "Extract soul energy from soul sand for crafting. A shaped drive crafting recipe from the crystal growing branch.",
+  "category": "magic",
+  "tier": "FLAWLESS",
+  "duration": 8000,
+  "prerequisites": "researchcube:crystal_growing",
+  "item_costs": [
+    { "item": "minecraft:soul_sand", "count": 16 },
+    { "item": "minecraft:amethyst_shard", "count": 8 },
+    { "item": "minecraft:blaze_powder", "count": 4 }
+  ],
+  "fluid_cost": { "fluid": "researchcube:reasoning_fluid", "amount": 2500 },
+  "recipe_pool": [
+    "researchcube:soul_extraction_recipe_1"
+  ]
+}

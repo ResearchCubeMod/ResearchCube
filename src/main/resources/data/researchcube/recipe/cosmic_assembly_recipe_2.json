@@ -1,0 +1,15 @@
+{
+  "type": "researchcube:drive_crafting",
+  "recipe_id": "researchcube:cosmic_assembly_recipe_2",
+  "ingredients": [
+    { "item": "minecraft:nether_star" },
+    { "item": "minecraft:netherite_ingot" },
+    { "item": "minecraft:diamond_block" },
+    { "item": "minecraft:dragon_breath" },
+    { "item": "minecraft:dragon_breath" }
+  ],
+  "result": {
+    "id": "minecraft:elytra",
+    "count": 1
+  }
+}

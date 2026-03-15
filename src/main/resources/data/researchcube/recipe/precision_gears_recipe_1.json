@@ -1,0 +1,15 @@
+{
+  "type": "researchcube:drive_crafting",
+  "recipe_id": "researchcube:precision_gears_recipe_1",
+  "pattern": [
+    "IGI",
+    "GRG",
+    "IGI"
+  ],
+  "key": {
+    "I": { "item": "minecraft:iron_ingot" },
+    "G": { "item": "minecraft:gold_ingot" },
+    "R": { "item": "minecraft:redstone" }
+  },
+  "result": { "id": "minecraft:piston", "count": 4 }
+}

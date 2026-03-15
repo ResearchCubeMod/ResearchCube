@@ -1,0 +1,24 @@
+{
+  "name": "Star Forging",
+  "description": "Forge nether stars into powerful components. Demonstrates a weighted recipe pool at the SELF_AWARE tier with two drive crafting recipes.",
+  "category": "endgame",
+  "tier": "SELF_AWARE",
+  "duration": 24000,
+  "prerequisites": {
+    "type": "AND",
+    "values": [
+      "researchcube:obsidian_forging",
+      "researchcube:nether_refining"
+    ]
+  },
+  "item_costs": [
+    { "item": "minecraft:nether_star", "count": 1 },
+    { "item": "minecraft:diamond", "count": 8 },
+    { "item": "minecraft:netherite_scrap", "count": 2 }
+  ],
+  "fluid_cost": { "fluid": "researchcube:imagination_fluid", "amount": 3000 },
+  "recipe_pool": [
+    { "id": "researchcube:star_forging_recipe_1", "weight": 1 },
+    { "id": "researchcube:star_forging_recipe_2", "weight": 2 }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "type": "researchcube:drive_crafting",
+  "recipe_id": "researchcube:cosmic_assembly_recipe_1",
+  "pattern": [
+    "DSD",
+    "SNS",
+    "DSD"
+  ],
+  "key": {
+    "D": { "item": "minecraft:diamond_block" },
+    "S": { "item": "minecraft:nether_star" },
+    "N": { "item": "minecraft:netherite_ingot" }
+  },
+  "result": { "id": "minecraft:netherite_block", "count": 2 }
+}

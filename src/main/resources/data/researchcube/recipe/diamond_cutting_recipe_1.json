@@ -1,0 +1,14 @@
+{
+  "type": "researchcube:drive_crafting",
+  "recipe_id": "researchcube:diamond_cutting_recipe_1",
+  "pattern": [
+    " D ",
+    "DID",
+    " D "
+  ],
+  "key": {
+    "D": { "item": "minecraft:diamond" },
+    "I": { "item": "minecraft:iron_ingot" }
+  },
+  "result": { "id": "minecraft:diamond_block", "count": 1 }
+}

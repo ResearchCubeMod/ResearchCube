@@ -1,0 +1,16 @@
+{
+  "type": "researchcube:processing",
+  "inputs": [
+    { "item": "minecraft:amethyst_shard" },
+    { "item": "minecraft:amethyst_shard" },
+    { "item": "minecraft:quartz" },
+    { "item": "minecraft:quartz" }
+  ],
+  "fluid_inputs": [
+    { "fluid": "researchcube:reasoning_fluid", "amount": 500 }
+  ],
+  "outputs": [
+    { "id": "minecraft:amethyst_block", "count": 4 }
+  ],
+  "duration": 500
+}

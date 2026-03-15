@@ -1,0 +1,20 @@
+{
+  "parent": "researchcube:root",
+  "display": {
+    "icon": {
+      "id": "researchcube:cube_self_aware"
+    },
+    "title": "Star Forging",
+    "description": "Complete the Star Forging research",
+    "show_toast": true,
+    "announce_to_chat": true
+  },
+  "criteria": {
+    "research_complete": {
+      "trigger": "researchcube:complete_research",
+      "conditions": {
+        "research_id": "researchcube:star_forging"
+      }
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "Diamond Cutting",
+  "description": "Precisely cut diamonds into useful components. Unlocks both a shaped drive crafting recipe and a processing recipe at the PRECISE tier.",
+  "category": "materials",
+  "tier": "PRECISE",
+  "duration": 4000,
+  "prerequisites": "researchcube:gold_plating",
+  "item_costs": [
+    { "item": "minecraft:diamond", "count": 4 },
+    { "item": "minecraft:iron_ingot", "count": 8 }
+  ],
+  "fluid_cost": { "fluid": "researchcube:reasoning_fluid", "amount": 1500 },
+  "recipe_pool": [
+    "researchcube:diamond_cutting_recipe_1",
+    "researchcube:diamond_cutting_recipe_2"
+  ]
+}

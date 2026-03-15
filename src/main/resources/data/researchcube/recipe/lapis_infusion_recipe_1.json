@@ -1,0 +1,15 @@
+{
+  "type": "researchcube:drive_crafting",
+  "recipe_id": "researchcube:lapis_infusion_recipe_1",
+  "ingredients": [
+    { "item": "minecraft:lapis_lazuli" },
+    { "item": "minecraft:lapis_lazuli" },
+    { "item": "minecraft:lapis_lazuli" },
+    { "item": "minecraft:lapis_lazuli" },
+    { "item": "minecraft:experience_bottle" }
+  ],
+  "result": {
+    "id": "minecraft:lapis_block",
+    "count": 4
+  }
+}
