@@ -47,6 +47,7 @@ import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
 import software.bernie.geckolib.animation.*;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -627,6 +628,23 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
             if (researchKey != null) {
                 tag.putString("ResearchKey", researchKey);
             }
+            // Persist consumed costs so refunds survive server restarts
+            if (consumedCosts != null) {
+                ListTag costList = new ListTag();
+                for (ItemCost cost : consumedCosts) {
+                    CompoundTag costTag = new CompoundTag();
+                    costTag.putString("Item", cost.itemId().toString());
+                    costTag.putInt("Count", cost.count());
+                    costList.add(costTag);
+                }
+                tag.put("ConsumedCosts", costList);
+            }
+            if (consumedFluidCost != null) {
+                CompoundTag fluidCostTag = new CompoundTag();
+                fluidCostTag.putString("Fluid", consumedFluidCost.fluidId().toString());
+                fluidCostTag.putInt("Amount", consumedFluidCost.amount());
+                tag.put("ConsumedFluidCost", fluidCostTag);
+            }
         }
     }
 
@@ -653,9 +671,30 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
             startTime = -1;
             researchKey = null;
         }
-        // consumedCosts/consumedFluidCost are not persisted — on reload, cancel will not refund
-        consumedCosts = null;
-        consumedFluidCost = null;
+        // Restore consumed costs for refund support across restarts
+        if (tag.contains("ConsumedCosts", Tag.TAG_LIST)) {
+            ListTag costList = tag.getList("ConsumedCosts", Tag.TAG_COMPOUND);
+            List<ItemCost> costs = new ArrayList<>();
+            for (int i = 0; i < costList.size(); i++) {
+                CompoundTag costTag = costList.getCompound(i);
+                costs.add(new ItemCost(
+                        ResourceLocation.parse(costTag.getString("Item")),
+                        costTag.getInt("Count")
+                ));
+            }
+            consumedCosts = costs;
+        } else {
+            consumedCosts = null;
+        }
+        if (tag.contains("ConsumedFluidCost", Tag.TAG_COMPOUND)) {
+            CompoundTag fluidCostTag = tag.getCompound("ConsumedFluidCost");
+            consumedFluidCost = new FluidCost(
+                    ResourceLocation.parse(fluidCostTag.getString("Fluid")),
+                    fluidCostTag.getInt("Amount")
+            );
+        } else {
+            consumedFluidCost = null;
+        }
     }
 
     // ── Client Sync ──
