@@ -576,9 +576,12 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
                     refundStack = inventory.insertItem(i, refundStack, false);
                 }
 
-                // If slots are full, items are lost (edge case — player filled slots)
-                if (!refundStack.isEmpty()) {
-                    ResearchCubeMod.LOGGER.warn("Could not fully refund {} x{} during cancel — {} lost",
+                // If slots are full, drop excess items into the world
+                if (!refundStack.isEmpty() && level != null) {
+                    BlockPos pos = getBlockPos();
+                    Containers.dropItemStack(level, pos.getX(), pos.getY(), pos.getZ(), refundStack);
+                } else if (!refundStack.isEmpty()) {
+                    ResearchCubeMod.LOGGER.warn("Could not fully refund {} x{} during cancel — {} lost (no level)",
                             cost.itemId(), cost.count(), refundStack.getCount());
                 }
             }
