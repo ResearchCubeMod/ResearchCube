@@ -1,6 +1,7 @@
 {
   "name": "Iron Working",
   "description": "Master iron crafting techniques. Demonstrates a simple prerequisite and unlocks both a shaped drive crafting recipe and a processing recipe.",
+  "flavor_text": "The forge remembers every hammer blow. Make each one count.",
   "category": "materials",
   "tier": "BASIC",
   "duration": 1000,

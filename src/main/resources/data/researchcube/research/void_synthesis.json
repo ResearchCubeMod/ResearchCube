@@ -1,6 +1,7 @@
 {
   "name": "Void Synthesis",
   "description": "Synthesize void energy into tangible form. Requires an Irrecoverable Drive as an idea chip — demonstrating endgame idea chip gating. Uses AND prerequisites.",
+  "flavor_text": "Nothing is never truly empty. The void itself has substance.",
   "category": "endgame",
   "tier": "SELF_AWARE",
   "duration": 24000,

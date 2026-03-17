@@ -1,6 +1,7 @@
 {
   "name": "Ender Weaving",
   "description": "Weave ender energy into items. Requires an Irrecoverable Drive as an idea chip and AND prerequisites (lapis_infusion AND potion_brewing).",
+  "flavor_text": "Between the cracks of reality, the Ender threads wait to be spun.",
   "category": "magic",
   "tier": "FLAWLESS",
   "duration": 8000,

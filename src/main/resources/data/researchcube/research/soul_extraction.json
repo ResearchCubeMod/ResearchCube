@@ -1,6 +1,7 @@
 {
   "name": "Soul Extraction",
   "description": "Extract soul energy from soul sand for crafting. A shaped drive crafting recipe from the crystal growing branch.",
+  "flavor_text": "The sand whispers of lives long past. Listen carefully.",
   "category": "magic",
   "tier": "FLAWLESS",
   "duration": 8000,
