@@ -1,6 +1,7 @@
 {
   "name": "Stone Refinement",
   "description": "Learn to process raw stone into refined building materials. A simple entry-level research with no prerequisites.",
+  "flavor_text": "Even the humblest cobblestone holds secrets for those who dare to look.",
   "category": "materials",
   "tier": "UNSTABLE",
   "duration": 600,

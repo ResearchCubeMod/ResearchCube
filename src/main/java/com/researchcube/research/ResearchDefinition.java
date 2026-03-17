@@ -40,6 +40,8 @@ public class ResearchDefinition {
     @Nullable
     private final String description;  // short description (optional)
     @Nullable
+    private final String flavorText;   // optional story/lore text for the detail pane
+    @Nullable
     private final String category;     // optional grouping category (e.g., "circuits", "energy")
     @Nullable
     private final FluidCost fluidCost; // optional fluid cost for this research
@@ -49,7 +51,8 @@ public class ResearchDefinition {
                               Prerequisite prerequisites, List<ItemCost> itemCosts,
                               List<WeightedRecipe> weightedRecipePool,
                               @Nullable String name, @Nullable String description,
-                              @Nullable String category, @Nullable FluidCost fluidCost,
+                              @Nullable String flavorText, @Nullable String category,
+                              @Nullable FluidCost fluidCost,
                               Optional<ItemStack> ideaChip) {
         this.id = id;
         this.tier = tier;
@@ -60,6 +63,7 @@ public class ResearchDefinition {
         this.recipePool = this.weightedRecipePool.stream().map(WeightedRecipe::id).toList();
         this.name = name;
         this.description = description;
+        this.flavorText = flavorText;
         this.category = category;
         this.fluidCost = fluidCost;
         this.ideaChip = ideaChip != null ? ideaChip : Optional.empty();
@@ -72,9 +76,10 @@ public class ResearchDefinition {
                               Prerequisite prerequisites, List<ItemCost> itemCosts,
                               List<WeightedRecipe> weightedRecipePool,
                               @Nullable String name, @Nullable String description,
-                              @Nullable String category, @Nullable FluidCost fluidCost) {
+                              @Nullable String flavorText, @Nullable String category,
+                              @Nullable FluidCost fluidCost) {
         this(id, tier, duration, prerequisites, itemCosts, weightedRecipePool,
-                name, description, category, fluidCost, Optional.empty());
+                name, description, flavorText, category, fluidCost, Optional.empty());
     }
 
     /**
@@ -84,9 +89,9 @@ public class ResearchDefinition {
                               Prerequisite prerequisites, List<ItemCost> itemCosts,
                               List<WeightedRecipe> weightedRecipePool,
                               @Nullable String name, @Nullable String description,
-                              @Nullable String category) {
+                              @Nullable String flavorText, @Nullable String category) {
         this(id, tier, duration, prerequisites, itemCosts, weightedRecipePool,
-                name, description, category, null);
+                name, description, flavorText, category, null);
     }
 
     /**
@@ -97,7 +102,7 @@ public class ResearchDefinition {
                               List<ResourceLocation> recipePool) {
         this(id, tier, duration, prerequisites, itemCosts,
                 recipePool.stream().map(rl -> new WeightedRecipe(rl, 1)).toList(),
-                null, null, null, null);
+                null, null, null, null, null);
     }
 
     public ResourceLocation getId() {
@@ -184,6 +189,14 @@ public class ResearchDefinition {
     @Nullable
     public String getDescription() {
         return description;
+    }
+
+    /**
+     * Optional story/lore flavor text for the detail pane.
+     */
+    @Nullable
+    public String getFlavorText() {
+        return flavorText;
     }
 
     /**

@@ -10,7 +10,6 @@ import com.researchcube.network.WipeTankPacket;
 import com.researchcube.registry.ModFluids;
 import com.researchcube.research.ResearchDefinition;
 import com.researchcube.research.ResearchRegistry;
-import com.researchcube.research.ResearchTier;
 import com.researchcube.research.ItemCost;
 import com.researchcube.research.FluidCost;
 import com.researchcube.research.prerequisite.NonePrerequisite;
@@ -33,9 +32,11 @@ import java.util.*;
 /**
  * Client-side screen for the Research Table.
  *
- * Expanded layout (520x286):
- *   Left panel: Drive slot, Cube slot, 3×2 cost grid, progress bar, Start/Stop buttons
- *   Right panel: Scrollable research list grouped by category (8 visible rows, 130px wide)
+ * Compact layout (340x250):
+ *   Left column (~100px): Drive, Cube, 3x2 cost grid, buckets, idea chip, fluid gauge,
+ *                          progress bar, Start/Stop/Wipe buttons
+ *   Right panel (~228px): Search bar + Tree button, scrollable research list (6 rows),
+ *                          detail pane (name, flavor text, tier/duration/costs)
  *   Bottom: Player inventory + hotbar (centered)
  */
 public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMenu> {
@@ -48,44 +49,52 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
 
     // ── Layout constants ──
 
+    // Left machine column
+    private static final int LEFT_COL_X = 56;
+    private static final int LEFT_COL_Y = 66;
+    private static final int LEFT_COL_W = 182;
+    private static final int LEFT_COL_H = 104;
+
     // Research list (right panel)
-    private static final int LIST_X = 194;
-    private static final int LIST_Y = 38;
-    private static final int LIST_W = 306;
-    private static final int ROW_H = 14;
-    private static final int VISIBLE_ROWS = 7;
+    private static final int LIST_X = 248;
+    private static final int LIST_Y = 71;
+    private static final int LIST_W = 400;
+    private static final int ROW_H = 18;
+    private static final int VISIBLE_ROWS = 5;
 
-    // Progress bar
-    private static final int PROGRESS_X = 26;
-    private static final int PROGRESS_Y = 118;
-    private static final int PROGRESS_W = 146;
-    private static final int PROGRESS_H = 8;
+    // Detail pane (below research list)
+    private static final int DETAIL_X = 248;
+    private static final int DETAIL_Y = 162;
+    private static final int DETAIL_W = 400;
+    private static final int DETAIL_H = 13;
 
-    // Fluid gauge (vertical bar on right side of left panel)
-    private static final int GAUGE_X = 154;
-    private static final int GAUGE_Y = 34;
-    private static final int GAUGE_W = 16;
-    private static final int GAUGE_H = 58;
+    // Progress bar (in left column)
+    private static final int PROGRESS_X = 113;
+    private static final int PROGRESS_Y = 113;
+    private static final int PROGRESS_W = 88;
+    private static final int PROGRESS_H = 13;
 
-    // Panel regions
-    private static final int LEFT_PANEL_X = 20;
-    private static final int LEFT_PANEL_Y = 20;
-    private static final int LEFT_PANEL_W = 160;
-    private static final int LEFT_PANEL_H = 132;
+    // Fluid gauge (vertical bar on right side)
+    private static final int GAUGE_X = 203;
+    private static final int GAUGE_Y = 79;
+    private static final int GAUGE_W = 18;
+    private static final int GAUGE_H = 83;
 
-    private static final int RIGHT_PANEL_X = 186;
-    private static final int RIGHT_PANEL_Y = 20;
-    private static final int RIGHT_PANEL_W = 314;
-    private static final int RIGHT_PANEL_H = 132;
+    // Right panel region
+    private static final int RIGHT_PANEL_X = 243;
+    private static final int RIGHT_PANEL_Y = 66;
+    private static final int RIGHT_PANEL_W = 411;
+    private static final int RIGHT_PANEL_H = 114;
 
-    // Colors
-    private static final int BG_OUTER = 0xFFC6C6C6;
-    private static final int PANEL_BG = 0xFF4A4F60;
+    // Texture
+    private static final ResourceLocation TEXTURE =
+            ResourceLocation.fromNamespaceAndPath(ResearchCubeMod.MOD_ID, "textures/gui/research_table.png");
+    private static final int TEX_W = 699;
+    private static final int TEX_H = 337;
+
+    // Colors (retained for dynamic elements)
     private static final int PANEL_BORDER_LIGHT = 0xFF7E87A6;
     private static final int PANEL_BORDER_DARK = 0xFF1A1A1A;
-    private static final int PANEL_INNER = 0xFF2E3342;
-    private static final int SLOT_BG = 0xFF8B8B8B;
-    private static final int SLOT_INNER = 0xFF2B2E38;
     private static final int LIST_BG = 0xFF252A3E;
 
     // Research list state
@@ -104,39 +113,42 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
 
     public ResearchTableScreen(ResearchTableMenu menu, Inventory playerInv, Component title) {
         super(menu, playerInv, title);
-        this.imageWidth = 520;
-        this.imageHeight = 286;
-        this.inventoryLabelX = 179;
-        this.inventoryLabelY = 154;
+        this.imageWidth = 699;
+        this.imageHeight = 337;
+        this.inventoryLabelX = 245;
+        this.inventoryLabelY = 180;
     }
 
     @Override
     protected void init() {
         super.init();
 
-        // Start / Cancel buttons below the progress bar
+        // Start button - SMALLER
         startButton = Button.builder(Component.literal("Start"), btn -> onStartResearch())
-                .bounds(leftPos + 26, topPos + 132, 70, 18)
+                .bounds(leftPos + 66, topPos + 151, 38, 16)
                 .build();
         addRenderableWidget(startButton);
 
+        // Cancel/Stop button - SMALLER
         cancelButton = Button.builder(Component.literal("Stop"), btn -> onCancelResearch())
-                .bounds(leftPos + 102, topPos + 132, 70, 18)
+                .bounds(leftPos + 108, topPos + 151, 38, 16)
                 .build();
         addRenderableWidget(cancelButton);
 
+        // Wipe tank button - SMALLER
         wipeButton = Button.builder(Component.literal("Wipe"), btn -> onWipeTank())
-                .bounds(leftPos + 114, topPos + 86, 34, 16)
+                .bounds(leftPos + 150, topPos + 151, 38, 16)
                 .build();
         addRenderableWidget(wipeButton);
 
+        // Tree view button (right of search box)
         treeViewButton = Button.builder(Component.literal("Tree"), btn -> onOpenTreeView())
-            .bounds(leftPos + 432, topPos + 22, 66, 18)
+                .bounds(leftPos + 599, topPos + 71, 49, 18)
                 .build();
         addRenderableWidget(treeViewButton);
 
         // Search box above the research list
-        searchBox = new EditBox(font, leftPos + LIST_X, topPos + LIST_Y - 14, LIST_W, 12,
+        searchBox = new EditBox(font, leftPos + LIST_X, topPos + 71, 346, 16,
                 Component.literal("Search..."));
         searchBox.setMaxLength(50);
         searchBox.setHint(Component.literal("Search...").withStyle(s -> s.withColor(0xFF666666)));
@@ -276,10 +288,6 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         return def.getPrerequisites().isSatisfied(completed);
     }
 
-    /**
-     * Returns true if the selected research has no idea chip requirement,
-     * or if the requirement is satisfied by the current slot contents.
-     */
     private boolean isIdeaChipSatisfied(ResearchDefinition def) {
         if (def.getIdeaChip().isEmpty()) return true;
         ItemStack required = def.getIdeaChip().get();
@@ -288,19 +296,11 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         return IdeaChipMatcher.matches(required, candidate);
     }
 
-    /**
-     * Render contextual overlay on the idea chip slot:
-     * - Dimmed when no requirement for the selected research
-     * - Red border when requirement exists but not satisfied
-     * - Normal when satisfied
-     */
     private void renderIdeaChipOverlay(GuiGraphics g, int sx, int sy) {
         ResearchDefinition selected = getSelectedDefinition();
         if (selected == null || selected.getIdeaChip().isEmpty()) {
-            // No requirement: dimmed grey overlay
             g.fill(sx, sy, sx + 16, sy + 16, 0x88000000);
         } else if (!isIdeaChipSatisfied(selected)) {
-            // Requirement not met: red-tinted border
             int x0 = sx - 1;
             int y0 = sy - 1;
             g.fill(x0, y0, x0 + 18, y0 + 1, 0xFFFF3333);
@@ -308,7 +308,6 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
             g.fill(x0, y0, x0 + 1, y0 + 18, 0xFFFF3333);
             g.fill(x0 + 17, y0, x0 + 18, y0 + 18, 0xFFFF3333);
         }
-        // Otherwise: slot renders normally (requirement satisfied)
     }
 
     @Nullable
@@ -326,74 +325,36 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         int x = leftPos;
         int y = topPos;
 
-        // ── Outer container background (vanilla grey) ──
-        g.fill(x, y, x + imageWidth, y + imageHeight, BG_OUTER);
-        // Top/left highlight, bottom/right shadow (bevel)
-        g.fill(x, y, x + imageWidth, y + 1, 0xFFFFFFFF);
-        g.fill(x, y, x + 1, y + imageHeight, 0xFFFFFFFF);
-        g.fill(x + imageWidth - 1, y, x + imageWidth, y + imageHeight, PANEL_BORDER_DARK);
-        g.fill(x, y + imageHeight - 1, x + imageWidth, y + imageHeight, PANEL_BORDER_DARK);
-
-        // ── Left panel (dark inset) ──
-        drawInsetPanel(g, x + LEFT_PANEL_X, y + LEFT_PANEL_Y, LEFT_PANEL_W, LEFT_PANEL_H);
-
-        // ── Right panel (dark inset) ──
-        drawInsetPanel(g, x + RIGHT_PANEL_X, y + RIGHT_PANEL_Y, RIGHT_PANEL_W, RIGHT_PANEL_H);
-
-        // ── Player inventory area ──
-        drawInsetPanel(g, x + 20, y + 156, 480, 122);
-
-        // ── Slot backgrounds ──
-        // Drive slot
-        drawSlotBg(g, x + ResearchTableMenu.DRIVE_X, y + ResearchTableMenu.DRIVE_Y);
-        // Cube slot
-        drawSlotBg(g, x + ResearchTableMenu.CUBE_X, y + ResearchTableMenu.CUBE_Y);
-        // Cost slots 3×2
-        for (int row = 0; row < 2; row++) {
-            for (int col = 0; col < 3; col++) {
-                drawSlotBg(g, x + ResearchTableMenu.COST_X + col * 18, y + ResearchTableMenu.COST_Y + row * 18);
-            }
-        }
-        // Player inventory slots
-        for (int row = 0; row < 3; row++) {
-            for (int col = 0; col < 9; col++) {
-                drawSlotBg(g, x + ResearchTableMenu.PLAYER_INV_X + col * 18, y + ResearchTableMenu.PLAYER_INV_Y + row * 18);
-            }
-        }
-        // Hotbar slots
-        for (int col = 0; col < 9; col++) {
-            drawSlotBg(g, x + ResearchTableMenu.HOTBAR_X + col * 18, y + ResearchTableMenu.HOTBAR_Y);
-        }
+        // ── Static background from texture ──
+        g.blit(TEXTURE, x, y, 0, 0, imageWidth, imageHeight, TEX_W, TEX_H);
 
         // ── Slot labels ──
-        g.drawString(font, "Drive", x + 24, y + 28, 0xFFD3D7E5, false);
-        g.drawString(font, "Cube", x + 24, y + 64, 0xFFD3D7E5, false);
-        g.drawString(font, "Costs", x + 70, y + 28, 0xFFD3D7E5, false);
+        g.drawString(font, "Drive", x + 63, y + 66, 0xFFD3D7E5, false);
+        g.drawString(font, "Cube", x + 63, y + 100, 0xFFD3D7E5, false);
+        g.drawString(font, "Costs", x + 110, y + 66, 0xFFD3D7E5, false);
 
-        // ── Bucket slots ──
-        drawSlotBg(g, x + ResearchTableMenu.BUCKET_IN_X, y + ResearchTableMenu.BUCKET_IN_Y);
-        drawSlotBg(g, x + ResearchTableMenu.BUCKET_OUT_X, y + ResearchTableMenu.BUCKET_OUT_Y);
+        // ── Bucket slot direction indicators ──
         g.drawString(font, "\u25BC", x + ResearchTableMenu.BUCKET_IN_X + 3, y + ResearchTableMenu.BUCKET_IN_Y - 4, 0xFF55CCFF, false);
         g.drawString(font, "\u25B2", x + ResearchTableMenu.BUCKET_OUT_X + 3, y + ResearchTableMenu.BUCKET_OUT_Y - 4, 0xFF999999, false);
 
-        // ── Idea chip slot ──
-        drawSlotBg(g, x + ResearchTableMenu.IDEA_CHIP_X, y + ResearchTableMenu.IDEA_CHIP_Y);
-        g.drawString(font, "Idea", x + ResearchTableMenu.IDEA_CHIP_X - 2, y + ResearchTableMenu.IDEA_CHIP_Y - 10, 0xFFD3D7E5, false);
+        // ── Idea chip slot label + dynamic overlay ──
+        g.drawString(font, "Idea", x + 164, y + 100, 0xFFD3D7E5, false);
         renderIdeaChipOverlay(g, x + ResearchTableMenu.IDEA_CHIP_X, y + ResearchTableMenu.IDEA_CHIP_Y);
 
-        // ── Fluid gauge ──
+        // ── Fluid gauge label ──
+        g.drawString(font, "Fl.", x + 203, y + 66, 0xFFD3D7E5, false);
+
+        // ── Fluid gauge (dynamic) ──
         drawFluidGauge(g, x + GAUGE_X, y + GAUGE_Y, GAUGE_W, GAUGE_H);
 
-        // ── Progress bar ──
+        // ── Progress bar (dynamic) ──
         if (menu.isResearching()) {
             float progress = Math.min(1.0f, menu.getScaledProgress());
             int filledWidth = Math.round(PROGRESS_W * progress);
 
-            // Bar background
             g.fill(x + PROGRESS_X, y + PROGRESS_Y,
                     x + PROGRESS_X + PROGRESS_W, y + PROGRESS_Y + PROGRESS_H,
                     0xFF222222);
-            // Bar border
             g.fill(x + PROGRESS_X - 1, y + PROGRESS_Y - 1,
                     x + PROGRESS_X + PROGRESS_W + 1, y + PROGRESS_Y,
                     PANEL_BORDER_DARK);
@@ -401,7 +362,6 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
                     x + PROGRESS_X + PROGRESS_W + 1, y + PROGRESS_Y + PROGRESS_H + 1,
                     PANEL_BORDER_LIGHT);
 
-            // Filled portion (green gradient)
             if (filledWidth > 0) {
                 int green = 0xCC + (int) (0x33 * progress);
                 int barColor = 0xFF000000 | (green << 8);
@@ -412,38 +372,7 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         }
     }
 
-    /** Draw an inset dark panel with a 1px bevelled border. */
-    private void drawInsetPanel(GuiGraphics g, int px, int py, int pw, int ph) {
-        // Dark fill
-        g.fill(px, py, px + pw, py + ph, PANEL_BG);
-        g.fill(px + 1, py + 1, px + pw - 1, py + ph - 1, PANEL_INNER);
-        // Top/left shadow (darker)
-        g.fill(px, py, px + pw, py + 1, PANEL_BORDER_DARK);
-        g.fill(px, py, px + 1, py + ph, PANEL_BORDER_DARK);
-        // Bottom/right highlight (lighter)
-        g.fill(px + pw - 1, py, px + pw, py + ph, PANEL_BORDER_LIGHT);
-        g.fill(px, py + ph - 1, px + pw, py + ph, PANEL_BORDER_LIGHT);
-    }
-
-    /** Draw the 18×18 slot background (Minecraft-style inset square). */
-    private void drawSlotBg(GuiGraphics g, int sx, int sy) {
-        // The slot position in Minecraft is the top-left of the 16×16 inner area.
-        // The border starts 1px above/left.
-        int x0 = sx - 1;
-        int y0 = sy - 1;
-        g.fill(x0, y0, x0 + 18, y0 + 18, SLOT_BG);
-        g.fill(x0 + 1, y0 + 1, x0 + 17, y0 + 17, SLOT_INNER);
-        // Top/left border shadow
-        g.fill(x0, y0, x0 + 18, y0 + 1, PANEL_BORDER_DARK);
-        g.fill(x0, y0, x0 + 1, y0 + 18, PANEL_BORDER_DARK);
-    }
-
-    /**
-     * Draw the vertical fluid gauge bar showing current tank contents.
-     * Fills from bottom to top, colored by fluid type.
-     */
     private void drawFluidGauge(GuiGraphics g, int gx, int gy, int gw, int gh) {
-        // Frame (inset border)
         g.fill(gx - 1, gy - 1, gx + gw + 1, gy + gh + 1, PANEL_BORDER_DARK);
         g.fill(gx, gy, gx + gw, gy + gh, 0xFF222222);
 
@@ -458,14 +387,12 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
             int fluidColor = ModFluids.getFluidColor(fluidType);
             g.fill(gx, fillY, gx + gw, gy + gh, fluidColor);
 
-            // Subtle shine line at the top of the fill
             if (fillHeight > 2) {
                 int shine = (fluidColor & 0x00FFFFFF) | 0x44000000;
                 g.fill(gx, fillY, gx + gw, fillY + 1, shine);
             }
         }
 
-        // Bottom/right highlight
         g.fill(gx + gw, gy - 1, gx + gw + 1, gy + gh + 1, PANEL_BORDER_LIGHT);
         g.fill(gx - 1, gy + gh, gx + gw + 1, gy + gh + 1, PANEL_BORDER_LIGHT);
     }
@@ -477,6 +404,9 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         // Research list
         renderResearchList(graphics, mouseX, mouseY);
 
+        // Detail pane for selected research
+        renderDetailPane(graphics);
+
         // Active research name + percentage
         if (menu.isResearching()) {
             ResearchTableBlockEntity be = menu.getBlockEntity();
@@ -487,7 +417,7 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
                 int percent = (int) (menu.getScaledProgress() * 100);
                 graphics.drawCenteredString(font, activeName + "  " + percent + "%",
                     leftPos + PROGRESS_X + PROGRESS_W / 2, topPos + PROGRESS_Y - 10, nameColor);
-                }
+            }
         }
 
         // Tooltip on research row hover
@@ -502,12 +432,83 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         renderTooltip(graphics, mouseX, mouseY);
     }
 
+    /**
+     * Renders the detail pane below the research list showing info about the selected research.
+     */
+    private void renderDetailPane(GuiGraphics g) {
+        int x = leftPos + DETAIL_X;
+        int y = topPos + DETAIL_Y;
+
+        // Detail pane background
+        g.fill(x, y, x + DETAIL_W, y + DETAIL_H, 0xFF1E2233);
+        g.fill(x, y, x + DETAIL_W, y + 1, PANEL_BORDER_DARK);
+        g.fill(x, y, x + 1, y + DETAIL_H, PANEL_BORDER_DARK);
+        g.fill(x + DETAIL_W - 1, y, x + DETAIL_W, y + DETAIL_H, PANEL_BORDER_LIGHT);
+        g.fill(x, y + DETAIL_H - 1, x + DETAIL_W, y + DETAIL_H, PANEL_BORDER_LIGHT);
+
+        ResearchDefinition def = getSelectedDefinition();
+        if (def == null) {
+            g.drawString(font, "Select a research entry", x + 4, y + 4, 0xFF666666, false);
+            return;
+        }
+
+        int textY = y + 3;
+
+        // Research name + tier badge
+        int nameColor = def.getTier().getColor() | 0xFF000000;
+        String nameStr = def.getDisplayName();
+        String tierBadge = "  [" + def.getTier().getDisplayName() + "]";
+        g.drawString(font, nameStr, x + 4, textY, nameColor, false);
+        g.drawString(font, tierBadge, x + 4 + font.width(nameStr), textY, 0xFF888888, false);
+        textY += 11;
+
+        // Flavor text (italic grey) — if available
+        String flavorText = def.getFlavorText();
+        if (flavorText != null && !flavorText.isEmpty()) {
+            // Truncate if too wide
+            if (font.width(flavorText) > DETAIL_W - 12) {
+                while (font.width(flavorText + "\u2026") > DETAIL_W - 12 && flavorText.length() > 3) {
+                    flavorText = flavorText.substring(0, flavorText.length() - 1);
+                }
+                flavorText += "\u2026";
+            }
+            g.drawString(font, "\u201C" + flavorText + "\u201D", x + 4, textY, 0xFF777799, false);
+            textY += 11;
+        }
+
+        // Duration + costs summary
+        StringBuilder summary = new StringBuilder();
+        summary.append(String.format("%.0fs", def.getDurationSeconds()));
+        if (!def.getItemCosts().isEmpty()) {
+            summary.append(" | ");
+            boolean first = true;
+            for (ItemCost cost : def.getItemCosts()) {
+                if (!first) summary.append(", ");
+                summary.append(cost.getItem().getDescription().getString()).append(" x").append(cost.count());
+                first = false;
+            }
+        }
+        FluidCost fc = def.getFluidCost();
+        if (fc != null) {
+            summary.append(" | ").append(fc.amount()).append("mB ");
+            String fn = fc.getFluidName();
+            summary.append(fn.substring(0, 1).toUpperCase()).append(fn.substring(1));
+        }
+
+        // Truncate summary if too long
+        String sumStr = summary.toString();
+        if (font.width(sumStr) > DETAIL_W - 8) {
+            while (font.width(sumStr + "\u2026") > DETAIL_W - 8 && sumStr.length() > 3) {
+                sumStr = sumStr.substring(0, sumStr.length() - 1);
+            }
+            sumStr += "\u2026";
+        }
+        g.drawString(font, sumStr, x + 4, textY, 0xFFAAB0C0, false);
+    }
+
     private void renderResearchList(GuiGraphics graphics, int mouseX, int mouseY) {
         int x = leftPos + LIST_X;
         int y = topPos + LIST_Y;
-
-        // Header label
-        graphics.drawString(font, "Research", x, y - 12, 0xFFC8D2EE, false);
 
         // List background
         graphics.fill(x - 2, y - 2, x + LIST_W + 2, y + VISIBLE_ROWS * ROW_H + 2, LIST_BG);
@@ -525,10 +526,8 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
             int rowY = y + i * ROW_H;
 
             if (row.isHeader()) {
-                // Category header row
                 String headerLabel = "\u25B8 " + row.headerText();
                 if (font.width(headerLabel) > LIST_W - 4) {
-                    // Truncate to fit
                     while (font.width(headerLabel + "\u2026") > LIST_W - 4 && headerLabel.length() > 3) {
                         headerLabel = headerLabel.substring(0, headerLabel.length() - 1);
                     }
@@ -540,20 +539,16 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
                 ResearchDefinition def = row.definition();
                 boolean locked = !isPrerequisiteMet(def);
 
-                // Selection highlight
                 if (def.getId().equals(selectedId)) {
                     graphics.fill(x, rowY, x + LIST_W, rowY + ROW_H, locked ? 0xFF442222 : 0xFF334488);
                 } else if (mouseX >= x && mouseX < x + LIST_W && mouseY >= rowY && mouseY < rowY + ROW_H) {
-                    // Hover highlight
                     graphics.fill(x, rowY, x + LIST_W, rowY + ROW_H, 0xFF2A2A3A);
                 }
 
-                // Build label
                 String prefix = locked ? "\uD83D\uDD12 " : "";
                 String name = def.getDisplayName();
                 String label = prefix + name;
 
-                // Truncate to fit list width
                 if (font.width(label) > LIST_W - 6) {
                     while (font.width(label + "\u2026") > LIST_W - 6 && label.length() > 3) {
                         label = label.substring(0, label.length() - 1);
@@ -575,9 +570,6 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         }
     }
 
-    /**
-     * Renders a tooltip when hovering over a research list entry.
-     */
     private void renderResearchTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
         int x = leftPos + LIST_X;
         int y = topPos + LIST_Y;
@@ -596,28 +588,23 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         ResearchDefinition def = listRow.definition();
         List<Component> tooltip = new ArrayList<>();
 
-        // Name
         tooltip.add(Component.literal(def.getDisplayName())
                 .withStyle(s -> s.withColor(def.getTier().getColor())));
 
-        // Description
         if (def.getDescription() != null) {
             tooltip.add(Component.literal(def.getDescription())
                     .withStyle(s -> s.withColor(0xAAAAAA).withItalic(true)));
         }
 
-        // Category
         if (def.getCategory() != null) {
             tooltip.add(Component.literal("Category: " + def.getCategory())
                     .withStyle(s -> s.withColor(0xCCAA00)));
         }
 
-        // Tier + Duration
         tooltip.add(Component.literal("Tier: " + def.getTier().getDisplayName()
                 + "  |  " + String.format("%.0fs", def.getDurationSeconds()))
                 .withStyle(s -> s.withColor(0x888888)));
 
-        // Item costs
         if (!def.getItemCosts().isEmpty()) {
             tooltip.add(Component.literal("Costs:").withStyle(s -> s.withColor(0xCCCC00)));
             for (ItemCost cost : def.getItemCosts()) {
@@ -626,7 +613,6 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
             }
         }
 
-        // Fluid cost
         FluidCost fluidCost = def.getFluidCost();
         if (fluidCost != null) {
             String fluidName = fluidCost.getFluidName();
@@ -635,7 +621,6 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
                     .withStyle(s -> s.withColor(0x55CCFF)));
         }
 
-        // Idea chip requirement
         if (def.getIdeaChip().isPresent()) {
             ItemStack chip = def.getIdeaChip().get();
             boolean satisfied = isIdeaChipSatisfied(def);
@@ -645,7 +630,6 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
                     .withStyle(s -> s.withColor(color)));
         }
 
-        // Prerequisites status
         if (!(def.getPrerequisites() instanceof NonePrerequisite)) {
             boolean met = isPrerequisiteMet(def);
             String prereqIcon = met ? "\u2714" : "\u2718";
@@ -654,7 +638,6 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
                     .withStyle(s -> s.withColor(prereqColor)));
         }
 
-        // Recipe pool — resolve to output item names
         if (def.hasRecipePool()) {
             StringBuilder rewardLine = new StringBuilder("Rewards: ");
             boolean first = true;
@@ -670,9 +653,6 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         graphics.renderTooltip(font, tooltip, Optional.empty(), mouseX, mouseY);
     }
 
-    /**
-     * Renders a tooltip when hovering over the fluid gauge bar.
-     */
     private void renderFluidGaugeTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
         int gx = leftPos + GAUGE_X;
         int gy = topPos + GAUGE_Y;
@@ -703,9 +683,6 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         graphics.renderTooltip(font, tooltip, Optional.empty(), mouseX, mouseY);
     }
 
-    /**
-     * Renders a tooltip when hovering over the idea chip slot.
-     */
     private void renderIdeaChipTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
         int sx = leftPos + ResearchTableMenu.IDEA_CHIP_X;
         int sy = topPos + ResearchTableMenu.IDEA_CHIP_Y;
@@ -714,7 +691,6 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
             return;
         }
 
-        // Don't show custom tooltip if a slot item tooltip is already being shown
         ItemStack slotStack = menu.getBlockEntity().getInventory()
                 .getStackInSlot(ResearchTableBlockEntity.SLOT_IDEA_CHIP);
         if (!slotStack.isEmpty()) return;
@@ -788,12 +764,10 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        // If search box is focused and Escape is pressed, clear the search first
         if (keyCode == 256 && searchBox != null && searchBox.isFocused() && !searchBox.getValue().isEmpty()) {
             searchBox.setValue("");
             return true;
         }
-        // If search box is focused, let it consume typing keys instead of closing the screen
         if (searchBox != null && searchBox.isFocused()) {
             return searchBox.keyPressed(keyCode, scanCode, modifiers) || super.keyPressed(keyCode, scanCode, modifiers);
         }
@@ -810,9 +784,7 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
 
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
-        // Dark title for the light outer strip.
         graphics.drawString(this.font, this.title, this.titleLabelX, this.titleLabelY, 0xFF343841, false);
-        // Inventory label on dark panel should be bright.
         graphics.drawString(this.font, this.playerInventoryTitle, this.inventoryLabelX, this.inventoryLabelY, 0xFFE6EAF5, false);
     }
 }

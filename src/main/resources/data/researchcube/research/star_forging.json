@@ -1,6 +1,7 @@
 {
   "name": "Star Forging",
   "description": "Forge nether stars into powerful components. Demonstrates a weighted recipe pool at the SELF_AWARE tier with two drive crafting recipes.",
+  "flavor_text": "To hold a star is to hold the memory of a world that burned.",
   "category": "endgame",
   "tier": "SELF_AWARE",
   "duration": 24000,

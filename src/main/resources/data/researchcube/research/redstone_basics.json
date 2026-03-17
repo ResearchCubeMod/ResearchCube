@@ -1,6 +1,7 @@
 {
   "name": "Redstone Basics",
   "description": "Unlock fundamental redstone mechanisms. Demonstrates the idea chip feature — requires an Irrecoverable Drive as an idea chip to begin.",
+  "flavor_text": "A single pulse of redstone can awaken an entire machine.",
   "category": "redstone",
   "tier": "BASIC",
   "duration": 1200,

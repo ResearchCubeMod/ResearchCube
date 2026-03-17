@@ -1,6 +1,7 @@
 {
   "name": "Crystal Growing",
   "description": "Grow crystals in a controlled environment using the Processing Station. A processing-only recipe at PRECISE tier.",
+  "flavor_text": "Patience is the seed from which all great crystals grow.",
   "category": "processing",
   "tier": "PRECISE",
   "duration": 3200,

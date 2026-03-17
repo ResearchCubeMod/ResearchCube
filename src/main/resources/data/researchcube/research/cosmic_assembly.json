@@ -1,6 +1,7 @@
 {
   "name": "Cosmic Assembly",
   "description": "The ultimate capstone research — assemble cosmic-tier items. Demonstrates a 3-recipe weighted pool at the highest tier. Requires both star_forging and void_synthesis.",
+  "flavor_text": "When star and void converge, creation itself bends to your will.",
   "category": "endgame",
   "tier": "SELF_AWARE",
   "duration": 48000,

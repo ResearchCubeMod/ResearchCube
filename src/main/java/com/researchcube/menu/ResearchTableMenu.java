@@ -53,22 +53,22 @@ public class ResearchTableMenu extends AbstractContainerMenu {
     public static final int DATA_COUNT = 4;
 
     // Layout coordinates shared by screens
-    public static final int DRIVE_X = 26;
-    public static final int DRIVE_Y = 42;
-    public static final int CUBE_X = 26;
-    public static final int CUBE_Y = 78;
-    public static final int COST_X = 70;
-    public static final int COST_Y = 42;
-    public static final int BUCKET_IN_X = 70;
-    public static final int BUCKET_IN_Y = 86;
-    public static final int BUCKET_OUT_X = 92;
-    public static final int BUCKET_OUT_Y = 86;
-    public static final int IDEA_CHIP_X = 134;
-    public static final int IDEA_CHIP_Y = 60;
-    public static final int PLAYER_INV_X = 179;
-    public static final int PLAYER_INV_Y = 164;
-    public static final int HOTBAR_X = 179;
-    public static final int HOTBAR_Y = 222;
+    public static final int DRIVE_X = 66;
+    public static final int DRIVE_Y = 79;
+    public static final int CUBE_X = 66;
+    public static final int CUBE_Y = 113;
+    public static final int COST_X = 113;
+    public static final int COST_Y = 79;
+    public static final int BUCKET_IN_X = 185;
+    public static final int BUCKET_IN_Y = 79;
+    public static final int BUCKET_OUT_X = 185;
+    public static final int BUCKET_OUT_Y = 97;
+    public static final int IDEA_CHIP_X = 167;
+    public static final int IDEA_CHIP_Y = 113;
+    public static final int PLAYER_INV_X = 245;
+    public static final int PLAYER_INV_Y = 191;
+    public static final int HOTBAR_X = 245;
+    public static final int HOTBAR_Y = 266;
 
     // ── Constructor from server (block entity available) ──
     public ResearchTableMenu(int containerId, Inventory playerInv, ResearchTableBlockEntity be) {
