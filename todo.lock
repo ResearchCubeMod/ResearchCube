@@ -7,6 +7,12 @@ Tasks marked as [DONE] have been completed and should not be suggested for new w
 [END AI INSTRUCTIONS]
 
 
+Known issues:
+[RESEARCH STATION]
+- P0: Research start button does not work (can't start research)
+- P1: Latest push messed with tree rendering; needs review and fixes.
+- P1: GUI Detail Screen still does not render flavor text
+
 [DONE — Phase 1: Foundation]
 - [DONE] Build system: build.gradle, settings.gradle, gradle.properties, neoforge.mods.toml, pack.mcmeta
 - [DONE] ResearchTier enum (7 values: IRRECOVERABLE → SELF_AWARE), StringRepresentable

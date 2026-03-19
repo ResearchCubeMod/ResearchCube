@@ -23,6 +23,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.PacketDistributor;
 import org.jetbrains.annotations.Nullable;
@@ -32,14 +33,19 @@ import java.util.*;
 /**
  * Client-side screen for the Research Table.
  *
- * Compact layout (340x250):
- *   Left column (~100px): Drive, Cube, 3x2 cost grid, buckets, idea chip, fluid gauge,
- *                          progress bar, Start/Stop/Wipe buttons
- *   Right panel (~228px): Search bar + Tree button, scrollable research list (6 rows),
- *                          detail pane (name, flavor text, tier/duration/costs)
- *   Bottom: Player inventory + hotbar (centered)
+ * Layout (470x260) - compact square design:
+ *   Top section: Upper panel with 3 view modes:
+ *     - LIST: Search bar, Research list (4 rows), Detail pane
+ *     - TREE: Embedded research tree visualization
+ *     - PROGRESS: Active research info, description, progress bar
+ *   Bottom section: Machine panel (left) + Player inventory (right)
+ *     - Machine: Drive, Cube, Idea, Cost grid, Fluid gauge, Buckets, Buttons
+ *     - Player inventory: 9x3 main + 9x1 hotbar
  */
 public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMenu> {
+
+    /** View mode for the upper panel. */
+    private enum ViewMode { LIST, TREE, PROGRESS }
 
     /** A display row in the research list: either a category header or a research entry. */
     private record ListRow(boolean isHeader, String headerText, ResearchDefinition definition) {
@@ -47,55 +53,20 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         static ListRow entry(ResearchDefinition def) { return new ListRow(false, null, def); }
     }
 
-    // ── Layout constants ──
-
-    // Left machine column
-    private static final int LEFT_COL_X = 56;
-    private static final int LEFT_COL_Y = 66;
-    private static final int LEFT_COL_W = 182;
-    private static final int LEFT_COL_H = 104;
-
-    // Research list (right panel)
-    private static final int LIST_X = 248;
-    private static final int LIST_Y = 71;
-    private static final int LIST_W = 400;
-    private static final int ROW_H = 18;
-    private static final int VISIBLE_ROWS = 5;
-
-    // Detail pane (below research list)
-    private static final int DETAIL_X = 248;
-    private static final int DETAIL_Y = 162;
-    private static final int DETAIL_W = 400;
-    private static final int DETAIL_H = 13;
-
-    // Progress bar (in left column)
-    private static final int PROGRESS_X = 113;
-    private static final int PROGRESS_Y = 113;
-    private static final int PROGRESS_W = 88;
-    private static final int PROGRESS_H = 13;
-
-    // Fluid gauge (vertical bar on right side)
-    private static final int GAUGE_X = 203;
-    private static final int GAUGE_Y = 79;
-    private static final int GAUGE_W = 18;
-    private static final int GAUGE_H = 83;
-
-    // Right panel region
-    private static final int RIGHT_PANEL_X = 243;
-    private static final int RIGHT_PANEL_Y = 66;
-    private static final int RIGHT_PANEL_W = 411;
-    private static final int RIGHT_PANEL_H = 114;
-
-    // Texture
+    // ── Texture ──
     private static final ResourceLocation TEXTURE =
             ResourceLocation.fromNamespaceAndPath(ResearchCubeMod.MOD_ID, "textures/gui/research_table.png");
-    private static final int TEX_W = 699;
-    private static final int TEX_H = 337;
+    private static final int TEX_W = ResearchTableMenu.GUI_WIDTH;
+    private static final int TEX_H = ResearchTableMenu.GUI_HEIGHT;
 
-    // Colors (retained for dynamic elements)
+    // Colors (for dynamic elements)
     private static final int PANEL_BORDER_LIGHT = 0xFF7E87A6;
     private static final int PANEL_BORDER_DARK = 0xFF1A1A1A;
     private static final int LIST_BG = 0xFF252A3E;
+
+    // View mode state
+    private ViewMode currentView = ViewMode.LIST;
+    private ViewMode preferredView = ViewMode.LIST;  // user preference when not researching
 
     // Research list state
     private List<ResearchDefinition> availableResearch = new ArrayList<>();
@@ -108,47 +79,61 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
     private Button cancelButton;
     private Button wipeButton;
     private Button treeViewButton;
+    private Button listViewButton;
     private EditBox searchBox;
     private String searchFilter = "";
 
     public ResearchTableScreen(ResearchTableMenu menu, Inventory playerInv, Component title) {
         super(menu, playerInv, title);
-        this.imageWidth = 699;
-        this.imageHeight = 337;
-        this.inventoryLabelX = 245;
-        this.inventoryLabelY = 180;
+        this.imageWidth = ResearchTableMenu.GUI_WIDTH;
+        this.imageHeight = ResearchTableMenu.GUI_HEIGHT;
+        this.inventoryLabelX = ResearchTableMenu.PLAYER_INV_X;
+        this.inventoryLabelY = ResearchTableMenu.PLAYER_INV_Y - 10;
     }
 
     @Override
     protected void init() {
         super.init();
 
-        // Start button - SMALLER
+        // Start button
         startButton = Button.builder(Component.literal("Start"), btn -> onStartResearch())
-                .bounds(leftPos + 66, topPos + 151, 38, 16)
+                .bounds(leftPos + ResearchTableMenu.START_BTN_X, topPos + ResearchTableMenu.BUTTON_Y,
+                        ResearchTableMenu.BUTTON_W, ResearchTableMenu.BUTTON_H)
                 .build();
         addRenderableWidget(startButton);
 
-        // Cancel/Stop button - SMALLER
+        // Cancel/Stop button
         cancelButton = Button.builder(Component.literal("Stop"), btn -> onCancelResearch())
-                .bounds(leftPos + 108, topPos + 151, 38, 16)
+                .bounds(leftPos + ResearchTableMenu.STOP_BTN_X, topPos + ResearchTableMenu.BUTTON_Y,
+                        ResearchTableMenu.BUTTON_W, ResearchTableMenu.BUTTON_H)
                 .build();
         addRenderableWidget(cancelButton);
 
-        // Wipe tank button - SMALLER
+        // Wipe tank button
         wipeButton = Button.builder(Component.literal("Wipe"), btn -> onWipeTank())
-                .bounds(leftPos + 150, topPos + 151, 38, 16)
+                .bounds(leftPos + ResearchTableMenu.WIPE_BTN_X, topPos + ResearchTableMenu.BUTTON_Y,
+                        ResearchTableMenu.BUTTON_W, ResearchTableMenu.BUTTON_H)
                 .build();
         addRenderableWidget(wipeButton);
 
-        // Tree view button (right of search box)
-        treeViewButton = Button.builder(Component.literal("Tree"), btn -> onOpenTreeView())
-                .bounds(leftPos + 599, topPos + 71, 49, 18)
+        // Tree view button (switches to tree view)
+        treeViewButton = Button.builder(Component.literal("Tree"), btn -> onSwitchToTreeView())
+                .bounds(leftPos + ResearchTableMenu.TREE_BTN_X, topPos + ResearchTableMenu.TREE_BTN_Y,
+                        ResearchTableMenu.TREE_BTN_W, ResearchTableMenu.TREE_BTN_H)
                 .build();
         addRenderableWidget(treeViewButton);
 
+        // List view button (switches back to list view)
+        listViewButton = Button.builder(Component.literal("List"), btn -> onSwitchToListView())
+                .bounds(leftPos + ResearchTableMenu.LIST_BTN_X, topPos + ResearchTableMenu.LIST_BTN_Y,
+                        ResearchTableMenu.LIST_BTN_W, ResearchTableMenu.LIST_BTN_H)
+                .build();
+        addRenderableWidget(listViewButton);
+
         // Search box above the research list
-        searchBox = new EditBox(font, leftPos + LIST_X, topPos + 71, 346, 16,
+        searchBox = new EditBox(font,
+                leftPos + ResearchTableMenu.SEARCH_X, topPos + ResearchTableMenu.SEARCH_Y,
+                ResearchTableMenu.SEARCH_W, ResearchTableMenu.SEARCH_H,
                 Component.literal("Search..."));
         searchBox.setMaxLength(50);
         searchBox.setHint(Component.literal("Search...").withStyle(s -> s.withColor(0xFF666666)));
@@ -160,6 +145,7 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         addRenderableWidget(searchBox);
 
         refreshResearchList();
+        updateViewMode();
     }
 
     // ══════════════════════════════════════════════════════════════
@@ -245,8 +231,7 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         if (menu.isResearching()) return;
 
         ResearchDefinition def = availableResearch.get(selectedIndex);
-        if (!isPrerequisiteMet(def)) return;
-        if (!isIdeaChipSatisfied(def)) return;
+        if (!canStartResearch(def)) return;
 
         ResearchTableBlockEntity be = menu.getBlockEntity();
         PacketDistributor.sendToServer(new StartResearchPacket(be.getBlockPos(), def.getId().toString()));
@@ -263,24 +248,104 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         PacketDistributor.sendToServer(new WipeTankPacket(be.getBlockPos()));
     }
 
-    private void onOpenTreeView() {
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null) return;
-        mc.setScreen(new ResearchTreeScreen(menu, mc.player.getInventory(), this.title));
+    private void onSwitchToTreeView() {
+        preferredView = ViewMode.TREE;
+        updateViewMode();
+    }
+
+    private void onSwitchToListView() {
+        preferredView = ViewMode.LIST;
+        updateViewMode();
+    }
+
+    /**
+     * Updates the view mode based on research state and user preference.
+     * When researching: always show PROGRESS view
+     * When not researching: show user's preferred view (LIST or TREE)
+     */
+    private void updateViewMode() {
+        if (menu.isResearching()) {
+            currentView = ViewMode.PROGRESS;
+        } else {
+            currentView = preferredView;
+        }
+
+        // Update visibility of view-specific components
+        boolean showListComponents = (currentView == ViewMode.LIST);
+        searchBox.visible = showListComponents;
+        treeViewButton.visible = showListComponents;
+        listViewButton.visible = (currentView == ViewMode.TREE);
     }
 
     @Override
     public void containerTick() {
         super.containerTick();
         refreshResearchList();
+        updateViewMode();
 
-        boolean canStart = !menu.isResearching() && selectedIndex >= 0 && selectedIndex < availableResearch.size()
-                && isPrerequisiteMet(availableResearch.get(selectedIndex))
-                && isIdeaChipSatisfied(availableResearch.get(selectedIndex));
+        // Start button: only active if research is selected AND all requirements are met
+        ResearchDefinition selectedDef = getSelectedDefinition();
+        boolean canStart = !menu.isResearching() && selectedDef != null && canStartResearch(selectedDef);
         startButton.active = canStart;
         cancelButton.active = menu.isResearching();
         wipeButton.active = menu.getFluidAmount() > 0;
-        treeViewButton.active = true;
+    }
+
+    /**
+     * Checks if research can be started (prerequisites, idea chip, and recipe items/fluids available).
+     */
+    private boolean canStartResearch(ResearchDefinition def) {
+        if (!isPrerequisiteMet(def)) return false;
+        if (!isIdeaChipSatisfied(def)) return false;
+        if (!hasRequiredItems(def)) return false;
+        if (!hasRequiredFluid(def)) return false;
+        return true;
+    }
+
+    /**
+     * Checks if the required item costs are present in the cost slots.
+     */
+    private boolean hasRequiredItems(ResearchDefinition def) {
+        if (def.getItemCosts().isEmpty()) return true;
+
+        ResearchTableBlockEntity be = menu.getBlockEntity();
+        var inv = be.getInventory();
+
+        // Collect all items in cost slots
+        Map<Item, Integer> available = new HashMap<>();
+        for (int i = 0; i < 6; i++) {
+            ItemStack stack = inv.getStackInSlot(ResearchTableBlockEntity.COST_SLOT_START + i);
+            if (!stack.isEmpty()) {
+                available.merge(stack.getItem(), stack.getCount(), Integer::sum);
+            }
+        }
+
+        // Check each required cost
+        for (ItemCost cost : def.getItemCosts()) {
+            Item requiredItem = cost.getItem();
+            int requiredCount = cost.count();
+            int availableCount = available.getOrDefault(requiredItem, 0);
+            if (availableCount < requiredCount) return false;
+        }
+        return true;
+    }
+
+    /**
+     * Checks if the required fluid is present in the tank.
+     */
+    private boolean hasRequiredFluid(ResearchDefinition def) {
+        FluidCost fluidCost = def.getFluidCost();
+        if (fluidCost == null) return true;
+
+        int requiredAmount = fluidCost.amount();
+        int tankFluidType = menu.getFluidType();
+        int tankAmount = menu.getFluidAmount();
+
+        // Check if fluid type matches
+        int requiredType = ModFluids.getFluidIndex(fluidCost.getFluid());
+        if (tankFluidType != requiredType) return false;
+
+        return tankAmount >= requiredAmount;
     }
 
     private boolean isPrerequisiteMet(ResearchDefinition def) {
@@ -328,48 +393,206 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         // ── Static background from texture ──
         g.blit(TEXTURE, x, y, 0, 0, imageWidth, imageHeight, TEX_W, TEX_H);
 
-        // ── Slot labels ──
-        g.drawString(font, "Drive", x + 63, y + 66, 0xFFD3D7E5, false);
-        g.drawString(font, "Cube", x + 63, y + 100, 0xFFD3D7E5, false);
-        g.drawString(font, "Costs", x + 110, y + 66, 0xFFD3D7E5, false);
+        // ── Upper panel content (view mode dependent) ──
+        renderUpperPanel(g, x, y, mouseX, mouseY);
 
-        // ── Bucket slot direction indicators ──
-        g.drawString(font, "\u25BC", x + ResearchTableMenu.BUCKET_IN_X + 3, y + ResearchTableMenu.BUCKET_IN_Y - 4, 0xFF55CCFF, false);
-        g.drawString(font, "\u25B2", x + ResearchTableMenu.BUCKET_OUT_X + 3, y + ResearchTableMenu.BUCKET_OUT_Y - 4, 0xFF999999, false);
+        // ── Slot labels (above slot row) ──
+        int labelY = y + ResearchTableMenu.LABEL_Y;
+        g.drawString(font, "Dr", x + ResearchTableMenu.DRIVE_X + 2, labelY, 0xFFD3D7E5, false);
+        g.drawString(font, "Cb", x + ResearchTableMenu.CUBE_X + 2, labelY, 0xFFD3D7E5, false);
+        g.drawString(font, "Id", x + ResearchTableMenu.IDEA_CHIP_X + 2, labelY, 0xFFD3D7E5, false);
+        g.drawString(font, "Costs", x + ResearchTableMenu.COST_X, labelY, 0xFFD3D7E5, false);
+        g.drawString(font, "Fl", x + ResearchTableMenu.FLUID_GAUGE_X + 3, labelY, 0xFFD3D7E5, false);
+        g.drawString(font, "I/O", x + ResearchTableMenu.BUCKET_IN_X, labelY, 0xFFD3D7E5, false);
 
-        // ── Idea chip slot label + dynamic overlay ──
-        g.drawString(font, "Idea", x + 164, y + 100, 0xFFD3D7E5, false);
+        // ── Idea chip dynamic overlay ──
         renderIdeaChipOverlay(g, x + ResearchTableMenu.IDEA_CHIP_X, y + ResearchTableMenu.IDEA_CHIP_Y);
 
-        // ── Fluid gauge label ──
-        g.drawString(font, "Fl.", x + 203, y + 66, 0xFFD3D7E5, false);
-
         // ── Fluid gauge (dynamic) ──
-        drawFluidGauge(g, x + GAUGE_X, y + GAUGE_Y, GAUGE_W, GAUGE_H);
+        drawFluidGauge(g, x + ResearchTableMenu.FLUID_GAUGE_X, y + ResearchTableMenu.FLUID_GAUGE_Y,
+                ResearchTableMenu.FLUID_GAUGE_W, ResearchTableMenu.FLUID_GAUGE_H);
+    }
 
-        // ── Progress bar (dynamic) ──
-        if (menu.isResearching()) {
-            float progress = Math.min(1.0f, menu.getScaledProgress());
-            int filledWidth = Math.round(PROGRESS_W * progress);
-
-            g.fill(x + PROGRESS_X, y + PROGRESS_Y,
-                    x + PROGRESS_X + PROGRESS_W, y + PROGRESS_Y + PROGRESS_H,
-                    0xFF222222);
-            g.fill(x + PROGRESS_X - 1, y + PROGRESS_Y - 1,
-                    x + PROGRESS_X + PROGRESS_W + 1, y + PROGRESS_Y,
-                    PANEL_BORDER_DARK);
-            g.fill(x + PROGRESS_X - 1, y + PROGRESS_Y + PROGRESS_H,
-                    x + PROGRESS_X + PROGRESS_W + 1, y + PROGRESS_Y + PROGRESS_H + 1,
-                    PANEL_BORDER_LIGHT);
-
-            if (filledWidth > 0) {
-                int green = 0xCC + (int) (0x33 * progress);
-                int barColor = 0xFF000000 | (green << 8);
-                g.fill(x + PROGRESS_X, y + PROGRESS_Y,
-                        x + PROGRESS_X + filledWidth, y + PROGRESS_Y + PROGRESS_H,
-                        barColor);
+    /**
+     * Renders the upper panel content based on current view mode.
+     */
+    private void renderUpperPanel(GuiGraphics g, int x, int y, int mouseX, int mouseY) {
+        switch (currentView) {
+            case LIST -> {
+                // List view: search + list + detail pane handled in render()
+            }
+            case TREE -> {
+                // Tree view: render embedded tree
+                renderTreeView(g, x, y, mouseX, mouseY);
+            }
+            case PROGRESS -> {
+                // Progress view: detailed progress info
+                renderProgressView(g, x, y);
             }
         }
+    }
+
+    /**
+     * Renders the embedded tree view in the upper panel.
+     */
+    private void renderTreeView(GuiGraphics g, int x, int y, int mouseX, int mouseY) {
+        int vx = x + ResearchTableMenu.PROGRESS_VIEW_X;
+        int vy = y + ResearchTableMenu.PROGRESS_VIEW_Y;
+        int vw = ResearchTableMenu.PROGRESS_VIEW_W;
+        int vh = ResearchTableMenu.PROGRESS_VIEW_H;
+
+        // Background
+        g.fill(vx, vy, vx + vw, vy + vh, 0xFF1A1E2A);
+
+        // TODO: Integrate tree rendering from ResearchTreeScreen
+        // For now, show a placeholder message
+        g.drawString(font, "Research Tree View", vx + 4, vy + 4, 0xFFD3D7E5, false);
+        g.drawString(font, "(Click 'List' to return to list view)", vx + 4, vy + 16, 0xFF888888, false);
+
+        // Draw a mini-map style representation
+        Set<String> completed = menu.getCompletedResearch();
+        int nodeX = vx + 10;
+        int nodeY = vy + 36;
+        int nodeSize = 12;
+        int spacing = 20;
+        int col = 0;
+        int row = 0;
+        int maxCols = vw / spacing - 1;
+
+        for (ResearchDefinition def : ResearchRegistry.getAll()) {
+            boolean isComplete = completed.contains(def.getId().toString());
+            boolean isAvailable = def.getPrerequisites().isSatisfied(completed);
+
+            int color;
+            if (isComplete) {
+                color = 0xFF55FF55;
+            } else if (isAvailable) {
+                color = def.getTier().getColor() | 0xFF000000;
+            } else {
+                color = 0xFF444444;
+            }
+
+            int nx = nodeX + col * spacing;
+            int ny = nodeY + row * spacing;
+
+            g.fill(nx, ny, nx + nodeSize, ny + nodeSize, color);
+            g.fill(nx, ny, nx + nodeSize, ny + 1, PANEL_BORDER_LIGHT);
+            g.fill(nx, ny, nx + 1, ny + nodeSize, PANEL_BORDER_LIGHT);
+            g.fill(nx + nodeSize - 1, ny, nx + nodeSize, ny + nodeSize, PANEL_BORDER_DARK);
+            g.fill(nx, ny + nodeSize - 1, nx + nodeSize, ny + nodeSize, PANEL_BORDER_DARK);
+
+            col++;
+            if (col >= maxCols) {
+                col = 0;
+                row++;
+                if (nodeY + row * spacing + nodeSize > vy + vh - 8) break;
+            }
+        }
+    }
+
+    /**
+     * Renders the progress view showing active research details.
+     */
+    private void renderProgressView(GuiGraphics g, int x, int y) {
+        int vx = x + ResearchTableMenu.PROGRESS_VIEW_X;
+        int vy = y + ResearchTableMenu.PROGRESS_VIEW_Y;
+        int vw = ResearchTableMenu.PROGRESS_VIEW_W;
+        int vh = ResearchTableMenu.PROGRESS_VIEW_H;
+
+        // Background
+        g.fill(vx, vy, vx + vw, vy + vh, 0xFF1A1E2A);
+        g.fill(vx, vy, vx + vw, vy + 1, PANEL_BORDER_DARK);
+        g.fill(vx, vy, vx + 1, vy + vh, PANEL_BORDER_DARK);
+        g.fill(vx + vw - 1, vy, vx + vw, vy + vh, PANEL_BORDER_LIGHT);
+        g.fill(vx, vy + vh - 1, vx + vw, vy + vh, PANEL_BORDER_LIGHT);
+
+        ResearchTableBlockEntity be = menu.getBlockEntity();
+        ResearchDefinition activeDef = be.getActiveDefinition();
+
+        if (activeDef == null) {
+            g.drawString(font, "No active research", vx + 8, vy + 8, 0xFF666666, false);
+            return;
+        }
+
+        int textY = vy + 8;
+        int lineHeight = 12;
+
+        // Line 1: Research name with tier color
+        int nameColor = activeDef.getTier().getColor() | 0xFF000000;
+        g.drawString(font, activeDef.getDisplayName(), vx + 8, textY, nameColor, false);
+        String tierBadge = " [" + activeDef.getTier().getDisplayName() + "]";
+        g.drawString(font, tierBadge, vx + 8 + font.width(activeDef.getDisplayName()), textY, 0xFF888888, false);
+        textY += lineHeight + 4;
+
+        // Line 2: Category
+        if (activeDef.getCategory() != null && !activeDef.getCategory().isEmpty()) {
+            g.drawString(font, "Category: " + activeDef.getCategory(), vx + 8, textY, 0xFFCCAA00, false);
+            textY += lineHeight;
+        }
+
+        // Line 3: Flavor text
+        String flavorText = activeDef.getFlavorText();
+        if (flavorText != null && !flavorText.isEmpty()) {
+            String truncated = flavorText;
+            if (font.width(truncated) > vw - 20) {
+                while (font.width(truncated + "\u2026") > vw - 20 && truncated.length() > 3) {
+                    truncated = truncated.substring(0, truncated.length() - 1);
+                }
+                truncated += "\u2026";
+            }
+            g.drawString(font, "\u201C" + truncated + "\u201D", vx + 8, textY, 0xFF777799, false);
+            textY += lineHeight;
+        }
+
+        // Line 4: Description
+        if (activeDef.getDescription() != null && !activeDef.getDescription().isEmpty()) {
+            String desc = activeDef.getDescription();
+            if (font.width(desc) > vw - 20) {
+                while (font.width(desc + "\u2026") > vw - 20 && desc.length() > 3) {
+                    desc = desc.substring(0, desc.length() - 1);
+                }
+                desc += "\u2026";
+            }
+            g.drawString(font, desc, vx + 8, textY, 0xFFAAB0C0, false);
+            textY += lineHeight;
+        }
+
+        // Progress info
+        textY += 8;
+        float progress = Math.min(1.0f, menu.getScaledProgress());
+        int percent = (int) (progress * 100);
+        float totalSeconds = activeDef.getDurationSeconds();
+        float remainingSeconds = totalSeconds * (1.0f - progress);
+        int mins = (int) (remainingSeconds / 60);
+        int secs = (int) (remainingSeconds % 60);
+
+        String progressText = String.format("Progress: %d%% - %d:%02d remaining", percent, mins, secs);
+        g.drawString(font, progressText, vx + 8, textY, 0xFFE6EAF5, false);
+
+        // Progress bar
+        int barX = x + ResearchTableMenu.PROGRESS_BAR_X;
+        int barY = y + ResearchTableMenu.PROGRESS_BAR_Y;
+        int barW = ResearchTableMenu.PROGRESS_BAR_W;
+        int barH = ResearchTableMenu.PROGRESS_BAR_H;
+
+        // Bar background
+        g.fill(barX, barY, barX + barW, barY + barH, 0xFF222222);
+        g.fill(barX, barY, barX + barW, barY + 1, PANEL_BORDER_DARK);
+        g.fill(barX, barY, barX + 1, barY + barH, PANEL_BORDER_DARK);
+        g.fill(barX + barW - 1, barY, barX + barW, barY + barH, PANEL_BORDER_LIGHT);
+        g.fill(barX, barY + barH - 1, barX + barW, barY + barH, PANEL_BORDER_LIGHT);
+
+        // Filled portion
+        int filledWidth = Math.round((barW - 2) * progress);
+        if (filledWidth > 0) {
+            int barColor = nameColor;
+            g.fill(barX + 1, barY + 1, barX + 1 + filledWidth, barY + barH - 1, barColor);
+        }
+
+        // Percentage text on bar
+        String pctStr = percent + "%";
+        int textWidth = font.width(pctStr);
+        g.drawString(font, pctStr, barX + (barW - textWidth) / 2, barY + 2, 0xFFFFFFFF, true);
     }
 
     private void drawFluidGauge(GuiGraphics g, int gx, int gy, int gw, int gh) {
@@ -401,27 +624,17 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         super.render(graphics, mouseX, mouseY, partialTick);
 
-        // Research list
-        renderResearchList(graphics, mouseX, mouseY);
+        // View-specific content
+        if (currentView == ViewMode.LIST) {
+            // Research list
+            renderResearchList(graphics, mouseX, mouseY);
 
-        // Detail pane for selected research
-        renderDetailPane(graphics);
+            // Detail pane for selected research
+            renderDetailPane(graphics);
 
-        // Active research name + percentage
-        if (menu.isResearching()) {
-            ResearchTableBlockEntity be = menu.getBlockEntity();
-            ResearchDefinition activeDef = be.getActiveDefinition();
-            if (activeDef != null) {
-                String activeName = activeDef.getDisplayName();
-                int nameColor = activeDef.getTier().getColor() | 0xFF000000;
-                int percent = (int) (menu.getScaledProgress() * 100);
-                graphics.drawCenteredString(font, activeName + "  " + percent + "%",
-                    leftPos + PROGRESS_X + PROGRESS_W / 2, topPos + PROGRESS_Y - 10, nameColor);
-            }
+            // Tooltip on research row hover
+            renderResearchTooltip(graphics, mouseX, mouseY);
         }
-
-        // Tooltip on research row hover
-        renderResearchTooltip(graphics, mouseX, mouseY);
 
         // Tooltip on fluid gauge hover
         renderFluidGaugeTooltip(graphics, mouseX, mouseY);
@@ -436,15 +649,17 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
      * Renders the detail pane below the research list showing info about the selected research.
      */
     private void renderDetailPane(GuiGraphics g) {
-        int x = leftPos + DETAIL_X;
-        int y = topPos + DETAIL_Y;
+        int x = leftPos + ResearchTableMenu.DETAIL_X;
+        int y = topPos + ResearchTableMenu.DETAIL_Y;
+        int w = ResearchTableMenu.DETAIL_W;
+        int h = ResearchTableMenu.DETAIL_H;
 
         // Detail pane background
-        g.fill(x, y, x + DETAIL_W, y + DETAIL_H, 0xFF1E2233);
-        g.fill(x, y, x + DETAIL_W, y + 1, PANEL_BORDER_DARK);
-        g.fill(x, y, x + 1, y + DETAIL_H, PANEL_BORDER_DARK);
-        g.fill(x + DETAIL_W - 1, y, x + DETAIL_W, y + DETAIL_H, PANEL_BORDER_LIGHT);
-        g.fill(x, y + DETAIL_H - 1, x + DETAIL_W, y + DETAIL_H, PANEL_BORDER_LIGHT);
+        g.fill(x, y, x + w, y + h, 0xFF1E2233);
+        g.fill(x, y, x + w, y + 1, PANEL_BORDER_DARK);
+        g.fill(x, y, x + 1, y + h, PANEL_BORDER_DARK);
+        g.fill(x + w - 1, y, x + w, y + h, PANEL_BORDER_LIGHT);
+        g.fill(x, y + h - 1, x + w, y + h, PANEL_BORDER_LIGHT);
 
         ResearchDefinition def = getSelectedDefinition();
         if (def == null) {
@@ -452,105 +667,107 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
             return;
         }
 
-        int textY = y + 3;
+        int textY = y + 4;
+        int lineHeight = 10;
 
-        // Research name + tier badge
+        // Line 1: Research name + tier badge
         int nameColor = def.getTier().getColor() | 0xFF000000;
         String nameStr = def.getDisplayName();
-        String tierBadge = "  [" + def.getTier().getDisplayName() + "]";
-        g.drawString(font, nameStr, x + 4, textY, nameColor, false);
-        g.drawString(font, tierBadge, x + 4 + font.width(nameStr), textY, 0xFF888888, false);
-        textY += 11;
+        String tierBadge = " [" + def.getTier().getDisplayName() + "]";
+        String durationStr = String.format(" - %.0fs", def.getDurationSeconds());
 
-        // Flavor text (italic grey) — if available
+        g.drawString(font, nameStr, x + 4, textY, nameColor, false);
+        int textX = x + 4 + font.width(nameStr);
+        g.drawString(font, tierBadge, textX, textY, 0xFF888888, false);
+        textX += font.width(tierBadge);
+        g.drawString(font, durationStr, textX, textY, 0xFFAAB0C0, false);
+        textY += lineHeight;
+
+        // Line 2: Flavor text (if available)
         String flavorText = def.getFlavorText();
         if (flavorText != null && !flavorText.isEmpty()) {
-            // Truncate if too wide
-            if (font.width(flavorText) > DETAIL_W - 12) {
-                while (font.width(flavorText + "\u2026") > DETAIL_W - 12 && flavorText.length() > 3) {
+            if (font.width(flavorText) > w - 12) {
+                while (font.width(flavorText + "\u2026") > w - 12 && flavorText.length() > 3) {
                     flavorText = flavorText.substring(0, flavorText.length() - 1);
                 }
                 flavorText += "\u2026";
             }
             g.drawString(font, "\u201C" + flavorText + "\u201D", x + 4, textY, 0xFF777799, false);
-            textY += 11;
+            textY += lineHeight;
         }
 
-        // Duration + costs summary
-        StringBuilder summary = new StringBuilder();
-        summary.append(String.format("%.0fs", def.getDurationSeconds()));
+        // Line 3: Costs summary
+        StringBuilder costs = new StringBuilder();
         if (!def.getItemCosts().isEmpty()) {
-            summary.append(" | ");
-            boolean first = true;
-            for (ItemCost cost : def.getItemCosts()) {
-                if (!first) summary.append(", ");
-                summary.append(cost.getItem().getDescription().getString()).append(" x").append(cost.count());
-                first = false;
+            for (var cost : def.getItemCosts()) {
+                if (costs.length() > 0) costs.append(", ");
+                costs.append(cost.getItem().getDescription().getString()).append(" x").append(cost.count());
             }
         }
-        FluidCost fc = def.getFluidCost();
-        if (fc != null) {
-            summary.append(" | ").append(fc.amount()).append("mB ");
-            String fn = fc.getFluidName();
-            summary.append(fn.substring(0, 1).toUpperCase()).append(fn.substring(1));
+        if (def.getFluidCost() != null) {
+            if (costs.length() > 0) costs.append(" | ");
+            costs.append(def.getFluidCost().amount()).append("mB ").append(def.getFluidCost().getFluidName());
         }
-
-        // Truncate summary if too long
-        String sumStr = summary.toString();
-        if (font.width(sumStr) > DETAIL_W - 8) {
-            while (font.width(sumStr + "\u2026") > DETAIL_W - 8 && sumStr.length() > 3) {
-                sumStr = sumStr.substring(0, sumStr.length() - 1);
+        if (costs.length() > 0) {
+            String costStr = costs.toString();
+            if (font.width(costStr) > w - 12) {
+                while (font.width(costStr + "\u2026") > w - 12 && costStr.length() > 3) {
+                    costStr = costStr.substring(0, costStr.length() - 1);
+                }
+                costStr += "\u2026";
             }
-            sumStr += "\u2026";
+            g.drawString(font, costStr, x + 4, textY, 0xFFAAB0C0, false);
         }
-        g.drawString(font, sumStr, x + 4, textY, 0xFFAAB0C0, false);
     }
 
     private void renderResearchList(GuiGraphics graphics, int mouseX, int mouseY) {
-        int x = leftPos + LIST_X;
-        int y = topPos + LIST_Y;
+        int x = leftPos + ResearchTableMenu.LIST_X;
+        int y = topPos + ResearchTableMenu.LIST_Y;
+        int listW = ResearchTableMenu.LIST_W;
+        int rowH = ResearchTableMenu.LIST_ROW_H;
+        int visibleRows = ResearchTableMenu.LIST_VISIBLE_ROWS;
 
         // List background
-        graphics.fill(x - 2, y - 2, x + LIST_W + 2, y + VISIBLE_ROWS * ROW_H + 2, LIST_BG);
+        graphics.fill(x - 2, y - 2, x + listW + 2, y + visibleRows * rowH + 2, LIST_BG);
         // Border
-        graphics.fill(x - 2, y - 2, x + LIST_W + 2, y - 1, PANEL_BORDER_DARK);
-        graphics.fill(x - 2, y - 2, x - 1, y + VISIBLE_ROWS * ROW_H + 2, PANEL_BORDER_DARK);
-        graphics.fill(x + LIST_W + 1, y - 2, x + LIST_W + 2, y + VISIBLE_ROWS * ROW_H + 2, PANEL_BORDER_LIGHT);
-        graphics.fill(x - 2, y + VISIBLE_ROWS * ROW_H + 1, x + LIST_W + 2, y + VISIBLE_ROWS * ROW_H + 2, PANEL_BORDER_LIGHT);
+        graphics.fill(x - 2, y - 2, x + listW + 2, y - 1, PANEL_BORDER_DARK);
+        graphics.fill(x - 2, y - 2, x - 1, y + visibleRows * rowH + 2, PANEL_BORDER_DARK);
+        graphics.fill(x + listW + 1, y - 2, x + listW + 2, y + visibleRows * rowH + 2, PANEL_BORDER_LIGHT);
+        graphics.fill(x - 2, y + visibleRows * rowH + 1, x + listW + 2, y + visibleRows * rowH + 2, PANEL_BORDER_LIGHT);
 
-        for (int i = 0; i < VISIBLE_ROWS; i++) {
+        for (int i = 0; i < visibleRows; i++) {
             int displayIdx = scrollOffset + i;
             if (displayIdx >= displayRows.size()) break;
 
             ListRow row = displayRows.get(displayIdx);
-            int rowY = y + i * ROW_H;
+            int rowY = y + i * rowH;
 
             if (row.isHeader()) {
                 String headerLabel = "\u25B8 " + row.headerText();
-                if (font.width(headerLabel) > LIST_W - 4) {
-                    while (font.width(headerLabel + "\u2026") > LIST_W - 4 && headerLabel.length() > 3) {
+                if (font.width(headerLabel) > listW - 4) {
+                    while (font.width(headerLabel + "\u2026") > listW - 4 && headerLabel.length() > 3) {
                         headerLabel = headerLabel.substring(0, headerLabel.length() - 1);
                     }
                     headerLabel += "\u2026";
                 }
-                graphics.fill(x, rowY, x + LIST_W, rowY + ROW_H, 0xFF2A2A1A);
+                graphics.fill(x, rowY, x + listW, rowY + rowH, 0xFF2A2A1A);
                 graphics.drawString(font, headerLabel, x + 3, rowY + 3, 0xFFCCAA00, false);
             } else {
                 ResearchDefinition def = row.definition();
                 boolean locked = !isPrerequisiteMet(def);
 
                 if (def.getId().equals(selectedId)) {
-                    graphics.fill(x, rowY, x + LIST_W, rowY + ROW_H, locked ? 0xFF442222 : 0xFF334488);
-                } else if (mouseX >= x && mouseX < x + LIST_W && mouseY >= rowY && mouseY < rowY + ROW_H) {
-                    graphics.fill(x, rowY, x + LIST_W, rowY + ROW_H, 0xFF2A2A3A);
+                    graphics.fill(x, rowY, x + listW, rowY + rowH, locked ? 0xFF442222 : 0xFF334488);
+                } else if (mouseX >= x && mouseX < x + listW && mouseY >= rowY && mouseY < rowY + rowH) {
+                    graphics.fill(x, rowY, x + listW, rowY + rowH, 0xFF2A2A3A);
                 }
 
                 String prefix = locked ? "\uD83D\uDD12 " : "";
                 String name = def.getDisplayName();
                 String label = prefix + name;
 
-                if (font.width(label) > LIST_W - 6) {
-                    while (font.width(label + "\u2026") > LIST_W - 6 && label.length() > 3) {
+                if (font.width(label) > listW - 6) {
+                    while (font.width(label + "\u2026") > listW - 6 && label.length() > 3) {
                         label = label.substring(0, label.length() - 1);
                     }
                     label += "\u2026";
@@ -563,22 +780,25 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
 
         // Scroll indicators
         if (scrollOffset > 0) {
-            graphics.drawString(font, "\u25B2", x + LIST_W - 8, y - 12, 0xAAAAAAA, false);
+            graphics.drawString(font, "\u25B2", x + listW - 8, y - 12, 0xAAAAAAA, false);
         }
-        if (scrollOffset + VISIBLE_ROWS < displayRows.size()) {
-            graphics.drawString(font, "\u25BC", x + LIST_W - 8, y + VISIBLE_ROWS * ROW_H + 3, 0xAAAAAA, false);
+        if (scrollOffset + visibleRows < displayRows.size()) {
+            graphics.drawString(font, "\u25BC", x + listW - 8, y + visibleRows * rowH + 3, 0xAAAAAA, false);
         }
     }
 
     private void renderResearchTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
-        int x = leftPos + LIST_X;
-        int y = topPos + LIST_Y;
+        int x = leftPos + ResearchTableMenu.LIST_X;
+        int y = topPos + ResearchTableMenu.LIST_Y;
+        int listW = ResearchTableMenu.LIST_W;
+        int rowH = ResearchTableMenu.LIST_ROW_H;
+        int visibleRows = ResearchTableMenu.LIST_VISIBLE_ROWS;
 
-        if (mouseX < x || mouseX >= x + LIST_W || mouseY < y || mouseY >= y + VISIBLE_ROWS * ROW_H) {
+        if (mouseX < x || mouseX >= x + listW || mouseY < y || mouseY >= y + visibleRows * rowH) {
             return;
         }
 
-        int row = (mouseY - y) / ROW_H;
+        int row = (mouseY - y) / rowH;
         int displayIdx = scrollOffset + row;
         if (displayIdx < 0 || displayIdx >= displayRows.size()) return;
 
@@ -654,10 +874,12 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
     }
 
     private void renderFluidGaugeTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
-        int gx = leftPos + GAUGE_X;
-        int gy = topPos + GAUGE_Y;
+        int gx = leftPos + ResearchTableMenu.FLUID_GAUGE_X;
+        int gy = topPos + ResearchTableMenu.FLUID_GAUGE_Y;
+        int gw = ResearchTableMenu.FLUID_GAUGE_W;
+        int gh = ResearchTableMenu.FLUID_GAUGE_H;
 
-        if (mouseX < gx - 1 || mouseX >= gx + GAUGE_W + 1 || mouseY < gy - 1 || mouseY >= gy + GAUGE_H + 1) {
+        if (mouseX < gx - 1 || mouseX >= gx + gw + 1 || mouseY < gy - 1 || mouseY >= gy + gh + 1) {
             return;
         }
 
@@ -720,24 +942,30 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        int x = leftPos + LIST_X;
-        int y = topPos + LIST_Y;
+        // List clicks only work in LIST view
+        if (currentView == ViewMode.LIST) {
+            int x = leftPos + ResearchTableMenu.LIST_X;
+            int y = topPos + ResearchTableMenu.LIST_Y;
+            int listW = ResearchTableMenu.LIST_W;
+            int rowH = ResearchTableMenu.LIST_ROW_H;
+            int visibleRows = ResearchTableMenu.LIST_VISIBLE_ROWS;
 
-        if (mouseX >= x && mouseX < x + LIST_W && mouseY >= y && mouseY < y + VISIBLE_ROWS * ROW_H) {
-            int row = (int) ((mouseY - y) / ROW_H);
-            int displayIdx = scrollOffset + row;
-            if (displayIdx >= 0 && displayIdx < displayRows.size()) {
-                ListRow listRow = displayRows.get(displayIdx);
-                if (!listRow.isHeader()) {
-                    ResearchDefinition def = listRow.definition();
-                    selectedId = def.getId();
-                    for (int i = 0; i < availableResearch.size(); i++) {
-                        if (availableResearch.get(i).getId().equals(selectedId)) {
-                            selectedIndex = i;
-                            break;
+            if (mouseX >= x && mouseX < x + listW && mouseY >= y && mouseY < y + visibleRows * rowH) {
+                int row = (int) ((mouseY - y) / rowH);
+                int displayIdx = scrollOffset + row;
+                if (displayIdx >= 0 && displayIdx < displayRows.size()) {
+                    ListRow listRow = displayRows.get(displayIdx);
+                    if (!listRow.isHeader()) {
+                        ResearchDefinition def = listRow.definition();
+                        selectedId = def.getId();
+                        for (int i = 0; i < availableResearch.size(); i++) {
+                            if (availableResearch.get(i).getId().equals(selectedId)) {
+                                selectedIndex = i;
+                                break;
+                            }
                         }
+                        return true;
                     }
-                    return true;
                 }
             }
         }
@@ -747,16 +975,22 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
-        int x = leftPos + LIST_X;
-        int y = topPos + LIST_Y;
+        // List scrolling only works in LIST view
+        if (currentView == ViewMode.LIST) {
+            int x = leftPos + ResearchTableMenu.LIST_X;
+            int y = topPos + ResearchTableMenu.LIST_Y;
+            int listW = ResearchTableMenu.LIST_W;
+            int rowH = ResearchTableMenu.LIST_ROW_H;
+            int visibleRows = ResearchTableMenu.LIST_VISIBLE_ROWS;
 
-        if (mouseX >= x && mouseX < x + LIST_W && mouseY >= y && mouseY < y + VISIBLE_ROWS * ROW_H + 14) {
-            if (scrollY > 0 && scrollOffset > 0) {
-                scrollOffset--;
-            } else if (scrollY < 0 && scrollOffset + VISIBLE_ROWS < displayRows.size()) {
-                scrollOffset++;
+            if (mouseX >= x && mouseX < x + listW && mouseY >= y && mouseY < y + visibleRows * rowH + 14) {
+                if (scrollY > 0 && scrollOffset > 0) {
+                    scrollOffset--;
+                } else if (scrollY < 0 && scrollOffset + visibleRows < displayRows.size()) {
+                    scrollOffset++;
+                }
+                return true;
             }
-            return true;
         }
 
         return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
