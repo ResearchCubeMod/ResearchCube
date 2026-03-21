@@ -40,8 +40,6 @@ public class ResearchDefinition {
     @Nullable
     private final String description;  // short description (optional)
     @Nullable
-    private final String flavorText;   // optional story/lore text for the detail pane
-    @Nullable
     private final String category;     // optional grouping category (e.g., "circuits", "energy")
     @Nullable
     private final FluidCost fluidCost; // optional fluid cost for this research

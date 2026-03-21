@@ -304,17 +304,16 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
 
     /**
      * Checks if the required item costs are present in the cost slots.
+     * Uses menu slots directly for proper client-side sync.
      */
     private boolean hasRequiredItems(ResearchDefinition def) {
         if (def.getItemCosts().isEmpty()) return true;
 
-        ResearchTableBlockEntity be = menu.getBlockEntity();
-        var inv = be.getInventory();
-
-        // Collect all items in cost slots
+        // Collect all items in cost slots using menu's synced slots
         Map<Item, Integer> available = new HashMap<>();
         for (int i = 0; i < 6; i++) {
-            ItemStack stack = inv.getStackInSlot(ResearchTableBlockEntity.COST_SLOT_START + i);
+            int slotIndex = ResearchTableBlockEntity.COST_SLOT_START + i;
+            ItemStack stack = menu.getSlot(slotIndex).getItem();
             if (!stack.isEmpty()) {
                 available.merge(stack.getItem(), stack.getCount(), Integer::sum);
             }
@@ -356,8 +355,8 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
     private boolean isIdeaChipSatisfied(ResearchDefinition def) {
         if (def.getIdeaChip().isEmpty()) return true;
         ItemStack required = def.getIdeaChip().get();
-        ItemStack candidate = menu.getBlockEntity().getInventory()
-                .getStackInSlot(ResearchTableBlockEntity.SLOT_IDEA_CHIP);
+        // Use menu's synced slot instead of direct BlockEntity inventory access
+        ItemStack candidate = menu.getSlot(ResearchTableBlockEntity.SLOT_IDEA_CHIP).getItem();
         return IdeaChipMatcher.matches(required, candidate);
     }
 
@@ -530,21 +529,7 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
             textY += lineHeight;
         }
 
-        // Line 3: Flavor text
-        String flavorText = activeDef.getFlavorText();
-        if (flavorText != null && !flavorText.isEmpty()) {
-            String truncated = flavorText;
-            if (font.width(truncated) > vw - 20) {
-                while (font.width(truncated + "\u2026") > vw - 20 && truncated.length() > 3) {
-                    truncated = truncated.substring(0, truncated.length() - 1);
-                }
-                truncated += "\u2026";
-            }
-            g.drawString(font, "\u201C" + truncated + "\u201D", vx + 8, textY, 0xFF777799, false);
-            textY += lineHeight;
-        }
-
-        // Line 4: Description
+        // Line 3: Description
         if (activeDef.getDescription() != null && !activeDef.getDescription().isEmpty()) {
             String desc = activeDef.getDescription();
             if (font.width(desc) > vw - 20) {
@@ -683,16 +668,16 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         g.drawString(font, durationStr, textX, textY, 0xFFAAB0C0, false);
         textY += lineHeight;
 
-        // Line 2: Flavor text (if available)
-        String flavorText = def.getFlavorText();
-        if (flavorText != null && !flavorText.isEmpty()) {
-            if (font.width(flavorText) > w - 12) {
-                while (font.width(flavorText + "\u2026") > w - 12 && flavorText.length() > 3) {
-                    flavorText = flavorText.substring(0, flavorText.length() - 1);
+        // Line 2: Description (if available)
+        String description = def.getDescription();
+        if (description != null && !description.isEmpty()) {
+            if (font.width(description) > w - 12) {
+                while (font.width(description + "\u2026") > w - 12 && description.length() > 3) {
+                    description = description.substring(0, description.length() - 1);
                 }
-                flavorText += "\u2026";
+                description += "\u2026";
             }
-            g.drawString(font, "\u201C" + flavorText + "\u201D", x + 4, textY, 0xFF777799, false);
+            g.drawString(font, description, x + 4, textY, 0xFFAAB0C0, false);
             textY += lineHeight;
         }
 

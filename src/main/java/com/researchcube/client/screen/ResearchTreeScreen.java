@@ -35,10 +35,9 @@ import java.util.Set;
 /**
  * Alternative research UI that visualizes the research dependency graph.
  *
- * Compact layout (340x250) matching ResearchTableScreen:
- *   Left column (~100px): Drive, Cube, cost grid, buckets, idea chip, fluid gauge
- *   Right area: Graph viewport with zoom/pan
- *   Bottom: Player inventory + hotbar (centered)
+ * Uses same layout dimensions as ResearchTableScreen (470x260) to match menu slot positions.
+ * Upper panel: Graph viewport with zoom/pan
+ * Lower section: Machine panel (Drive, Cube, Costs, etc.) + Player inventory
  */
 public class ResearchTreeScreen extends AbstractContainerScreen<ResearchTableMenu> {
 
@@ -57,11 +56,11 @@ public class ResearchTreeScreen extends AbstractContainerScreen<ResearchTableMen
     private static final int LAYER_X_GAP = 178;
     private static final int LAYER_Y_GAP = 64;
 
-    // Graph viewport (right of the left column)
-    private static final int GRAPH_X = 108;
-    private static final int GRAPH_Y = 32;
-    private static final int GRAPH_W = 228;
-    private static final int GRAPH_H = 114;
+    // Graph viewport (uses same upper panel area as list view)
+    private static final int GRAPH_X = ResearchTableMenu.UPPER_PANEL_X + 8;
+    private static final int GRAPH_Y = ResearchTableMenu.UPPER_PANEL_Y + 24;
+    private static final int GRAPH_W = ResearchTableMenu.UPPER_PANEL_W - 16;
+    private static final int GRAPH_H = ResearchTableMenu.UPPER_PANEL_H - 28;
 
     private enum EdgeStyle {
         SINGLE,
@@ -112,34 +111,39 @@ public class ResearchTreeScreen extends AbstractContainerScreen<ResearchTableMen
 
     public ResearchTreeScreen(ResearchTableMenu menu, Inventory playerInv, Component title) {
         super(menu, playerInv, title);
-        this.imageWidth = 340;
-        this.imageHeight = 250;
-        this.inventoryLabelX = 89;
-        this.inventoryLabelY = 153;
+        this.imageWidth = ResearchTableMenu.GUI_WIDTH;
+        this.imageHeight = ResearchTableMenu.GUI_HEIGHT;
+        this.inventoryLabelX = ResearchTableMenu.PLAYER_INV_X;
+        this.inventoryLabelY = ResearchTableMenu.PLAYER_INV_Y - 10;
     }
 
     @Override
     protected void init() {
         super.init();
 
+        // Buttons positioned in upper panel controls area
+        int btnY = topPos + ResearchTableMenu.TREE_BTN_Y;
+
         this.startButton = addRenderableWidget(Button.builder(Component.literal("Start"), b -> onStartResearch())
-                .bounds(leftPos + 10, topPos + 112, 40, 14)
+                .bounds(leftPos + ResearchTableMenu.START_BTN_X, topPos + ResearchTableMenu.BUTTON_Y,
+                        ResearchTableMenu.BUTTON_W, ResearchTableMenu.BUTTON_H)
                 .build());
 
         this.listButton = addRenderableWidget(Button.builder(Component.literal("List"), b -> openListView())
-                .bounds(leftPos + 54, topPos + 112, 40, 14)
+                .bounds(leftPos + ResearchTableMenu.LIST_BTN_X, btnY,
+                        ResearchTableMenu.LIST_BTN_W, ResearchTableMenu.LIST_BTN_H)
                 .build());
 
         this.fitButton = addRenderableWidget(Button.builder(Component.literal("Fit"), b -> fitGraphToViewport())
-                .bounds(leftPos + 10, topPos + 130, 30, 14)
+                .bounds(leftPos + ResearchTableMenu.SEARCH_X, btnY, 30, 16)
                 .build());
 
         this.zoomOutButton = addRenderableWidget(Button.builder(Component.literal("-"), b -> adjustZoom(-0.12f))
-                .bounds(leftPos + 44, topPos + 130, 18, 14)
+                .bounds(leftPos + ResearchTableMenu.SEARCH_X + 34, btnY, 20, 16)
                 .build());
 
         this.zoomInButton = addRenderableWidget(Button.builder(Component.literal("+"), b -> adjustZoom(0.12f))
-                .bounds(leftPos + 66, topPos + 130, 18, 14)
+                .bounds(leftPos + ResearchTableMenu.SEARCH_X + 58, btnY, 20, 16)
                 .build());
 
         buildGraph();
@@ -411,15 +415,19 @@ public class ResearchTreeScreen extends AbstractContainerScreen<ResearchTableMen
         g.fill(x + imageWidth - 1, y, x + imageWidth, y + imageHeight, PANEL_DARK);
         g.fill(x, y + imageHeight - 1, x + imageWidth, y + imageHeight, PANEL_DARK);
 
-        // Main top panel
-        drawPanel(g, x + 4, y + 14, 332, 140);
-        // Bottom inventory panel
-        drawPanel(g, x + 4, y + 156, 332, 90);
+        // Upper panel (contains graph)
+        drawPanel(g, x + ResearchTableMenu.UPPER_PANEL_X, y + ResearchTableMenu.UPPER_PANEL_Y,
+                ResearchTableMenu.UPPER_PANEL_W, ResearchTableMenu.UPPER_PANEL_H);
 
-        // Left machine column sub-panel
-        drawPanel(g, x + 6, y + 16, 100, 136);
+        // Machine panel area
+        drawPanel(g, x + ResearchTableMenu.MACHINE_PANEL_X, y + ResearchTableMenu.MACHINE_PANEL_Y,
+                ResearchTableMenu.MACHINE_PANEL_W, 80);
 
-        // Slot backgrounds in left column
+        // Player inventory panel
+        drawPanel(g, x + ResearchTableMenu.PLAYER_INV_X - 8, y + ResearchTableMenu.PLAYER_INV_Y - 10,
+                178, 90);
+
+        // Slot backgrounds for machine panel
         drawSlotBg(g, x + ResearchTableMenu.DRIVE_X, y + ResearchTableMenu.DRIVE_Y);
         drawSlotBg(g, x + ResearchTableMenu.CUBE_X, y + ResearchTableMenu.CUBE_Y);
         for (int row = 0; row < 2; row++) {
@@ -430,7 +438,8 @@ public class ResearchTreeScreen extends AbstractContainerScreen<ResearchTableMen
         drawSlotBg(g, x + ResearchTableMenu.BUCKET_IN_X, y + ResearchTableMenu.BUCKET_IN_Y);
         drawSlotBg(g, x + ResearchTableMenu.BUCKET_OUT_X, y + ResearchTableMenu.BUCKET_OUT_Y);
         drawSlotBg(g, x + ResearchTableMenu.IDEA_CHIP_X, y + ResearchTableMenu.IDEA_CHIP_Y);
-        drawFluidGauge(g, x + 92, y + 26, 12, 54);
+        drawFluidGauge(g, x + ResearchTableMenu.FLUID_GAUGE_X, y + ResearchTableMenu.FLUID_GAUGE_Y,
+                ResearchTableMenu.FLUID_GAUGE_W, ResearchTableMenu.FLUID_GAUGE_H);
 
         // Player inventory slot backgrounds
         for (int row = 0; row < 3; row++) {
@@ -441,9 +450,6 @@ public class ResearchTreeScreen extends AbstractContainerScreen<ResearchTableMen
         for (int col = 0; col < 9; col++) {
             drawSlotBg(g, x + ResearchTableMenu.HOTBAR_X + col * 18, y + ResearchTableMenu.HOTBAR_Y);
         }
-
-        // Header strip
-        g.fill(x + 6, y + 16, x + 106, y + 26, 0xFF1C2030);
 
         // Graph viewport
         int gx = x + GRAPH_X;
@@ -732,18 +738,30 @@ public class ResearchTreeScreen extends AbstractContainerScreen<ResearchTableMen
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
         graphics.drawString(this.font, this.title, this.titleLabelX, this.titleLabelY, 0xFF202020, false);
         graphics.drawString(this.font, this.playerInventoryTitle, this.inventoryLabelX, this.inventoryLabelY, 0xFFE6EAF5, false);
-        graphics.drawString(this.font, "Tree View  |  scroll=zoom, R-drag=pan", 6, 18, 0xFFE5E7EB, false);
-        graphics.drawString(this.font, "AND", 108, 20, EDGE_AND, false);
-        graphics.drawString(this.font, "OR", 132, 20, EDGE_OR, false);
-        graphics.drawString(this.font, "S", 148, 20, EDGE_SINGLE, false);
-        graphics.drawString(this.font, "Drive", 8, 16, 0xFFD3D7E5, false);
-        graphics.drawString(this.font, "Cube", 8, 56, 0xFFD3D7E5, false);
-        graphics.drawString(this.font, "Costs", 36, 16, 0xFFD3D7E5, false);
-        graphics.drawString(this.font, "Idea", 70, 58, 0xFFD3D7E5, false);
-        graphics.drawString(this.font, "Fl.", 92, 16, 0xFFD3D7E5, false);
+
+        // Tree view controls info
+        graphics.drawString(this.font, "Tree View  |  scroll=zoom, R-drag=pan",
+                ResearchTableMenu.SEARCH_X + 84, ResearchTableMenu.SEARCH_Y, 0xFFE5E7EB, false);
+
+        // Edge legend
+        graphics.drawString(this.font, "AND", GRAPH_X + GRAPH_W - 70, ResearchTableMenu.SEARCH_Y, EDGE_AND, false);
+        graphics.drawString(this.font, "OR", GRAPH_X + GRAPH_W - 46, ResearchTableMenu.SEARCH_Y, EDGE_OR, false);
+        graphics.drawString(this.font, "S", GRAPH_X + GRAPH_W - 22, ResearchTableMenu.SEARCH_Y, EDGE_SINGLE, false);
+
+        // Slot labels in machine panel
+        int labelY = ResearchTableMenu.LABEL_Y;
+        graphics.drawString(this.font, "Dr", ResearchTableMenu.DRIVE_X + 2, labelY, 0xFFD3D7E5, false);
+        graphics.drawString(this.font, "Cb", ResearchTableMenu.CUBE_X + 2, labelY, 0xFFD3D7E5, false);
+        graphics.drawString(this.font, "Id", ResearchTableMenu.IDEA_CHIP_X + 2, labelY, 0xFFD3D7E5, false);
+        graphics.drawString(this.font, "Costs", ResearchTableMenu.COST_X, labelY, 0xFFD3D7E5, false);
+        graphics.drawString(this.font, "Fl", ResearchTableMenu.FLUID_GAUGE_X + 3, labelY, 0xFFD3D7E5, false);
+        graphics.drawString(this.font, "I/O", ResearchTableMenu.BUCKET_IN_X, labelY, 0xFFD3D7E5, false);
+
         if (menu.isResearching()) {
-            graphics.drawString(this.font, "\u25CF Researching", 10, 148, 0xFF77DD77, false);
+            graphics.drawString(this.font, "\u25CF Researching",
+                    ResearchTableMenu.MACHINE_PANEL_X + 4, ResearchTableMenu.BUTTON_Y + 18, 0xFF77DD77, false);
         }
-        graphics.drawString(this.font, Math.round(zoom * 100f) + "%", 88, 132, 0xFFD9DDE7, false);
+        graphics.drawString(this.font, Math.round(zoom * 100f) + "%",
+                ResearchTableMenu.SEARCH_X + 82, ResearchTableMenu.TREE_BTN_Y, 0xFFD9DDE7, false);
     }
 }
