@@ -115,7 +115,7 @@ public class ResearchManager extends SimpleJsonResourceReloadListener {
         }
 
         return new ResearchDefinition(id, tier, duration, prerequisites, itemCosts, weightedRecipePool,
-                parseName(json), parseDescription(json), parseFlavorText(json), parseCategory(json),
+                parseName(json), parseDescription(json), parseCategory(json),
                 parseFluidCost(json), parseIdeaChip(json));
     }
 
@@ -127,11 +127,6 @@ public class ResearchManager extends SimpleJsonResourceReloadListener {
     @Nullable
     private String parseDescription(JsonObject json) {
         return json.has("description") ? json.get("description").getAsString() : null;
-    }
-
-    @Nullable
-    private String parseFlavorText(JsonObject json) {
-        return json.has("flavor_text") ? json.get("flavor_text").getAsString() : null;
     }
 
     @Nullable

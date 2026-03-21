@@ -49,7 +49,7 @@ public class ResearchDefinition {
                               Prerequisite prerequisites, List<ItemCost> itemCosts,
                               List<WeightedRecipe> weightedRecipePool,
                               @Nullable String name, @Nullable String description,
-                              @Nullable String flavorText, @Nullable String category,
+                              @Nullable String category,
                               @Nullable FluidCost fluidCost,
                               Optional<ItemStack> ideaChip) {
         this.id = id;
@@ -61,7 +61,6 @@ public class ResearchDefinition {
         this.recipePool = this.weightedRecipePool.stream().map(WeightedRecipe::id).toList();
         this.name = name;
         this.description = description;
-        this.flavorText = flavorText;
         this.category = category;
         this.fluidCost = fluidCost;
         this.ideaChip = ideaChip != null ? ideaChip : Optional.empty();
@@ -74,10 +73,10 @@ public class ResearchDefinition {
                               Prerequisite prerequisites, List<ItemCost> itemCosts,
                               List<WeightedRecipe> weightedRecipePool,
                               @Nullable String name, @Nullable String description,
-                              @Nullable String flavorText, @Nullable String category,
+                              @Nullable String category,
                               @Nullable FluidCost fluidCost) {
         this(id, tier, duration, prerequisites, itemCosts, weightedRecipePool,
-                name, description, flavorText, category, fluidCost, Optional.empty());
+                name, description, category, fluidCost, Optional.empty());
     }
 
     /**
@@ -87,9 +86,9 @@ public class ResearchDefinition {
                               Prerequisite prerequisites, List<ItemCost> itemCosts,
                               List<WeightedRecipe> weightedRecipePool,
                               @Nullable String name, @Nullable String description,
-                              @Nullable String flavorText, @Nullable String category) {
+                              @Nullable String category) {
         this(id, tier, duration, prerequisites, itemCosts, weightedRecipePool,
-                name, description, flavorText, category, null);
+                name, description, category, null);
     }
 
     /**
@@ -187,14 +186,6 @@ public class ResearchDefinition {
     @Nullable
     public String getDescription() {
         return description;
-    }
-
-    /**
-     * Optional story/lore flavor text for the detail pane.
-     */
-    @Nullable
-    public String getFlavorText() {
-        return flavorText;
     }
 
     /**
