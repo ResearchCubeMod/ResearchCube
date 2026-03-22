@@ -57,7 +57,7 @@ A Minecraft NeoForge mod (1.21.1) that adds a research-gated crafting system. Pe
 
 ## Commands
 
-All commands require OP level 2. See the [Commands Reference](wiki/Commands.md) for full details.
+All commands require OP level 2. See the [Commands Reference](https://github.com/ResearchCubeMod/ResearchCube/wiki/Commands) for full details.
 
 | Command | Description |
 |---------|-------------|
