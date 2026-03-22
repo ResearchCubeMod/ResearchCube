@@ -249,8 +249,9 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
     }
 
     private void onSwitchToTreeView() {
-        preferredView = ViewMode.TREE;
-        updateViewMode();
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null) return;
+        mc.setScreen(new ResearchTreeScreen(menu, mc.player.getInventory(), this.title));
     }
 
     private void onSwitchToListView() {
@@ -260,12 +261,19 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
 
     /**
      * Updates the view mode based on research state and user preference.
-     * When researching: always show PROGRESS view
+     * When researching AND definition is available: show PROGRESS view
      * When not researching: show user's preferred view (LIST or TREE)
      */
     private void updateViewMode() {
         if (menu.isResearching()) {
-            currentView = ViewMode.PROGRESS;
+            // Only show PROGRESS view if the active definition is synced to client
+            ResearchDefinition activeDef = menu.getBlockEntity().getActiveDefinition();
+            if (activeDef != null) {
+                currentView = ViewMode.PROGRESS;
+            } else {
+                // Stay in current view until definition is synced
+                currentView = preferredView;
+            }
         } else {
             currentView = preferredView;
         }
