@@ -1,8 +1,10 @@
 package com.researchcube.client.screen;
 
+import com.researchcube.ResearchCubeMod;
 import com.researchcube.block.ResearchTableBlockEntity;
 import com.researchcube.menu.ResearchTableMenu;
 import com.researchcube.network.StartResearchPacket;
+import com.researchcube.registry.ModFluids;
 import com.researchcube.research.FluidCost;
 import com.researchcube.research.ItemCost;
 import com.researchcube.research.ResearchDefinition;
@@ -41,10 +43,15 @@ import java.util.Set;
  */
 public class ResearchTreeScreen extends AbstractContainerScreen<ResearchTableMenu> {
 
-    private static final int BG_OUTER = 0xFFC6C6C6;
-    private static final int PANEL_BG = 0xFF252838;
-    private static final int PANEL_DARK = 0xFF121521;
-    private static final int PANEL_LIGHT = 0xFF5A6078;
+    // ── Texture ──
+    private static final ResourceLocation TEXTURE =
+            ResourceLocation.fromNamespaceAndPath(ResearchCubeMod.MOD_ID, "textures/gui/research_table.png");
+    private static final int TEX_W = ResearchTableMenu.GUI_WIDTH;
+    private static final int TEX_H = ResearchTableMenu.GUI_HEIGHT;
+
+    // Colors (for dynamic elements)
+    private static final int PANEL_BORDER_LIGHT = 0xFF7E87A6;
+    private static final int PANEL_BORDER_DARK = 0xFF1A1A1A;
     private static final int GRAPH_BG = 0xFF171A26;
 
     private static final int EDGE_SINGLE = 0xFF9CA3AF;
@@ -408,57 +415,21 @@ public class ResearchTreeScreen extends AbstractContainerScreen<ResearchTableMen
         int x = leftPos;
         int y = topPos;
 
-        // Outer background
-        g.fill(x, y, x + imageWidth, y + imageHeight, BG_OUTER);
-        g.fill(x, y, x + imageWidth, y + 1, 0xFFFFFFFF);
-        g.fill(x, y, x + 1, y + imageHeight, 0xFFFFFFFF);
-        g.fill(x + imageWidth - 1, y, x + imageWidth, y + imageHeight, PANEL_DARK);
-        g.fill(x, y + imageHeight - 1, x + imageWidth, y + imageHeight, PANEL_DARK);
+        // ── Static background from texture (same as ResearchTableScreen) ──
+        g.blit(TEXTURE, x, y, 0, 0, imageWidth, imageHeight, TEX_W, TEX_H);
 
-        // Upper panel (contains graph)
-        drawPanel(g, x + ResearchTableMenu.UPPER_PANEL_X, y + ResearchTableMenu.UPPER_PANEL_Y,
-                ResearchTableMenu.UPPER_PANEL_W, ResearchTableMenu.UPPER_PANEL_H);
-
-        // Machine panel area
-        drawPanel(g, x + ResearchTableMenu.MACHINE_PANEL_X, y + ResearchTableMenu.MACHINE_PANEL_Y,
-                ResearchTableMenu.MACHINE_PANEL_W, 80);
-
-        // Player inventory panel
-        drawPanel(g, x + ResearchTableMenu.PLAYER_INV_X - 8, y + ResearchTableMenu.PLAYER_INV_Y - 10,
-                178, 90);
-
-        // Slot backgrounds for machine panel
-        drawSlotBg(g, x + ResearchTableMenu.DRIVE_X, y + ResearchTableMenu.DRIVE_Y);
-        drawSlotBg(g, x + ResearchTableMenu.CUBE_X, y + ResearchTableMenu.CUBE_Y);
-        for (int row = 0; row < 2; row++) {
-            for (int col = 0; col < 3; col++) {
-                drawSlotBg(g, x + ResearchTableMenu.COST_X + col * 18, y + ResearchTableMenu.COST_Y + row * 18);
-            }
-        }
-        drawSlotBg(g, x + ResearchTableMenu.BUCKET_IN_X, y + ResearchTableMenu.BUCKET_IN_Y);
-        drawSlotBg(g, x + ResearchTableMenu.BUCKET_OUT_X, y + ResearchTableMenu.BUCKET_OUT_Y);
-        drawSlotBg(g, x + ResearchTableMenu.IDEA_CHIP_X, y + ResearchTableMenu.IDEA_CHIP_Y);
+        // ── Fluid gauge (dynamic) ──
         drawFluidGauge(g, x + ResearchTableMenu.FLUID_GAUGE_X, y + ResearchTableMenu.FLUID_GAUGE_Y,
                 ResearchTableMenu.FLUID_GAUGE_W, ResearchTableMenu.FLUID_GAUGE_H);
 
-        // Player inventory slot backgrounds
-        for (int row = 0; row < 3; row++) {
-            for (int col = 0; col < 9; col++) {
-                drawSlotBg(g, x + ResearchTableMenu.PLAYER_INV_X + col * 18, y + ResearchTableMenu.PLAYER_INV_Y + row * 18);
-            }
-        }
-        for (int col = 0; col < 9; col++) {
-            drawSlotBg(g, x + ResearchTableMenu.HOTBAR_X + col * 18, y + ResearchTableMenu.HOTBAR_Y);
-        }
-
-        // Graph viewport
+        // Graph viewport (render on top of texture background)
         int gx = x + GRAPH_X;
         int gy = y + GRAPH_Y;
         g.fill(gx, gy, gx + GRAPH_W, gy + GRAPH_H, GRAPH_BG);
-        g.fill(gx, gy, gx + GRAPH_W, gy + 1, PANEL_DARK);
-        g.fill(gx, gy, gx + 1, gy + GRAPH_H, PANEL_DARK);
-        g.fill(gx + GRAPH_W - 1, gy, gx + GRAPH_W, gy + GRAPH_H, PANEL_LIGHT);
-        g.fill(gx, gy + GRAPH_H - 1, gx + GRAPH_W, gy + GRAPH_H, PANEL_LIGHT);
+        g.fill(gx, gy, gx + GRAPH_W, gy + 1, PANEL_BORDER_DARK);
+        g.fill(gx, gy, gx + 1, gy + GRAPH_H, PANEL_BORDER_DARK);
+        g.fill(gx + GRAPH_W - 1, gy, gx + GRAPH_W, gy + GRAPH_H, PANEL_BORDER_LIGHT);
+        g.fill(gx, gy + GRAPH_H - 1, gx + GRAPH_W, gy + GRAPH_H, PANEL_BORDER_LIGHT);
 
         g.enableScissor(gx + 1, gy + 1, gx + GRAPH_W - 1, gy + GRAPH_H - 1);
         drawEdges(g, gx, gy);
@@ -466,41 +437,26 @@ public class ResearchTreeScreen extends AbstractContainerScreen<ResearchTableMen
         g.disableScissor();
     }
 
-    private void drawSlotBg(GuiGraphics g, int sx, int sy) {
-        int x0 = sx - 1;
-        int y0 = sy - 1;
-        g.fill(x0, y0, x0 + 18, y0 + 18, 0xFF8B8B8B);
-        g.fill(x0 + 1, y0 + 1, x0 + 17, y0 + 17, 0xFF30303A);
-        g.fill(x0, y0, x0 + 18, y0 + 1, 0xFF151728);
-        g.fill(x0, y0, x0 + 1, y0 + 18, 0xFF151728);
-    }
-
     private void drawFluidGauge(GuiGraphics g, int gx, int gy, int gw, int gh) {
-        g.fill(gx - 1, gy - 1, gx + gw + 1, gy + gh + 1, 0xFF121521);
-        g.fill(gx, gy, gx + gw, gy + gh, 0xFF1B2030);
+        g.fill(gx - 1, gy - 1, gx + gw + 1, gy + gh + 1, PANEL_BORDER_DARK);
+        g.fill(gx, gy, gx + gw, gy + gh, 0xFF222222);
 
         int fluidAmount = menu.getFluidAmount();
         int fluidType = menu.getFluidType();
         if (fluidAmount > 0 && fluidType > 0) {
             int fillHeight = Math.min(gh, Math.round((float) gh * fluidAmount / ResearchTableBlockEntity.TANK_CAPACITY));
             int fillY = gy + gh - fillHeight;
-            int color = switch (fluidType) {
-                case 1 -> 0xFF00C8FF;
-                case 2 -> 0xFFB05DFF;
-                case 3 -> 0xFFFFC741;
-                case 4 -> 0xFFFF76D6;
-                default -> 0xFF6C768E;
-            };
+            int color = ModFluids.getFluidColor(fluidType);
             g.fill(gx, fillY, gx + gw, gy + gh, color);
-        }
-    }
 
-    private void drawPanel(GuiGraphics g, int px, int py, int pw, int ph) {
-        g.fill(px, py, px + pw, py + ph, PANEL_BG);
-        g.fill(px, py, px + pw, py + 1, PANEL_DARK);
-        g.fill(px, py, px + 1, py + ph, PANEL_DARK);
-        g.fill(px + pw - 1, py, px + pw, py + ph, PANEL_LIGHT);
-        g.fill(px, py + ph - 1, px + pw, py + ph, PANEL_LIGHT);
+            if (fillHeight > 2) {
+                int shine = (color & 0x00FFFFFF) | 0x44000000;
+                g.fill(gx, fillY, gx + gw, fillY + 1, shine);
+            }
+        }
+
+        g.fill(gx + gw, gy - 1, gx + gw + 1, gy + gh + 1, PANEL_BORDER_LIGHT);
+        g.fill(gx - 1, gy + gh, gx + gw + 1, gy + gh + 1, PANEL_BORDER_LIGHT);
     }
 
     private void drawEdges(GuiGraphics g, int graphScreenX, int graphScreenY) {

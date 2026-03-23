@@ -12,7 +12,7 @@ public final class TierUtil {
     /**
      * Validates whether a research operation is allowed based on tier rules:
      *   - cube.tier >= research.tier
-     *   - drive.tier == research.tier
+     *   - drive.tier >= research.tier (higher tier drives can research lower tier research)
      *
      * @param cubeTier     the tier of the cube in the Research Table
      * @param driveTier    the tier of the drive in the Research Table
@@ -31,7 +31,7 @@ public final class TierUtil {
         if (!cubeTier.isAtLeast(researchTier)) {
             return false;
         }
-        // Drive must exactly match the research tier
-        return driveTier == researchTier;
+        // Drive must be at least the research tier (higher tier drives can research lower tier)
+        return driveTier.isAtLeast(researchTier);
     }
 }

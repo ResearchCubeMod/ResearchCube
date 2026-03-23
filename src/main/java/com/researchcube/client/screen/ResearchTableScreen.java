@@ -499,6 +499,7 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
 
     /**
      * Renders the progress view showing active research details.
+     * Shows: name, tier, category, description, costs, progress bar.
      */
     private void renderProgressView(GuiGraphics g, int x, int y) {
         int vx = x + ResearchTableMenu.PROGRESS_VIEW_X;
@@ -521,37 +522,89 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
             return;
         }
 
-        int textY = vy + 8;
-        int lineHeight = 12;
+        int textY = vy + 6;
+        int lineHeight = 11;
+        int tierColor = activeDef.getTier().getColor() | 0xFF000000;
 
-        // Line 1: Research name with tier color
-        int nameColor = activeDef.getTier().getColor() | 0xFF000000;
-        g.drawString(font, activeDef.getDisplayName(), vx + 8, textY, nameColor, false);
+        // Header: Research name with tier badge
+        String nameStr = activeDef.getDisplayName();
         String tierBadge = " [" + activeDef.getTier().getDisplayName() + "]";
-        g.drawString(font, tierBadge, vx + 8 + font.width(activeDef.getDisplayName()), textY, 0xFF888888, false);
-        textY += lineHeight + 4;
+        g.drawString(font, nameStr, vx + 8, textY, tierColor, false);
+        g.drawString(font, tierBadge, vx + 8 + font.width(nameStr), textY, 0xFF888888, false);
+        textY += lineHeight + 2;
 
-        // Line 2: Category
+        // Category line
         if (activeDef.getCategory() != null && !activeDef.getCategory().isEmpty()) {
             g.drawString(font, "Category: " + activeDef.getCategory(), vx + 8, textY, 0xFFCCAA00, false);
             textY += lineHeight;
         }
 
-        // Line 3: Description
+        // Description/flavor text (supports multi-line wrapping)
         if (activeDef.getDescription() != null && !activeDef.getDescription().isEmpty()) {
             String desc = activeDef.getDescription();
-            if (font.width(desc) > vw - 20) {
-                while (font.width(desc + "\u2026") > vw - 20 && desc.length() > 3) {
-                    desc = desc.substring(0, desc.length() - 1);
+            int maxWidth = vw - 16;
+
+            // Split into multiple lines if needed
+            List<String> lines = new ArrayList<>();
+            while (!desc.isEmpty() && lines.size() < 2) {
+                if (font.width(desc) <= maxWidth) {
+                    lines.add(desc);
+                    break;
                 }
-                desc += "\u2026";
+                // Find break point
+                int cutIdx = desc.length();
+                while (cutIdx > 0 && font.width(desc.substring(0, cutIdx)) > maxWidth) {
+                    cutIdx--;
+                }
+                // Try to break at space
+                int spaceIdx = desc.lastIndexOf(' ', cutIdx);
+                if (spaceIdx > cutIdx / 2) {
+                    cutIdx = spaceIdx;
+                }
+                lines.add(desc.substring(0, cutIdx).trim());
+                desc = desc.substring(cutIdx).trim();
             }
-            g.drawString(font, desc, vx + 8, textY, 0xFFAAB0C0, false);
+            if (!desc.isEmpty() && lines.size() == 2) {
+                // Add ellipsis to last line if there's more
+                String lastLine = lines.get(1);
+                while (font.width(lastLine + "...") > maxWidth && lastLine.length() > 3) {
+                    lastLine = lastLine.substring(0, lastLine.length() - 1);
+                }
+                lines.set(1, lastLine + "...");
+            }
+
+            for (String line : lines) {
+                g.drawString(font, line, vx + 8, textY, 0xFFAAB0C0, false);
+                textY += lineHeight - 1;
+            }
+        }
+
+        // Costs summary (compact, single line)
+        StringBuilder costsStr = new StringBuilder();
+        if (!activeDef.getItemCosts().isEmpty()) {
+            for (var cost : activeDef.getItemCosts()) {
+                if (costsStr.length() > 0) costsStr.append(", ");
+                costsStr.append(cost.getItem().getDescription().getString()).append(" x").append(cost.count());
+            }
+        }
+        if (activeDef.getFluidCost() != null) {
+            if (costsStr.length() > 0) costsStr.append(" | ");
+            costsStr.append(activeDef.getFluidCost().amount()).append("mB ").append(activeDef.getFluidCost().getFluidName());
+        }
+        if (costsStr.length() > 0) {
+            String costs = "Costs: " + costsStr;
+            if (font.width(costs) > vw - 16) {
+                while (font.width(costs + "...") > vw - 16 && costs.length() > 10) {
+                    costs = costs.substring(0, costs.length() - 1);
+                }
+                costs += "...";
+            }
+            g.drawString(font, costs, vx + 8, textY, 0xFF77AADD, false);
             textY += lineHeight;
         }
 
         // Progress info
-        textY += 8;
+        textY += 4;
         float progress = Math.min(1.0f, menu.getScaledProgress());
         int percent = (int) (progress * 100);
         float totalSeconds = activeDef.getDurationSeconds();
@@ -559,7 +612,7 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         int mins = (int) (remainingSeconds / 60);
         int secs = (int) (remainingSeconds % 60);
 
-        String progressText = String.format("Progress: %d%% - %d:%02d remaining", percent, mins, secs);
+        String progressText = String.format("Progress: %d%%  |  Time remaining: %d:%02d", percent, mins, secs);
         g.drawString(font, progressText, vx + 8, textY, 0xFFE6EAF5, false);
 
         // Progress bar
@@ -575,14 +628,16 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         g.fill(barX + barW - 1, barY, barX + barW, barY + barH, PANEL_BORDER_LIGHT);
         g.fill(barX, barY + barH - 1, barX + barW, barY + barH, PANEL_BORDER_LIGHT);
 
-        // Filled portion
+        // Filled portion with gradient effect
         int filledWidth = Math.round((barW - 2) * progress);
         if (filledWidth > 0) {
-            int barColor = nameColor;
-            g.fill(barX + 1, barY + 1, barX + 1 + filledWidth, barY + barH - 1, barColor);
+            g.fill(barX + 1, barY + 1, barX + 1 + filledWidth, barY + barH - 1, tierColor);
+            // Highlight at top of bar
+            int highlightColor = (tierColor & 0x00FFFFFF) | 0x44FFFFFF;
+            g.fill(barX + 1, barY + 1, barX + 1 + filledWidth, barY + 2, highlightColor);
         }
 
-        // Percentage text on bar
+        // Percentage text on bar (centered)
         String pctStr = percent + "%";
         int textWidth = font.width(pctStr);
         g.drawString(font, pctStr, barX + (barW - textWidth) / 2, barY + 2, 0xFFFFFFFF, true);
