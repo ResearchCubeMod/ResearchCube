@@ -3,7 +3,9 @@ package com.researchcube.client.screen;
 import com.researchcube.ResearchCubeMod;
 import com.researchcube.block.ResearchTableBlockEntity;
 import com.researchcube.menu.ResearchTableMenu;
+import com.researchcube.network.CancelResearchPacket;
 import com.researchcube.network.StartResearchPacket;
+import com.researchcube.network.WipeTankPacket;
 import com.researchcube.registry.ModFluids;
 import com.researchcube.research.FluidCost;
 import com.researchcube.research.ItemCost;
@@ -14,6 +16,7 @@ import com.researchcube.research.prerequisite.NonePrerequisite;
 import com.researchcube.research.prerequisite.OrPrerequisite;
 import com.researchcube.research.prerequisite.Prerequisite;
 import com.researchcube.research.prerequisite.SinglePrerequisite;
+import com.researchcube.util.IdeaChipMatcher;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -21,6 +24,7 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.PacketDistributor;
 
@@ -103,10 +107,9 @@ public class ResearchTreeScreen extends AbstractContainerScreen<ResearchTableMen
     private double dragLastY;
 
     private Button startButton;
+    private Button cancelButton;
+    private Button wipeButton;
     private Button listButton;
-    private Button fitButton;
-    private Button zoomInButton;
-    private Button zoomOutButton;
 
     private int graphMinX;
     private int graphMinY;
@@ -128,29 +131,28 @@ public class ResearchTreeScreen extends AbstractContainerScreen<ResearchTableMen
     protected void init() {
         super.init();
 
-        // Buttons positioned in upper panel controls area
-        int btnY = topPos + ResearchTableMenu.TREE_BTN_Y;
-
+        // Start button
         this.startButton = addRenderableWidget(Button.builder(Component.literal("Start"), b -> onStartResearch())
                 .bounds(leftPos + ResearchTableMenu.START_BTN_X, topPos + ResearchTableMenu.BUTTON_Y,
                         ResearchTableMenu.BUTTON_W, ResearchTableMenu.BUTTON_H)
                 .build());
 
+        // Cancel/Stop button
+        this.cancelButton = addRenderableWidget(Button.builder(Component.literal("Stop"), b -> onCancelResearch())
+                .bounds(leftPos + ResearchTableMenu.STOP_BTN_X, topPos + ResearchTableMenu.BUTTON_Y,
+                        ResearchTableMenu.BUTTON_W, ResearchTableMenu.BUTTON_H)
+                .build());
+
+        // Wipe tank button
+        this.wipeButton = addRenderableWidget(Button.builder(Component.literal("Wipe"), b -> onWipeTank())
+                .bounds(leftPos + ResearchTableMenu.WIPE_BTN_X, topPos + ResearchTableMenu.BUTTON_Y,
+                        ResearchTableMenu.BUTTON_W, ResearchTableMenu.BUTTON_H)
+                .build());
+
+        // List view button (switches back to list view)
         this.listButton = addRenderableWidget(Button.builder(Component.literal("List"), b -> openListView())
-                .bounds(leftPos + ResearchTableMenu.LIST_BTN_X, btnY,
+                .bounds(leftPos + ResearchTableMenu.LIST_BTN_X, topPos + ResearchTableMenu.TREE_BTN_Y,
                         ResearchTableMenu.LIST_BTN_W, ResearchTableMenu.LIST_BTN_H)
-                .build());
-
-        this.fitButton = addRenderableWidget(Button.builder(Component.literal("Fit"), b -> fitGraphToViewport())
-                .bounds(leftPos + ResearchTableMenu.SEARCH_X, btnY, 30, 16)
-                .build());
-
-        this.zoomOutButton = addRenderableWidget(Button.builder(Component.literal("-"), b -> adjustZoom(-0.12f))
-                .bounds(leftPos + ResearchTableMenu.SEARCH_X + 34, btnY, 20, 16)
-                .build());
-
-        this.zoomInButton = addRenderableWidget(Button.builder(Component.literal("+"), b -> adjustZoom(0.12f))
-                .bounds(leftPos + ResearchTableMenu.SEARCH_X + 58, btnY, 20, 16)
                 .build());
 
         buildGraph();
@@ -174,12 +176,12 @@ public class ResearchTreeScreen extends AbstractContainerScreen<ResearchTableMen
             clampPan();
         }
 
-        boolean canStart = !menu.isResearching() && selectedId != null;
-        if (canStart) {
-            ResearchDefinition selected = ResearchRegistry.get(selectedId);
-            canStart = selected != null && isPrerequisiteMet(selected);
-        }
+        // Update button states (same logic as ResearchTableScreen)
+        ResearchDefinition selectedDef = getSelectedDefinition();
+        boolean canStart = !menu.isResearching() && selectedDef != null && canStartResearch(selectedDef);
         startButton.active = canStart;
+        cancelButton.active = menu.isResearching();
+        wipeButton.active = menu.getFluidAmount() > 0;
     }
 
     private void openListView() {
@@ -191,10 +193,68 @@ public class ResearchTreeScreen extends AbstractContainerScreen<ResearchTableMen
     private void onStartResearch() {
         if (selectedId == null || menu.isResearching()) return;
         ResearchDefinition def = ResearchRegistry.get(selectedId);
-        if (def == null || !isPrerequisiteMet(def)) return;
+        if (def == null || !canStartResearch(def)) return;
 
         ResearchTableBlockEntity be = menu.getBlockEntity();
         PacketDistributor.sendToServer(new StartResearchPacket(be.getBlockPos(), selectedId.toString()));
+    }
+
+    private void onCancelResearch() {
+        if (!menu.isResearching()) return;
+        ResearchTableBlockEntity be = menu.getBlockEntity();
+        PacketDistributor.sendToServer(new CancelResearchPacket(be.getBlockPos()));
+    }
+
+    private void onWipeTank() {
+        ResearchTableBlockEntity be = menu.getBlockEntity();
+        PacketDistributor.sendToServer(new WipeTankPacket(be.getBlockPos()));
+    }
+
+    private boolean canStartResearch(ResearchDefinition def) {
+        if (!isPrerequisiteMet(def)) return false;
+        if (!isIdeaChipSatisfied(def)) return false;
+        if (!hasRequiredItems(def)) return false;
+        if (!hasRequiredFluid(def)) return false;
+        return true;
+    }
+
+    private boolean hasRequiredItems(ResearchDefinition def) {
+        if (def.getItemCosts().isEmpty()) return true;
+        Map<Item, Integer> available = new HashMap<>();
+        for (int i = 0; i < 6; i++) {
+            int slotIndex = ResearchTableBlockEntity.COST_SLOT_START + i;
+            ItemStack stack = menu.getSlot(slotIndex).getItem();
+            if (!stack.isEmpty()) {
+                available.merge(stack.getItem(), stack.getCount(), Integer::sum);
+            }
+        }
+        for (ItemCost cost : def.getItemCosts()) {
+            int availableCount = available.getOrDefault(cost.getItem(), 0);
+            if (availableCount < cost.count()) return false;
+        }
+        return true;
+    }
+
+    private boolean hasRequiredFluid(ResearchDefinition def) {
+        FluidCost fluidCost = def.getFluidCost();
+        if (fluidCost == null) return true;
+        int tankFluidType = menu.getFluidType();
+        int tankAmount = menu.getFluidAmount();
+        int requiredType = ModFluids.getFluidIndex(fluidCost.getFluid());
+        if (tankFluidType != requiredType) return false;
+        return tankAmount >= fluidCost.amount();
+    }
+
+    private boolean isIdeaChipSatisfied(ResearchDefinition def) {
+        if (def.getIdeaChip().isEmpty()) return true;
+        ItemStack required = def.getIdeaChip().get();
+        ItemStack candidate = menu.getSlot(ResearchTableBlockEntity.SLOT_IDEA_CHIP).getItem();
+        return IdeaChipMatcher.matches(required, candidate);
+    }
+
+    private ResearchDefinition getSelectedDefinition() {
+        if (selectedId == null) return null;
+        return ResearchRegistry.get(selectedId);
     }
 
     private boolean isPrerequisiteMet(ResearchDefinition def) {
@@ -418,6 +478,18 @@ public class ResearchTreeScreen extends AbstractContainerScreen<ResearchTableMen
         // ── Static background from texture (same as ResearchTableScreen) ──
         g.blit(TEXTURE, x, y, 0, 0, imageWidth, imageHeight, TEX_W, TEX_H);
 
+        // ── Slot labels (above slot row) ──
+        int labelY = y + ResearchTableMenu.LABEL_Y;
+        g.drawString(font, "Dr", x + ResearchTableMenu.DRIVE_X + 2, labelY, 0xFFD3D7E5, false);
+        g.drawString(font, "Cb", x + ResearchTableMenu.CUBE_X + 2, labelY, 0xFFD3D7E5, false);
+        g.drawString(font, "Id", x + ResearchTableMenu.IDEA_CHIP_X + 2, labelY, 0xFFD3D7E5, false);
+        g.drawString(font, "Costs", x + ResearchTableMenu.COST_X, labelY, 0xFFD3D7E5, false);
+        g.drawString(font, "Fl", x + ResearchTableMenu.FLUID_GAUGE_X + 3, labelY, 0xFFD3D7E5, false);
+        g.drawString(font, "I/O", x + ResearchTableMenu.BUCKET_IN_X, labelY, 0xFFD3D7E5, false);
+
+        // ── Idea chip dynamic overlay ──
+        renderIdeaChipOverlay(g, x + ResearchTableMenu.IDEA_CHIP_X, y + ResearchTableMenu.IDEA_CHIP_Y);
+
         // ── Fluid gauge (dynamic) ──
         drawFluidGauge(g, x + ResearchTableMenu.FLUID_GAUGE_X, y + ResearchTableMenu.FLUID_GAUGE_Y,
                 ResearchTableMenu.FLUID_GAUGE_W, ResearchTableMenu.FLUID_GAUGE_H);
@@ -435,6 +507,28 @@ public class ResearchTreeScreen extends AbstractContainerScreen<ResearchTableMen
         drawEdges(g, gx, gy);
         drawNodes(g, gx, gy);
         g.disableScissor();
+
+        // ── Edge legend (inside graph viewport, top-left corner) ──
+        int legendX = gx + 4;
+        int legendY = gy + 4;
+        g.fill(legendX - 2, legendY - 2, legendX + 62, legendY + 12, 0xAA1A1E2A);
+        g.drawString(font, "AND", legendX, legendY, EDGE_AND, false);
+        g.drawString(font, "OR", legendX + 22, legendY, EDGE_OR, false);
+        g.drawString(font, "S", legendX + 38, legendY, EDGE_SINGLE, false);
+    }
+
+    private void renderIdeaChipOverlay(GuiGraphics g, int sx, int sy) {
+        ResearchDefinition selected = getSelectedDefinition();
+        if (selected == null || selected.getIdeaChip().isEmpty()) {
+            g.fill(sx, sy, sx + 16, sy + 16, 0x88000000);
+        } else if (!isIdeaChipSatisfied(selected)) {
+            int x0 = sx - 1;
+            int y0 = sy - 1;
+            g.fill(x0, y0, x0 + 18, y0 + 1, 0xFFFF3333);
+            g.fill(x0, y0 + 17, x0 + 18, y0 + 18, 0xFFFF3333);
+            g.fill(x0, y0, x0 + 1, y0 + 18, 0xFFFF3333);
+            g.fill(x0 + 17, y0, x0 + 18, y0 + 18, 0xFFFF3333);
+        }
     }
 
     private void drawFluidGauge(GuiGraphics g, int gx, int gy, int gw, int gh) {
@@ -641,10 +735,79 @@ public class ResearchTreeScreen extends AbstractContainerScreen<ResearchTableMen
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         super.render(graphics, mouseX, mouseY, partialTick);
 
+        // Node tooltip
         Optional<NodeBox> hovered = getHoveredNode(mouseX, mouseY);
         hovered.ifPresent(node -> renderNodeTooltip(graphics, node, mouseX, mouseY));
 
+        // Fluid gauge tooltip
+        renderFluidGaugeTooltip(graphics, mouseX, mouseY);
+
+        // Idea chip tooltip
+        renderIdeaChipTooltip(graphics, mouseX, mouseY);
+
         renderTooltip(graphics, mouseX, mouseY);
+    }
+
+    private void renderFluidGaugeTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
+        int gx = leftPos + ResearchTableMenu.FLUID_GAUGE_X;
+        int gy = topPos + ResearchTableMenu.FLUID_GAUGE_Y;
+        int gw = ResearchTableMenu.FLUID_GAUGE_W;
+        int gh = ResearchTableMenu.FLUID_GAUGE_H;
+
+        if (mouseX < gx - 1 || mouseX >= gx + gw + 1 || mouseY < gy - 1 || mouseY >= gy + gh + 1) {
+            return;
+        }
+
+        List<Component> tooltip = new ArrayList<>();
+        int fluidAmount = menu.getFluidAmount();
+        int fluidType = menu.getFluidType();
+
+        if (fluidAmount > 0 && fluidType > 0) {
+            int color = ModFluids.getFluidColor(fluidType);
+            tooltip.add(Component.literal(ModFluids.getFluidName(fluidType))
+                    .withStyle(s -> s.withColor(color & 0x00FFFFFF)));
+            tooltip.add(Component.literal(fluidAmount + " / " + ResearchTableBlockEntity.TANK_CAPACITY + " mB")
+                    .withStyle(s -> s.withColor(0xBBBBBB)));
+        } else {
+            tooltip.add(Component.literal("Empty")
+                    .withStyle(s -> s.withColor(0x888888)));
+            tooltip.add(Component.literal("0 / " + ResearchTableBlockEntity.TANK_CAPACITY + " mB")
+                    .withStyle(s -> s.withColor(0xBBBBBB)));
+        }
+        tooltip.add(Component.literal("Insert fluid buckets below")
+                .withStyle(s -> s.withColor(0x666666).withItalic(true)));
+
+        graphics.renderTooltip(font, tooltip, Optional.empty(), mouseX, mouseY);
+    }
+
+    private void renderIdeaChipTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
+        int sx = leftPos + ResearchTableMenu.IDEA_CHIP_X;
+        int sy = topPos + ResearchTableMenu.IDEA_CHIP_Y;
+
+        if (mouseX < sx - 1 || mouseX >= sx + 17 || mouseY < sy - 1 || mouseY >= sy + 17) {
+            return;
+        }
+
+        ItemStack slotStack = menu.getSlot(ResearchTableBlockEntity.SLOT_IDEA_CHIP).getItem();
+        if (!slotStack.isEmpty()) return;
+
+        List<Component> tooltip = new ArrayList<>();
+        ResearchDefinition selected = getSelectedDefinition();
+
+        if (selected == null || selected.getIdeaChip().isEmpty()) {
+            tooltip.add(Component.literal("Idea Chip Slot")
+                    .withStyle(s -> s.withColor(0x888888)));
+            tooltip.add(Component.literal("No idea chip required for this research.")
+                    .withStyle(s -> s.withColor(0x666666).withItalic(true)));
+        } else {
+            ItemStack required = selected.getIdeaChip().get();
+            tooltip.add(Component.literal("Idea Chip Slot")
+                    .withStyle(s -> s.withColor(0xFF5555)));
+            tooltip.add(Component.literal("Requires: " + required.getHoverName().getString())
+                    .withStyle(s -> s.withColor(0xFFAAAA)));
+        }
+
+        graphics.renderTooltip(font, tooltip, Optional.empty(), mouseX, mouseY);
     }
 
     private void renderNodeTooltip(GuiGraphics graphics, NodeBox node, int mouseX, int mouseY) {
@@ -692,32 +855,13 @@ public class ResearchTreeScreen extends AbstractContainerScreen<ResearchTableMen
 
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
-        graphics.drawString(this.font, this.title, this.titleLabelX, this.titleLabelY, 0xFF202020, false);
+        graphics.drawString(this.font, this.title, this.titleLabelX, this.titleLabelY, 0xFF343841, false);
         graphics.drawString(this.font, this.playerInventoryTitle, this.inventoryLabelX, this.inventoryLabelY, 0xFFE6EAF5, false);
 
-        // Tree view controls info
-        graphics.drawString(this.font, "Tree View  |  scroll=zoom, R-drag=pan",
-                ResearchTableMenu.SEARCH_X + 84, ResearchTableMenu.SEARCH_Y, 0xFFE5E7EB, false);
-
-        // Edge legend
-        graphics.drawString(this.font, "AND", GRAPH_X + GRAPH_W - 70, ResearchTableMenu.SEARCH_Y, EDGE_AND, false);
-        graphics.drawString(this.font, "OR", GRAPH_X + GRAPH_W - 46, ResearchTableMenu.SEARCH_Y, EDGE_OR, false);
-        graphics.drawString(this.font, "S", GRAPH_X + GRAPH_W - 22, ResearchTableMenu.SEARCH_Y, EDGE_SINGLE, false);
-
-        // Slot labels in machine panel
-        int labelY = ResearchTableMenu.LABEL_Y;
-        graphics.drawString(this.font, "Dr", ResearchTableMenu.DRIVE_X + 2, labelY, 0xFFD3D7E5, false);
-        graphics.drawString(this.font, "Cb", ResearchTableMenu.CUBE_X + 2, labelY, 0xFFD3D7E5, false);
-        graphics.drawString(this.font, "Id", ResearchTableMenu.IDEA_CHIP_X + 2, labelY, 0xFFD3D7E5, false);
-        graphics.drawString(this.font, "Costs", ResearchTableMenu.COST_X, labelY, 0xFFD3D7E5, false);
-        graphics.drawString(this.font, "Fl", ResearchTableMenu.FLUID_GAUGE_X + 3, labelY, 0xFFD3D7E5, false);
-        graphics.drawString(this.font, "I/O", ResearchTableMenu.BUCKET_IN_X, labelY, 0xFFD3D7E5, false);
-
+        // Researching indicator (same as ResearchTableScreen)
         if (menu.isResearching()) {
             graphics.drawString(this.font, "\u25CF Researching",
                     ResearchTableMenu.MACHINE_PANEL_X + 4, ResearchTableMenu.BUTTON_Y + 18, 0xFF77DD77, false);
         }
-        graphics.drawString(this.font, Math.round(zoom * 100f) + "%",
-                ResearchTableMenu.SEARCH_X + 82, ResearchTableMenu.TREE_BTN_Y, 0xFFD9DDE7, false);
     }
 }
