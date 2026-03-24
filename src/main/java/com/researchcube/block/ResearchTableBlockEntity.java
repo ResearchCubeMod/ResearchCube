@@ -334,6 +334,8 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
         this.startTime = level.getGameTime();
         this.researchKey = researchKey;
         setChanged();
+        // Sync block entity state to client so GUI can display progress view
+        level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
 
         // Play start sound (subtle click/buzz)
         level.playSound(null, worldPosition, SoundEvents.UI_BUTTON_CLICK.value(), SoundSource.BLOCKS, 0.6f, 1.2f);
@@ -539,6 +541,8 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
     private void clearResearchAndNotify(Level level) {
         String key = this.researchKey;
         clearResearch();
+        // Sync block entity state to client so GUI can switch back to list view
+        level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
         if (key != null && level instanceof ServerLevel serverLevel) {
             sendClearPacket(serverLevel, key);
         }

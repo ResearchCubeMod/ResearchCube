@@ -197,6 +197,9 @@ public class ResearchTreeScreen extends AbstractContainerScreen<ResearchTableMen
 
         ResearchTableBlockEntity be = menu.getBlockEntity();
         PacketDistributor.sendToServer(new StartResearchPacket(be.getBlockPos(), selectedId.toString()));
+
+        // Switch to list view to show the progress bar
+        openListView();
     }
 
     private void onCancelResearch() {

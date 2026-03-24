@@ -702,16 +702,16 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         int w = ResearchTableMenu.DETAIL_W;
         int h = ResearchTableMenu.DETAIL_H;
 
-        // Detail pane background
-        g.fill(x, y, x + w, y + h, 0xFF1E2233);
-        g.fill(x, y, x + w, y + 1, PANEL_BORDER_DARK);
-        g.fill(x, y, x + 1, y + h, PANEL_BORDER_DARK);
-        g.fill(x + w - 1, y, x + w, y + h, PANEL_BORDER_LIGHT);
-        g.fill(x, y + h - 1, x + w, y + h, PANEL_BORDER_LIGHT);
+        // Detail pane background - use same padding as list (-2/+2) for alignment
+        g.fill(x - 2, y, x + w + 2, y + h, 0xFF1E2233);
+        g.fill(x - 2, y, x + w + 2, y + 1, PANEL_BORDER_DARK);
+        g.fill(x - 2, y, x - 1, y + h, PANEL_BORDER_DARK);
+        g.fill(x + w + 1, y, x + w + 2, y + h, PANEL_BORDER_LIGHT);
+        g.fill(x - 2, y + h - 1, x + w + 2, y + h, PANEL_BORDER_LIGHT);
 
         ResearchDefinition def = getSelectedDefinition();
         if (def == null) {
-            g.drawString(font, "Select a research entry", x + 4, y + 4, 0xFF666666, false);
+            g.drawString(font, "Select a research entry", x + 2, y + 4, 0xFF666666, false);
             return;
         }
 
@@ -1066,7 +1066,10 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
 
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
-        graphics.drawString(this.font, this.title, this.titleLabelX, this.titleLabelY, 0xFF343841, false);
+        // Don't render title in LIST view - it would overlap the search bar
+        if (currentView != ViewMode.LIST) {
+            graphics.drawString(this.font, this.title, this.titleLabelX, this.titleLabelY, 0xFF343841, false);
+        }
         graphics.drawString(this.font, this.playerInventoryTitle, this.inventoryLabelX, this.inventoryLabelY, 0xFFE6EAF5, false);
     }
 }
