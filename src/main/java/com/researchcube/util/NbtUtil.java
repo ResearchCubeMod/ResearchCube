@@ -62,15 +62,26 @@ public final class NbtUtil {
     }
 
     public static void addRecipe(ItemStack stack, String recipeId) {
-        List<String> existing = readRecipes(stack);
-        if (!existing.contains(recipeId)) {
-            existing.add(recipeId);
-            writeRecipes(stack, existing);
-        }
+        mutateCustomData(stack, tag -> {
+            ListTag listTag = tag.contains(KEY_RECIPES, Tag.TAG_LIST)
+                    ? tag.getList(KEY_RECIPES, Tag.TAG_STRING)
+                    : new ListTag();
+            for (int i = 0; i < listTag.size(); i++) {
+                if (listTag.getString(i).equals(recipeId)) return;
+            }
+            listTag.add(StringTag.valueOf(recipeId));
+            tag.put(KEY_RECIPES, listTag);
+        });
     }
 
     public static boolean hasRecipe(ItemStack stack, String recipeId) {
-        return readRecipes(stack).contains(recipeId);
+        CompoundTag tag = getCustomData(stack);
+        if (tag == null || !tag.contains(KEY_RECIPES, Tag.TAG_LIST)) return false;
+        ListTag listTag = tag.getList(KEY_RECIPES, Tag.TAG_STRING);
+        for (int i = 0; i < listTag.size(); i++) {
+            if (listTag.getString(i).equals(recipeId)) return true;
+        }
+        return false;
     }
 
     /**

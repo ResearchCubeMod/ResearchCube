@@ -176,6 +176,7 @@ public class ProcessingStationBlockEntity extends BlockEntity {
         if (!isProcessing() || level == null || recipeDuration <= 0) return 0f;
         long elapsed = level.getGameTime() - startTime;
         int adjustedDuration = (int) (recipeDuration * ModConfig.getProcessingDurationMultiplier());
+        if (adjustedDuration <= 0) return 0f;
         return Math.min(1.0f, (float) elapsed / adjustedDuration);
     }
 
@@ -362,6 +363,7 @@ public class ProcessingStationBlockEntity extends BlockEntity {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private void completeProcessing() {
         if (level == null || activeRecipeId == null) {
             clearProcessing();

@@ -10,7 +10,7 @@ import com.researchcube.util.NbtUtil;
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
 import mezz.jei.api.constants.VanillaTypes;
-import mezz.jei.api.ingredients.subtypes.IIngredientSubtypeInterpreter;
+import mezz.jei.api.ingredients.subtypes.ISubtypeInterpreter;
 import mezz.jei.api.ingredients.subtypes.UidContext;
 import mezz.jei.api.registration.IRecipeCatalystRegistration;
 import mezz.jei.api.registration.IRecipeCategoryRegistration;
@@ -47,20 +47,31 @@ public class ResearchCubeJEIPlugin implements IModPlugin {
     @Override
     public void registerItemSubtypes(ISubtypeRegistration registration) {
         // Drives with different stored recipes should be treated as different subtypes
-        IIngredientSubtypeInterpreter<ItemStack> driveInterpreter = (stack, context) -> {
-            if (!(stack.getItem() instanceof DriveItem)) return IIngredientSubtypeInterpreter.NONE;
-            List<String> recipes = NbtUtil.readRecipes(stack);
-            if (recipes.isEmpty()) return IIngredientSubtypeInterpreter.NONE;
-            return recipes.stream().sorted().collect(Collectors.joining(","));
+        ISubtypeInterpreter<ItemStack> driveInterpreter = new ISubtypeInterpreter<>() {
+            @Override
+            public Object getSubtypeData(ItemStack stack, UidContext context) {
+                if (!(stack.getItem() instanceof DriveItem)) return null;
+                List<String> recipes = NbtUtil.readRecipes(stack);
+                if (recipes.isEmpty()) return null;
+                return recipes.stream().sorted().collect(Collectors.joining(","));
+            }
+
+            @Override
+            public String getLegacyStringSubtypeInfo(ItemStack stack, UidContext context) {
+                if (!(stack.getItem() instanceof DriveItem)) return "";
+                List<String> recipes = NbtUtil.readRecipes(stack);
+                if (recipes.isEmpty()) return "";
+                return recipes.stream().sorted().collect(Collectors.joining(","));
+            }
         };
 
-        registration.registerSubtypeInterpreter(VanillaTypes.ITEM_STACK, ModItems.METADATA_IRRECOVERABLE.get(), driveInterpreter);
-        registration.registerSubtypeInterpreter(VanillaTypes.ITEM_STACK, ModItems.METADATA_UNSTABLE.get(), driveInterpreter);
-        registration.registerSubtypeInterpreter(VanillaTypes.ITEM_STACK, ModItems.METADATA_RECLAIMED.get(), driveInterpreter);
-        registration.registerSubtypeInterpreter(VanillaTypes.ITEM_STACK, ModItems.METADATA_ENHANCED.get(), driveInterpreter);
-        registration.registerSubtypeInterpreter(VanillaTypes.ITEM_STACK, ModItems.METADATA_ELABORATE.get(), driveInterpreter);
-        registration.registerSubtypeInterpreter(VanillaTypes.ITEM_STACK, ModItems.METADATA_CYBERNETIC.get(), driveInterpreter);
-        registration.registerSubtypeInterpreter(VanillaTypes.ITEM_STACK, ModItems.METADATA_SELF_AWARE.get(), driveInterpreter);
+        registration.registerSubtypeInterpreter(ModItems.METADATA_IRRECOVERABLE.get(), driveInterpreter);
+        registration.registerSubtypeInterpreter(ModItems.METADATA_UNSTABLE.get(), driveInterpreter);
+        registration.registerSubtypeInterpreter(ModItems.METADATA_RECLAIMED.get(), driveInterpreter);
+        registration.registerSubtypeInterpreter(ModItems.METADATA_ENHANCED.get(), driveInterpreter);
+        registration.registerSubtypeInterpreter(ModItems.METADATA_ELABORATE.get(), driveInterpreter);
+        registration.registerSubtypeInterpreter(ModItems.METADATA_CYBERNETIC.get(), driveInterpreter);
+        registration.registerSubtypeInterpreter(ModItems.METADATA_SELF_AWARE.get(), driveInterpreter);
     }
 
     @Override

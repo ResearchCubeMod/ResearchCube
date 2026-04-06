@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mv \"cube_advanced.geo.json.animation.json\" \"cube_advanced.animation.json\")",
+      "Bash(mv \"cube_basic.geo.json.animation.json\" \"cube_basic.animation.json\")",
+      "Bash(mv \"cube_flawless.geo.json.animation.json\" \"cube_flawless.animation.json\")",
+      "Bash(grep -r \"Math\\\\\\\\.min\\\\|Math\\\\\\\\.max\" /c/Users/elias/Documents/GitHub/ResearchCube/src/main/java --include=\"*.java\")"
+    ]
+  }
+}

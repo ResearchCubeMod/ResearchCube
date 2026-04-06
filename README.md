@@ -112,12 +112,28 @@ Create a JSON file in `data/<your_pack>/recipe/`:
 }
 ```
 
+### Idea Chips
+
+Research can optionally require an **Idea Chip** — a custom item placed in a dedicated slot. Chips are consumed on research start and **not** refunded on cancel. Define them in your research JSON:
+
+```json
+"idea_chip": {
+  "id": "researchcube:metadata_irrecoverable",
+  "components": {
+    "minecraft:custom_name": "\"Idea: Forbidden Crystal\"",
+    "minecraft:custom_data": { "researchcube_chip_id": "forbidden_crystal" }
+  }
+}
+```
+
+Matching is **partial** — only declared components are checked. Distribute chips via quests, loot tables, or `/give` commands.
+
 ### Full Documentation
 
 See the **[GitHub Wiki](https://github.com/ResearchCubeMod/ResearchCube/wiki)** for the complete guide:
 
 - [Research Tiers](https://github.com/ResearchCubeMod/ResearchCube/wiki/Research-Tiers)
-- [Research Definition Schema](https://github.com/ResearchCubeMod/ResearchCube/wiki/Datapack-Research-Definition-Schema) — prerequisites (AND/OR trees), weighted recipe pools, fluid costs
+- [Research Definition Schema](https://github.com/ResearchCubeMod/ResearchCube/wiki/Datapack-Research-Definition-Schema) — prerequisites (AND/OR trees), weighted recipe pools, fluid costs, idea chips
 - [Drive Crafting Recipe Schema](https://github.com/ResearchCubeMod/ResearchCube/wiki/Datapack-Drive-Crafting-Recipe-Schema)
 - [Datapack Guide](https://github.com/ResearchCubeMod/ResearchCube/wiki/Datapack-Guide) — examples and troubleshooting
 

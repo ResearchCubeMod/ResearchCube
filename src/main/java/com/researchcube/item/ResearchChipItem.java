@@ -5,6 +5,7 @@ import com.researchcube.block.ResearchTableBlockEntity;
 import com.researchcube.research.ResearchDefinition;
 import com.researchcube.research.ResearchRegistry;
 import com.researchcube.research.ResearchSavedData;
+import com.researchcube.network.OpenChipEncoderPacket;
 import com.researchcube.util.NbtUtil;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -25,6 +26,7 @@ import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.List;
 import java.util.Set;
@@ -82,9 +84,8 @@ public class ResearchChipItem extends Item {
     }
 
     /**
-     * Encode a research onto this chip from the player's completed research.
-     * For simplicity, this uses the most recently completed research.
-     * (A proper implementation would open a selection screen.)
+     * Opens the chip encoder selection screen on the client by sending
+     * the player's completed research set via packet.
      */
     private InteractionResult encodeChip(ServerPlayer player, ItemStack stack) {
         if (!(player.level() instanceof ServerLevel serverLevel)) {
@@ -102,18 +103,38 @@ public class ResearchChipItem extends Item {
             return InteractionResult.FAIL;
         }
 
-        // For now, pick the first one (in a full implementation, this would open a GUI)
-        ResourceLocation toEncode = completed.iterator().next();
+        boolean mainHand = player.getMainHandItem() == stack;
+        PacketDistributor.sendToPlayer(player, new OpenChipEncoderPacket(completed, mainHand));
+        return InteractionResult.CONSUME;
+    }
 
-        setStoredResearchId(stack, toEncode.toString());
+    /**
+     * Called from {@link com.researchcube.network.EncodeChipPacket} when the player
+     * selects a research in the chip encoder screen.
+     */
+    public void serverEncodeChip(ServerPlayer player, ItemStack stack, ResourceLocation researchId) {
+        if (!(player.level() instanceof ServerLevel serverLevel)) return;
+
+        String researchKey = ResearchSavedData.getResearchKey(player);
+        Set<ResourceLocation> completed = ResearchSavedData.get(serverLevel).getCompletedResearch(researchKey);
+
+        if (!completed.contains(researchId)) {
+            ResearchCubeMod.LOGGER.warn("[ResearchCube] {} tried to encode research '{}' they haven't completed",
+                    player.getName().getString(), researchId);
+            return;
+        }
+
+        ResearchDefinition def = ResearchRegistry.get(researchId.toString());
+        String displayName = def != null ? def.getDisplayName() : researchId.toString();
+
+        setStoredResearchId(stack, researchId.toString());
         player.displayClientMessage(
                 Component.literal("Encoded: ").withStyle(ChatFormatting.GREEN)
-                        .append(Component.literal(toEncode.toString()).withStyle(ChatFormatting.YELLOW)),
+                        .append(Component.literal(displayName).withStyle(ChatFormatting.YELLOW)),
                 true
         );
 
-        ResearchCubeMod.LOGGER.info("[ResearchCube] {} encoded research '{}' onto chip", player.getName().getString(), toEncode);
-        return InteractionResult.CONSUME;
+        ResearchCubeMod.LOGGER.info("[ResearchCube] {} encoded research '{}' onto chip", player.getName().getString(), researchId);
     }
 
     /**

@@ -40,10 +40,22 @@ public class ModNetworking {
                 StartProcessingPacket::handle
         );
 
+        registrar.playToServer(
+                EncodeChipPacket.TYPE,
+                EncodeChipPacket.STREAM_CODEC,
+                EncodeChipPacket::handle
+        );
+
         registrar.playToClient(
                 OpenResearchBookPacket.TYPE,
                 OpenResearchBookPacket.STREAM_CODEC,
                 OpenResearchBookPacket::handle
+        );
+
+        registrar.playToClient(
+                OpenChipEncoderPacket.TYPE,
+                OpenChipEncoderPacket.STREAM_CODEC,
+                OpenChipEncoderPacket::handle
         );
 
         registrar.playToClient(

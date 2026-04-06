@@ -24,9 +24,9 @@ public class CubeItemModel extends GeoModel<CubeItem> {
     private static final ResourceLocation GEO_2X2 = ResearchCubeMod.rl("geo/cube_advanced.geo.json");
     private static final ResourceLocation GEO_3X3 = ResearchCubeMod.rl("geo/cube_flawless.geo.json");
 
-    private static final ResourceLocation ANIM_1X1 = ResearchCubeMod.rl("animations/cube_basic.geo.json.animation.json");
-    private static final ResourceLocation ANIM_2X2 = ResearchCubeMod.rl("animations/cube_advanced.geo.json.animation.json");
-    private static final ResourceLocation ANIM_3X3 = ResearchCubeMod.rl("animations/cube_flawless.geo.json.animation.json");
+    private static final ResourceLocation ANIM_1X1 = ResearchCubeMod.rl("animations/cube_basic.animation.json");
+    private static final ResourceLocation ANIM_2X2 = ResearchCubeMod.rl("animations/cube_advanced.animation.json");
+    private static final ResourceLocation ANIM_3X3 = ResearchCubeMod.rl("animations/cube_flawless.animation.json");
 
     private static final ResourceLocation TEX_1X1 = ResearchCubeMod.rl("textures/cube/cube_basic.png");
     private static final ResourceLocation TEX_2X2 = ResearchCubeMod.rl("textures/cube/cube_advanced.png");
