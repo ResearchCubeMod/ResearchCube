@@ -13,17 +13,14 @@ import com.researchcube.research.ResearchRegistry;
 import com.researchcube.research.ItemCost;
 import com.researchcube.research.FluidCost;
 import com.researchcube.research.prerequisite.NonePrerequisite;
-import com.researchcube.util.IdeaChipMatcher;
 import com.researchcube.util.RecipeOutputResolver;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
-import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.PacketDistributor;
 import org.jetbrains.annotations.Nullable;
@@ -33,14 +30,16 @@ import java.util.*;
 /**
  * Client-side screen for the Research Table.
  *
- * Layout (470x260) - compact square design:
- *   Top section: Upper panel with 3 view modes:
- *     - LIST: Search bar, Research list (4 rows), Detail pane
- *     - TREE: Embedded research tree visualization
- *     - PROGRESS: Active research info, description, progress bar
- *   Bottom section: Machine panel (left) + Player inventory (right)
- *     - Machine: Drive, Cube, Idea, Cost grid, Fluid gauge, Buckets, Buttons
- *     - Player inventory: 9x3 main + 9x1 hotbar
+ * <p>The upper panel hosts three views, switchable via the List/Tree tabs (top right):
+ * <ul>
+ *   <li><b>LIST</b> — search bar, categorised research list, detail pane</li>
+ *   <li><b>TREE</b> — the dependency graph (delegated to {@link ResearchGraphView})</li>
+ *   <li><b>PROGRESS</b> — active research info + progress bar (shown automatically
+ *       while researching)</li>
+ * </ul>
+ * The lower half holds the machine panel (drive/cube/idea/costs/fluid/buckets/buttons)
+ * on the left and the player inventory on the right. Selection ({@link #selectedId}) is
+ * shared between the list and the tree so it persists across tab switches.
  */
 public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMenu> {
 
@@ -59,10 +58,13 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
     private static final int TEX_W = ResearchTableMenu.GUI_WIDTH;
     private static final int TEX_H = ResearchTableMenu.GUI_HEIGHT;
 
-    // Colors (for dynamic elements)
-    private static final int PANEL_BORDER_LIGHT = 0xFF7E87A6;
-    private static final int PANEL_BORDER_DARK = 0xFF1A1A1A;
-    private static final int LIST_BG = 0xFF252A3E;
+    private static final int TAB_ACCENT = 0xFF66B3FF;
+
+    // Tree graph viewport (relative to leftPos/topPos), matching the upper panel content area.
+    private static final int GRAPH_X = ResearchTableMenu.UPPER_PANEL_X + 8;
+    private static final int GRAPH_Y = ResearchTableMenu.UPPER_PANEL_Y + 24;
+    private static final int GRAPH_W = ResearchTableMenu.UPPER_PANEL_W - 16;
+    private static final int GRAPH_H = ResearchTableMenu.UPPER_PANEL_H - 28;
 
     // View mode state
     private ViewMode currentView = ViewMode.LIST;
@@ -71,17 +73,18 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
     // Research list state
     private List<ResearchDefinition> availableResearch = new ArrayList<>();
     private List<ListRow> displayRows = new ArrayList<>();
-    private int selectedIndex = -1;
     private ResourceLocation selectedId = null;
     private int scrollOffset = 0;
 
     private Button startButton;
     private Button cancelButton;
     private Button wipeButton;
-    private Button treeViewButton;
-    private Button listViewButton;
+    private Button listTabButton;
+    private Button treeTabButton;
     private EditBox searchBox;
     private String searchFilter = "";
+
+    private ResearchGraphView graphView;
 
     public ResearchTableScreen(ResearchTableMenu menu, Inventory playerInv, Component title) {
         super(menu, playerInv, title);
@@ -116,19 +119,18 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
                 .build();
         addRenderableWidget(wipeButton);
 
-        // Tree view button (switches to tree view)
-        treeViewButton = Button.builder(Component.literal("Tree"), btn -> onSwitchToTreeView())
+        // ── View tabs (top right): List | Tree ──
+        listTabButton = Button.builder(Component.literal("List"), btn -> onSelectView(ViewMode.LIST))
                 .bounds(leftPos + ResearchTableMenu.TREE_BTN_X, topPos + ResearchTableMenu.TREE_BTN_Y,
                         ResearchTableMenu.TREE_BTN_W, ResearchTableMenu.TREE_BTN_H)
                 .build();
-        addRenderableWidget(treeViewButton);
+        addRenderableWidget(listTabButton);
 
-        // List view button (switches back to list view)
-        listViewButton = Button.builder(Component.literal("List"), btn -> onSwitchToListView())
+        treeTabButton = Button.builder(Component.literal("Tree"), btn -> onSelectView(ViewMode.TREE))
                 .bounds(leftPos + ResearchTableMenu.LIST_BTN_X, topPos + ResearchTableMenu.LIST_BTN_Y,
                         ResearchTableMenu.LIST_BTN_W, ResearchTableMenu.LIST_BTN_H)
                 .build();
-        addRenderableWidget(listViewButton);
+        addRenderableWidget(treeTabButton);
 
         // Search box above the research list
         searchBox = new EditBox(font,
@@ -143,6 +145,15 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
             refreshResearchList();
         });
         addRenderableWidget(searchBox);
+
+        // Tree graph component (persists across re-inits so pan/zoom/selection survive resizes)
+        if (graphView == null) {
+            graphView = new ResearchGraphView(font, menu);
+        }
+        graphView.setViewport(leftPos + GRAPH_X, topPos + GRAPH_Y, GRAPH_W, GRAPH_H);
+        graphView.buildGraph();
+        graphView.fitToViewport();
+        graphView.setSelectedId(selectedId);
 
         refreshResearchList();
         updateViewMode();
@@ -209,17 +220,6 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
                 displayRows.add(ListRow.entry(def));
             }
         }
-
-        // Restore selection by ID
-        selectedIndex = -1;
-        if (selectedId != null) {
-            for (int i = 0; i < availableResearch.size(); i++) {
-                if (availableResearch.get(i).getId().equals(selectedId)) {
-                    selectedIndex = i;
-                    break;
-                }
-            }
-        }
     }
 
     // ══════════════════════════════════════════════════════════════
@@ -227,11 +227,9 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
     // ══════════════════════════════════════════════════════════════
 
     private void onStartResearch() {
-        if (selectedIndex < 0 || selectedIndex >= availableResearch.size()) return;
         if (menu.isResearching()) return;
-
-        ResearchDefinition def = availableResearch.get(selectedIndex);
-        if (!canStartResearch(def)) return;
+        ResearchDefinition def = getSelectedDefinition();
+        if (def == null || !ResearchRequirements.canStart(menu, def)) return;
 
         ResearchTableBlockEntity be = menu.getBlockEntity();
         PacketDistributor.sendToServer(new StartResearchPacket(be.getBlockPos(), def.getId().toString()));
@@ -248,131 +246,64 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         PacketDistributor.sendToServer(new WipeTankPacket(be.getBlockPos()));
     }
 
-    private void onSwitchToTreeView() {
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null) return;
-        mc.setScreen(new ResearchTreeScreen(menu, mc.player.getInventory(), this.title));
-    }
-
-    private void onSwitchToListView() {
-        preferredView = ViewMode.LIST;
+    /** Switch the browsing view (List/Tree) and remember it as the user's preference. */
+    private void onSelectView(ViewMode view) {
+        preferredView = view;
+        if (view == ViewMode.TREE) {
+            graphView.setSelectedId(selectedId);
+        }
         updateViewMode();
     }
 
     /**
      * Updates the view mode based on research state and user preference.
-     * When researching AND definition is available: show PROGRESS view
-     * When not researching: show user's preferred view (LIST or TREE)
+     * While researching (and the active definition is synced) the PROGRESS view takes
+     * over; otherwise the user's preferred browsing view (LIST or TREE) is shown.
      */
     private void updateViewMode() {
-        if (menu.isResearching()) {
-            // Only show PROGRESS view if the active definition is synced to client
-            ResearchDefinition activeDef = menu.getBlockEntity().getActiveDefinition();
-            if (activeDef != null) {
-                currentView = ViewMode.PROGRESS;
-            } else {
-                // Stay in current view until definition is synced
-                currentView = preferredView;
-            }
+        if (menu.isResearching() && menu.getBlockEntity().getActiveDefinition() != null) {
+            currentView = ViewMode.PROGRESS;
         } else {
             currentView = preferredView;
         }
 
-        // Update visibility of view-specific components
-        boolean showListComponents = (currentView == ViewMode.LIST);
-        searchBox.visible = showListComponents;
-        treeViewButton.visible = showListComponents;
-        listViewButton.visible = (currentView == ViewMode.TREE);
+        boolean browsing = (currentView != ViewMode.PROGRESS);
+        searchBox.visible = (currentView == ViewMode.LIST);
+        listTabButton.visible = browsing;
+        treeTabButton.visible = browsing;
     }
 
     @Override
     public void containerTick() {
         super.containerTick();
         refreshResearchList();
+        graphView.tick();
+        graphView.setSelectedId(selectedId);  // list is the source of truth for shared selection
         updateViewMode();
 
         // Start button: only active if research is selected AND all requirements are met
         ResearchDefinition selectedDef = getSelectedDefinition();
-        boolean canStart = !menu.isResearching() && selectedDef != null && canStartResearch(selectedDef);
+        boolean canStart = !menu.isResearching() && selectedDef != null && ResearchRequirements.canStart(menu, selectedDef);
         startButton.active = canStart;
         cancelButton.active = menu.isResearching();
         wipeButton.active = menu.getFluidAmount() > 0;
     }
 
-    /**
-     * Checks if research can be started (prerequisites, idea chip, and recipe items/fluids available).
-     */
-    private boolean canStartResearch(ResearchDefinition def) {
-        if (!isPrerequisiteMet(def)) return false;
-        if (!isIdeaChipSatisfied(def)) return false;
-        if (!hasRequiredItems(def)) return false;
-        if (!hasRequiredFluid(def)) return false;
-        return true;
+    @Nullable
+    private ResearchDefinition getSelectedDefinition() {
+        return selectedId == null ? null : ResearchRegistry.get(selectedId);
     }
 
-    /**
-     * Checks if the required item costs are present in the cost slots.
-     * Uses menu slots directly for proper client-side sync.
-     */
-    private boolean hasRequiredItems(ResearchDefinition def) {
-        if (def.getItemCosts().isEmpty()) return true;
-
-        // Collect all items in cost slots using menu's synced slots
-        Map<Item, Integer> available = new HashMap<>();
-        for (int i = 0; i < 6; i++) {
-            int slotIndex = ResearchTableBlockEntity.COST_SLOT_START + i;
-            ItemStack stack = menu.getSlot(slotIndex).getItem();
-            if (!stack.isEmpty()) {
-                available.merge(stack.getItem(), stack.getCount(), Integer::sum);
-            }
-        }
-
-        // Check each required cost
-        for (ItemCost cost : def.getItemCosts()) {
-            Item requiredItem = cost.getItem();
-            int requiredCount = cost.count();
-            int availableCount = available.getOrDefault(requiredItem, 0);
-            if (availableCount < requiredCount) return false;
-        }
-        return true;
-    }
-
-    /**
-     * Checks if the required fluid is present in the tank.
-     */
-    private boolean hasRequiredFluid(ResearchDefinition def) {
-        FluidCost fluidCost = def.getFluidCost();
-        if (fluidCost == null) return true;
-
-        int requiredAmount = fluidCost.amount();
-        int tankFluidType = menu.getFluidType();
-        int tankAmount = menu.getFluidAmount();
-
-        // Check if fluid type matches
-        int requiredType = ModFluids.getFluidIndex(fluidCost.getFluid());
-        if (tankFluidType != requiredType) return false;
-
-        return tankAmount >= requiredAmount;
-    }
-
-    private boolean isPrerequisiteMet(ResearchDefinition def) {
-        Set<String> completed = menu.getCompletedResearch();
-        return def.getPrerequisites().isSatisfied(completed);
-    }
-
-    private boolean isIdeaChipSatisfied(ResearchDefinition def) {
-        if (def.getIdeaChip().isEmpty()) return true;
-        ItemStack required = def.getIdeaChip().get();
-        // Use menu's synced slot instead of direct BlockEntity inventory access
-        ItemStack candidate = menu.getSlot(ResearchTableBlockEntity.SLOT_IDEA_CHIP).getItem();
-        return IdeaChipMatcher.matches(required, candidate);
+    private void selectResearch(ResourceLocation id) {
+        selectedId = id;
+        graphView.setSelectedId(id);
     }
 
     private void renderIdeaChipOverlay(GuiGraphics g, int sx, int sy) {
         ResearchDefinition selected = getSelectedDefinition();
         if (selected == null || selected.getIdeaChip().isEmpty()) {
             g.fill(sx, sy, sx + 16, sy + 16, 0x88000000);
-        } else if (!isIdeaChipSatisfied(selected)) {
+        } else if (!ResearchRequirements.ideaChipSatisfied(menu, selected)) {
             int x0 = sx - 1;
             int y0 = sy - 1;
             g.fill(x0, y0, x0 + 18, y0 + 1, 0xFFFF3333);
@@ -380,12 +311,6 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
             g.fill(x0, y0, x0 + 1, y0 + 18, 0xFFFF3333);
             g.fill(x0 + 17, y0, x0 + 18, y0 + 18, 0xFFFF3333);
         }
-    }
-
-    @Nullable
-    private ResearchDefinition getSelectedDefinition() {
-        if (selectedIndex < 0 || selectedIndex >= availableResearch.size()) return null;
-        return availableResearch.get(selectedIndex);
     }
 
     // ══════════════════════════════════════════════════════════════
@@ -401,7 +326,14 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         g.blit(TEXTURE, x, y, 0, 0, imageWidth, imageHeight, TEX_W, TEX_H);
 
         // ── Upper panel content (view mode dependent) ──
-        renderUpperPanel(g, x, y, mouseX, mouseY);
+        switch (currentView) {
+            case LIST -> { /* list + detail pane are drawn in render() */ }
+            case TREE -> {
+                graphView.setViewport(x + GRAPH_X, y + GRAPH_Y, GRAPH_W, GRAPH_H);
+                graphView.render(g, mouseX, mouseY);
+            }
+            case PROGRESS -> renderProgressView(g, x, y);
+        }
 
         // ── Slot labels (above slot row) ──
         int labelY = y + ResearchTableMenu.LABEL_Y;
@@ -416,85 +348,12 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         renderIdeaChipOverlay(g, x + ResearchTableMenu.IDEA_CHIP_X, y + ResearchTableMenu.IDEA_CHIP_Y);
 
         // ── Fluid gauge (dynamic) ──
-        drawFluidGauge(g, x + ResearchTableMenu.FLUID_GAUGE_X, y + ResearchTableMenu.FLUID_GAUGE_Y,
-                ResearchTableMenu.FLUID_GAUGE_W, ResearchTableMenu.FLUID_GAUGE_H);
-    }
-
-    /**
-     * Renders the upper panel content based on current view mode.
-     */
-    private void renderUpperPanel(GuiGraphics g, int x, int y, int mouseX, int mouseY) {
-        switch (currentView) {
-            case LIST -> {
-                // List view: search + list + detail pane handled in render()
-            }
-            case TREE -> {
-                // Tree view: render embedded tree
-                renderTreeView(g, x, y, mouseX, mouseY);
-            }
-            case PROGRESS -> {
-                // Progress view: detailed progress info
-                renderProgressView(g, x, y);
-            }
-        }
-    }
-
-    /**
-     * Renders the embedded tree view in the upper panel.
-     */
-    private void renderTreeView(GuiGraphics g, int x, int y, int mouseX, int mouseY) {
-        int vx = x + ResearchTableMenu.PROGRESS_VIEW_X;
-        int vy = y + ResearchTableMenu.PROGRESS_VIEW_Y;
-        int vw = ResearchTableMenu.PROGRESS_VIEW_W;
-        int vh = ResearchTableMenu.PROGRESS_VIEW_H;
-
-        // Background
-        g.fill(vx, vy, vx + vw, vy + vh, 0xFF1A1E2A);
-
-        // TODO: Integrate tree rendering from ResearchTreeScreen
-        // For now, show a placeholder message
-        g.drawString(font, "Research Tree View", vx + 4, vy + 4, 0xFFD3D7E5, false);
-        g.drawString(font, "(Click 'List' to return to list view)", vx + 4, vy + 16, 0xFF888888, false);
-
-        // Draw a mini-map style representation
-        Set<String> completed = menu.getCompletedResearch();
-        int nodeX = vx + 10;
-        int nodeY = vy + 36;
-        int nodeSize = 12;
-        int spacing = 20;
-        int col = 0;
-        int row = 0;
-        int maxCols = vw / spacing - 1;
-
-        for (ResearchDefinition def : ResearchRegistry.getAll()) {
-            boolean isComplete = completed.contains(def.getId().toString());
-            boolean isAvailable = def.getPrerequisites().isSatisfied(completed);
-
-            int color;
-            if (isComplete) {
-                color = 0xFF55FF55;
-            } else if (isAvailable) {
-                color = def.getTier().getColor() | 0xFF000000;
-            } else {
-                color = 0xFF444444;
-            }
-
-            int nx = nodeX + col * spacing;
-            int ny = nodeY + row * spacing;
-
-            g.fill(nx, ny, nx + nodeSize, ny + nodeSize, color);
-            g.fill(nx, ny, nx + nodeSize, ny + 1, PANEL_BORDER_LIGHT);
-            g.fill(nx, ny, nx + 1, ny + nodeSize, PANEL_BORDER_LIGHT);
-            g.fill(nx + nodeSize - 1, ny, nx + nodeSize, ny + nodeSize, PANEL_BORDER_DARK);
-            g.fill(nx, ny + nodeSize - 1, nx + nodeSize, ny + nodeSize, PANEL_BORDER_DARK);
-
-            col++;
-            if (col >= maxCols) {
-                col = 0;
-                row++;
-                if (nodeY + row * spacing + nodeSize > vy + vh - 8) break;
-            }
-        }
+        int fluidType = menu.getFluidType();
+        int fluidColor = fluidType > 0 ? ModFluids.getFluidColor(fluidType) : 0;
+        ScreenRenderHelper.drawFluidGauge(g,
+                x + ResearchTableMenu.FLUID_GAUGE_X, y + ResearchTableMenu.FLUID_GAUGE_Y,
+                ResearchTableMenu.FLUID_GAUGE_W, ResearchTableMenu.FLUID_GAUGE_H,
+                menu.getFluidAmount(), ResearchTableBlockEntity.TANK_CAPACITY, fluidColor);
     }
 
     /**
@@ -507,12 +366,7 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         int vw = ResearchTableMenu.PROGRESS_VIEW_W;
         int vh = ResearchTableMenu.PROGRESS_VIEW_H;
 
-        // Background
-        g.fill(vx, vy, vx + vw, vy + vh, 0xFF1A1E2A);
-        g.fill(vx, vy, vx + vw, vy + 1, PANEL_BORDER_DARK);
-        g.fill(vx, vy, vx + 1, vy + vh, PANEL_BORDER_DARK);
-        g.fill(vx + vw - 1, vy, vx + vw, vy + vh, PANEL_BORDER_LIGHT);
-        g.fill(vx, vy + vh - 1, vx + vw, vy + vh, PANEL_BORDER_LIGHT);
+        ScreenRenderHelper.drawBevelBox(g, vx, vy, vw, vh, 0xFF1A1E2A);
 
         ResearchTableBlockEntity be = menu.getBlockEntity();
         ResearchDefinition activeDef = be.getActiveDefinition();
@@ -544,19 +398,16 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
             String desc = activeDef.getDescription();
             int maxWidth = vw - 16;
 
-            // Split into multiple lines if needed
             List<String> lines = new ArrayList<>();
             while (!desc.isEmpty() && lines.size() < 2) {
                 if (font.width(desc) <= maxWidth) {
                     lines.add(desc);
                     break;
                 }
-                // Find break point
                 int cutIdx = desc.length();
                 while (cutIdx > 0 && font.width(desc.substring(0, cutIdx)) > maxWidth) {
                     cutIdx--;
                 }
-                // Try to break at space
                 int spaceIdx = desc.lastIndexOf(' ', cutIdx);
                 if (spaceIdx > cutIdx / 2) {
                     cutIdx = spaceIdx;
@@ -565,7 +416,6 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
                 desc = desc.substring(cutIdx).trim();
             }
             if (!desc.isEmpty() && lines.size() == 2) {
-                // Add ellipsis to last line if there's more
                 String lastLine = lines.get(1);
                 while (font.width(lastLine + "...") > maxWidth && lastLine.length() > 3) {
                     lastLine = lastLine.substring(0, lastLine.length() - 1);
@@ -621,18 +471,12 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         int barW = ResearchTableMenu.PROGRESS_BAR_W;
         int barH = ResearchTableMenu.PROGRESS_BAR_H;
 
-        // Bar background
-        g.fill(barX, barY, barX + barW, barY + barH, 0xFF222222);
-        g.fill(barX, barY, barX + barW, barY + 1, PANEL_BORDER_DARK);
-        g.fill(barX, barY, barX + 1, barY + barH, PANEL_BORDER_DARK);
-        g.fill(barX + barW - 1, barY, barX + barW, barY + barH, PANEL_BORDER_LIGHT);
-        g.fill(barX, barY + barH - 1, barX + barW, barY + barH, PANEL_BORDER_LIGHT);
+        ScreenRenderHelper.drawBevelBox(g, barX, barY, barW, barH, ScreenRenderHelper.GAUGE_BG);
 
         // Filled portion with gradient effect
         int filledWidth = Math.round((barW - 2) * progress);
         if (filledWidth > 0) {
             g.fill(barX + 1, barY + 1, barX + 1 + filledWidth, barY + barH - 1, tierColor);
-            // Highlight at top of bar
             int highlightColor = (tierColor & 0x00FFFFFF) | 0x44FFFFFF;
             g.fill(barX + 1, barY + 1, barX + 1 + filledWidth, barY + 2, highlightColor);
         }
@@ -643,54 +487,41 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         g.drawString(font, pctStr, barX + (barW - textWidth) / 2, barY + 2, 0xFFFFFFFF, true);
     }
 
-    private void drawFluidGauge(GuiGraphics g, int gx, int gy, int gw, int gh) {
-        g.fill(gx - 1, gy - 1, gx + gw + 1, gy + gh + 1, PANEL_BORDER_DARK);
-        g.fill(gx, gy, gx + gw, gy + gh, 0xFF222222);
-
-        int fluidAmount = menu.getFluidAmount();
-        int fluidType = menu.getFluidType();
-
-        if (fluidAmount > 0 && fluidType > 0) {
-            int tankCapacity = ResearchTableBlockEntity.TANK_CAPACITY;
-            int fillHeight = (int) ((float) gh * fluidAmount / tankCapacity);
-            fillHeight = Math.min(fillHeight, gh);
-            int fillY = gy + gh - fillHeight;
-            int fluidColor = ModFluids.getFluidColor(fluidType);
-            g.fill(gx, fillY, gx + gw, gy + gh, fluidColor);
-
-            if (fillHeight > 2) {
-                int shine = (fluidColor & 0x00FFFFFF) | 0x44000000;
-                g.fill(gx, fillY, gx + gw, fillY + 1, shine);
-            }
-        }
-
-        g.fill(gx + gw, gy - 1, gx + gw + 1, gy + gh + 1, PANEL_BORDER_LIGHT);
-        g.fill(gx - 1, gy + gh, gx + gw + 1, gy + gh + 1, PANEL_BORDER_LIGHT);
-    }
-
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         super.render(graphics, mouseX, mouseY, partialTick);
 
         // View-specific content
         if (currentView == ViewMode.LIST) {
-            // Research list
             renderResearchList(graphics, mouseX, mouseY);
-
-            // Detail pane for selected research
             renderDetailPane(graphics);
-
-            // Tooltip on research row hover
             renderResearchTooltip(graphics, mouseX, mouseY);
         }
 
-        // Tooltip on fluid gauge hover
-        renderFluidGaugeTooltip(graphics, mouseX, mouseY);
+        // Active-tab accent (drawn above the tab buttons)
+        renderTabHighlight(graphics);
 
-        // Tooltip on idea chip slot hover
+        // Tree node tooltip
+        if (currentView == ViewMode.TREE) {
+            graphView.renderTooltip(graphics, mouseX, mouseY);
+        }
+
+        // Machine-panel tooltips (always available)
+        renderFluidGaugeTooltip(graphics, mouseX, mouseY);
         renderIdeaChipTooltip(graphics, mouseX, mouseY);
 
         renderTooltip(graphics, mouseX, mouseY);
+    }
+
+    private void renderTabHighlight(GuiGraphics g) {
+        if (currentView == ViewMode.PROGRESS) return;
+        Button active = (currentView == ViewMode.TREE) ? treeTabButton : listTabButton;
+        if (!active.visible) return;
+        int ax = active.getX();
+        int ay = active.getY();
+        int aw = active.getWidth();
+        int ah = active.getHeight();
+        g.fill(ax, ay + ah - 2, ax + aw, ay + ah, TAB_ACCENT);
     }
 
     /**
@@ -703,11 +534,7 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         int h = ResearchTableMenu.DETAIL_H;
 
         // Detail pane background - use same padding as list (-2/+2) for alignment
-        g.fill(x - 2, y, x + w + 2, y + h, 0xFF1E2233);
-        g.fill(x - 2, y, x + w + 2, y + 1, PANEL_BORDER_DARK);
-        g.fill(x - 2, y, x - 1, y + h, PANEL_BORDER_DARK);
-        g.fill(x + w + 1, y, x + w + 2, y + h, PANEL_BORDER_LIGHT);
-        g.fill(x - 2, y + h - 1, x + w + 2, y + h, PANEL_BORDER_LIGHT);
+        ScreenRenderHelper.drawBevelBox(g, x - 2, y, w + 4, h, 0xFF1E2233);
 
         ResearchDefinition def = getSelectedDefinition();
         if (def == null) {
@@ -735,10 +562,10 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         String description = def.getDescription();
         if (description != null && !description.isEmpty()) {
             if (font.width(description) > w - 12) {
-                while (font.width(description + "\u2026") > w - 12 && description.length() > 3) {
+                while (font.width(description + "…") > w - 12 && description.length() > 3) {
                     description = description.substring(0, description.length() - 1);
                 }
-                description += "\u2026";
+                description += "…";
             }
             g.drawString(font, description, x + 4, textY, 0xFFAAB0C0, false);
             textY += lineHeight;
@@ -759,10 +586,10 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         if (costs.length() > 0) {
             String costStr = costs.toString();
             if (font.width(costStr) > w - 12) {
-                while (font.width(costStr + "\u2026") > w - 12 && costStr.length() > 3) {
+                while (font.width(costStr + "…") > w - 12 && costStr.length() > 3) {
                     costStr = costStr.substring(0, costStr.length() - 1);
                 }
-                costStr += "\u2026";
+                costStr += "…";
             }
             g.drawString(font, costStr, x + 4, textY, 0xFFAAB0C0, false);
         }
@@ -775,13 +602,8 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         int rowH = ResearchTableMenu.LIST_ROW_H;
         int visibleRows = ResearchTableMenu.LIST_VISIBLE_ROWS;
 
-        // List background
-        graphics.fill(x - 2, y - 2, x + listW + 2, y + visibleRows * rowH + 2, LIST_BG);
-        // Border
-        graphics.fill(x - 2, y - 2, x + listW + 2, y - 1, PANEL_BORDER_DARK);
-        graphics.fill(x - 2, y - 2, x - 1, y + visibleRows * rowH + 2, PANEL_BORDER_DARK);
-        graphics.fill(x + listW + 1, y - 2, x + listW + 2, y + visibleRows * rowH + 2, PANEL_BORDER_LIGHT);
-        graphics.fill(x - 2, y + visibleRows * rowH + 1, x + listW + 2, y + visibleRows * rowH + 2, PANEL_BORDER_LIGHT);
+        // List background + border
+        ScreenRenderHelper.drawBevelBox(graphics, x - 2, y - 2, listW + 4, visibleRows * rowH + 4, ScreenRenderHelper.LIST_BG);
 
         for (int i = 0; i < visibleRows; i++) {
             int displayIdx = scrollOffset + i;
@@ -791,18 +613,18 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
             int rowY = y + i * rowH;
 
             if (row.isHeader()) {
-                String headerLabel = "\u25B8 " + row.headerText();
+                String headerLabel = "▸ " + row.headerText();
                 if (font.width(headerLabel) > listW - 4) {
-                    while (font.width(headerLabel + "\u2026") > listW - 4 && headerLabel.length() > 3) {
+                    while (font.width(headerLabel + "…") > listW - 4 && headerLabel.length() > 3) {
                         headerLabel = headerLabel.substring(0, headerLabel.length() - 1);
                     }
-                    headerLabel += "\u2026";
+                    headerLabel += "…";
                 }
                 graphics.fill(x, rowY, x + listW, rowY + rowH, 0xFF2A2A1A);
                 graphics.drawString(font, headerLabel, x + 3, rowY + 3, 0xFFCCAA00, false);
             } else {
                 ResearchDefinition def = row.definition();
-                boolean locked = !isPrerequisiteMet(def);
+                boolean locked = !ResearchRequirements.prereqMet(menu, def);
 
                 if (def.getId().equals(selectedId)) {
                     graphics.fill(x, rowY, x + listW, rowY + rowH, locked ? 0xFF442222 : 0xFF334488);
@@ -810,15 +632,15 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
                     graphics.fill(x, rowY, x + listW, rowY + rowH, 0xFF2A2A3A);
                 }
 
-                String prefix = locked ? "\uD83D\uDD12 " : "";
+                String prefix = locked ? "🔒 " : "";
                 String name = def.getDisplayName();
                 String label = prefix + name;
 
                 if (font.width(label) > listW - 6) {
-                    while (font.width(label + "\u2026") > listW - 6 && label.length() > 3) {
+                    while (font.width(label + "…") > listW - 6 && label.length() > 3) {
                         label = label.substring(0, label.length() - 1);
                     }
-                    label += "\u2026";
+                    label += "…";
                 }
 
                 int textColor = locked ? 0xFF666666 : (def.getTier().getColor() | 0xFF000000);
@@ -828,10 +650,10 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
 
         // Scroll indicators
         if (scrollOffset > 0) {
-            graphics.drawString(font, "\u25B2", x + listW - 8, y - 12, 0xAAAAAAA, false);
+            graphics.drawString(font, "▲", x + listW - 8, y - 12, 0xAAAAAAA, false);
         }
         if (scrollOffset + visibleRows < displayRows.size()) {
-            graphics.drawString(font, "\u25BC", x + listW - 8, y + visibleRows * rowH + 3, 0xAAAAAA, false);
+            graphics.drawString(font, "▼", x + listW - 8, y + visibleRows * rowH + 3, 0xAAAAAA, false);
         }
     }
 
@@ -876,7 +698,7 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         if (!def.getItemCosts().isEmpty()) {
             tooltip.add(Component.literal("Costs:").withStyle(s -> s.withColor(0xCCCC00)));
             for (ItemCost cost : def.getItemCosts()) {
-                tooltip.add(Component.literal("  \u2022 " + cost.getItem().getDescription().getString() + " x" + cost.count())
+                tooltip.add(Component.literal("  • " + cost.getItem().getDescription().getString() + " x" + cost.count())
                         .withStyle(s -> s.withColor(0xBBBBBB)));
             }
         }
@@ -891,16 +713,16 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
 
         if (def.getIdeaChip().isPresent()) {
             ItemStack chip = def.getIdeaChip().get();
-            boolean satisfied = isIdeaChipSatisfied(def);
-            String icon = satisfied ? "\u2714" : "\u2718";
+            boolean satisfied = ResearchRequirements.ideaChipSatisfied(menu, def);
+            String icon = satisfied ? "✔" : "✘";
             int color = satisfied ? 0x55FF55 : 0xFF5555;
             tooltip.add(Component.literal("Idea Chip: " + icon + " " + chip.getHoverName().getString())
                     .withStyle(s -> s.withColor(color)));
         }
 
         if (!(def.getPrerequisites() instanceof NonePrerequisite)) {
-            boolean met = isPrerequisiteMet(def);
-            String prereqIcon = met ? "\u2714" : "\u2718";
+            boolean met = ResearchRequirements.prereqMet(menu, def);
+            String prereqIcon = met ? "✔" : "✘";
             int prereqColor = met ? 0x55FF55 : 0xFF5555;
             tooltip.add(Component.literal("Prerequisites: " + prereqIcon + " " + def.getPrerequisites().describe())
                     .withStyle(s -> s.withColor(prereqColor)));
@@ -961,8 +783,7 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
             return;
         }
 
-        ItemStack slotStack = menu.getBlockEntity().getInventory()
-                .getStackInSlot(ResearchTableBlockEntity.SLOT_IDEA_CHIP);
+        ItemStack slotStack = menu.getSlot(ResearchTableBlockEntity.SLOT_IDEA_CHIP).getItem();
         if (!slotStack.isEmpty()) return;
 
         List<Component> tooltip = new ArrayList<>();
@@ -990,6 +811,14 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (currentView == ViewMode.TREE) {
+            if (graphView.mouseClicked(mouseX, mouseY, button)) {
+                selectResearch(graphView.getSelectedId());
+                return true;
+            }
+            return super.mouseClicked(mouseX, mouseY, button);
+        }
+
         // List clicks only work in LIST view
         if (currentView == ViewMode.LIST) {
             int x = leftPos + ResearchTableMenu.LIST_X;
@@ -1004,14 +833,7 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
                 if (displayIdx >= 0 && displayIdx < displayRows.size()) {
                     ListRow listRow = displayRows.get(displayIdx);
                     if (!listRow.isHeader()) {
-                        ResearchDefinition def = listRow.definition();
-                        selectedId = def.getId();
-                        for (int i = 0; i < availableResearch.size(); i++) {
-                            if (availableResearch.get(i).getId().equals(selectedId)) {
-                                selectedIndex = i;
-                                break;
-                            }
-                        }
+                        selectResearch(listRow.definition().getId());
                         return true;
                     }
                 }
@@ -1022,7 +844,28 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
     }
 
     @Override
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (currentView == ViewMode.TREE && graphView.mouseDragged(mouseX, mouseY, button)) {
+            return true;
+        }
+        return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+    }
+
+    @Override
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (currentView == ViewMode.TREE) {
+            graphView.mouseReleased(button);
+        }
+        return super.mouseReleased(mouseX, mouseY, button);
+    }
+
+    @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        if (currentView == ViewMode.TREE) {
+            if (graphView.mouseScrolled(mouseX, mouseY, scrollY)) return true;
+            return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+        }
+
         // List scrolling only works in LIST view
         if (currentView == ViewMode.LIST) {
             int x = leftPos + ResearchTableMenu.LIST_X;

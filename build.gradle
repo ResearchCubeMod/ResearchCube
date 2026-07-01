@@ -47,6 +47,12 @@ base {
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
+// Source files (comments and string literals) use UTF-8; compile with it explicitly
+// so glyphs decode correctly regardless of the platform default encoding.
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
 neoForge {
     version = project.neo_version
 

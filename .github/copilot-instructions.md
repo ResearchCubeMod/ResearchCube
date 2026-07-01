@@ -23,13 +23,18 @@
 - Research Station tank: `FluidTank` capacity `8000` mB
 
 ## GUI Architecture
-- **ResearchTableScreen**: Main research station GUI with slot display, fluid tank, progress bar, and "View Research Tree" button.
-  - View modes: `NORMAL` (see slots + controls) and `TREE` (research tree overlay).
-  - Control buttons: Start/Cancel research, View Tree, Wipe Tank (when not researching).
-- **ResearchTreeScreen**: Displays available research nodes in a tree structure.
-  - Shows prerequisites, tier, costs, completion status.
-  - Click to select research; "Start Research" button navigates back with selection.
-  - Control buttons: Back to table, Start Research (when valid research selected).
+- **ResearchTableScreen**: The single research station GUI. The upper panel has three view modes,
+  switched via the List/Tree tabs (top right); the lower half holds the machine panel + player inventory.
+  - `LIST`: search bar, categorised research list, detail pane.
+  - `TREE`: dependency graph (delegated to `ResearchGraphView`), with pan/zoom and node selection.
+  - `PROGRESS`: shown automatically while researching — active research info + progress bar.
+  - Selection (`selectedId`) is shared between list and tree, so it persists across tab switches.
+  - Control buttons: Start/Stop research, Wipe Tank.
+- **ResearchGraphView**: standalone component (not a Screen) that builds and renders the research
+  dependency graph inside a viewport. Hosted by `ResearchTableScreen`'s Tree view.
+- **ResearchRequirements**: shared client-side checks (`canStart`/`hasItems`/`hasFluid`/`ideaChipSatisfied`/`prereqMet`)
+  mirroring server validation; used by the screen and by node coloring in the graph.
+- **ScreenRenderHelper**: shared drawing helpers (bevel boxes, fluid gauge, slots) and the common colour palette.
 - GUI packet flow: Client screen -> packet -> server handler -> block entity logic -> menu sync -> client screen update.
 
 ## Recipe Types
@@ -192,7 +197,9 @@ Fluid behavior:
 
 ### GUI and Screens
 - `src/main/java/com/researchcube/client/screen/ResearchTableScreen.java`
-- `src/main/java/com/researchcube/client/screen/ResearchTreeScreen.java`
+- `src/main/java/com/researchcube/client/screen/ResearchGraphView.java`
+- `src/main/java/com/researchcube/client/screen/ResearchRequirements.java`
+- `src/main/java/com/researchcube/client/screen/ScreenRenderHelper.java`
 
 ### Recipes
 - `src/main/java/com/researchcube/recipe/DriveCraftingRecipe.java`
