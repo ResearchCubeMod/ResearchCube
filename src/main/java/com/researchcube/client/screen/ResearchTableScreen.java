@@ -336,8 +336,10 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         }
 
         // ── Top control bar header (LIST uses the search box instead) ──
+        // Align the header baseline with the List/Tree tab labels (MC centres button
+        // labels at (height - 8) / 2), so the row reads as one consistent bar.
         int hx = x + ResearchTableMenu.SEARCH_X;
-        int hy = y + ResearchTableMenu.SEARCH_Y + 3;
+        int hy = y + ResearchTableMenu.TREE_BTN_Y + (ResearchTableMenu.TREE_BTN_H - 8) / 2;
         if (currentView == ViewMode.TREE) {
             g.drawString(font, "Research Tree", hx, hy, 0xFFE6EAF5, false);
             graphView.renderLegend(g, hx + font.width("Research Tree") + 14, hy);
