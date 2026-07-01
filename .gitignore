@@ -12,11 +12,9 @@ out
 *.iws
 *.iml
 .idea
-.vscode/
 
-# Local VS Code workspace files (explicit)
-.vscode/launch.json
-.vscode/settings.json
+# vscode
+.vscode/
 
 # gradle
 build

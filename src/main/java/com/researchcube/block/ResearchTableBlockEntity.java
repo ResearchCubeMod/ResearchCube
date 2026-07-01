@@ -509,6 +509,7 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
         if (definition == null) return 0f;
         long elapsed = level.getGameTime() - startTime;
         int adjustedDuration = (int) (definition.getDuration() * ModConfig.getResearchDurationMultiplier());
+        if (adjustedDuration <= 0) return 0f;
         return Math.min(1.0f, (float) elapsed / adjustedDuration);
     }
 
@@ -552,7 +553,7 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
      * Send a progress update packet to the player who started this research.
      */
     private void sendProgressPacket(Level level, ResearchDefinition definition, long elapsed, int adjustedDuration) {
-        if (researchKey == null || !(level instanceof ServerLevel serverLevel)) return;
+        if (researchKey == null || !(level instanceof ServerLevel serverLevel) || adjustedDuration <= 0) return;
 
         float progress = Math.min(1.0f, (float) elapsed / adjustedDuration);
         int remainingTicks = (int) (adjustedDuration - elapsed);
