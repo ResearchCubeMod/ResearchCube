@@ -10,7 +10,7 @@ import net.neoforged.neoforge.common.ModConfigSpec;
  * NeoForge common config for ResearchCube.
  * Settings apply to both client and server.
  */
-@EventBusSubscriber(modid = ResearchCubeMod.MOD_ID, bus = EventBusSubscriber.Bus.MOD)
+@EventBusSubscriber(modid = ResearchCubeMod.MOD_ID)
 public class ModConfig {
 
     private static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();

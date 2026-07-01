@@ -29,6 +29,9 @@ import java.util.List;
  * Shows item inputs (up to 16), fluid inputs (up to 2), item outputs (up to 8), 
  * and fluid output (1), along with processing duration.
  */
+// Uses JEI's current getBackground()/tooltip-callback API, deprecated for removal in newer JEI.
+// Migration needs in-game JEI testing (JEI is compileOnly here); suppressed until then.
+@SuppressWarnings("removal")
 public class ProcessingCategory implements IRecipeCategory<ProcessingRecipe> {
 
     public static final ResourceLocation UID = ResearchCubeMod.rl("processing");

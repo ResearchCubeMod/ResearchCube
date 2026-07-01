@@ -9,7 +9,7 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 /**
  * Registers all custom network packets for the mod.
  */
-@EventBusSubscriber(modid = ResearchCubeMod.MOD_ID, bus = EventBusSubscriber.Bus.MOD)
+@EventBusSubscriber(modid = ResearchCubeMod.MOD_ID)
 public class ModNetworking {
 
     @SubscribeEvent

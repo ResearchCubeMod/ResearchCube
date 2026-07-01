@@ -11,7 +11,6 @@ import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
 import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.ingredients.subtypes.IIngredientSubtypeInterpreter;
-import mezz.jei.api.ingredients.subtypes.UidContext;
 import mezz.jei.api.registration.IRecipeCatalystRegistration;
 import mezz.jei.api.registration.IRecipeCategoryRegistration;
 import mezz.jei.api.registration.IRecipeRegistration;
@@ -34,6 +33,10 @@ import java.util.stream.Collectors;
  * This class is loaded via JEI's annotation-based discovery.
  * Since JEI is a compileOnly dependency, this class is only loaded when JEI is present.
  */
+// Targets the current JEI API (subtype interpreters); some of these methods are deprecated
+// for removal in newer JEI. Migrating requires in-game JEI testing (JEI is compileOnly here),
+// so the deprecation warnings are suppressed intentionally until that migration is scheduled.
+@SuppressWarnings({"removal", "deprecation"})
 @JeiPlugin
 public class ResearchCubeJEIPlugin implements IModPlugin {
 

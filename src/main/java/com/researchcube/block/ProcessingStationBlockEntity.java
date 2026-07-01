@@ -362,6 +362,8 @@ public class ProcessingStationBlockEntity extends BlockEntity {
         }
     }
 
+    // The preceding .filter(... instanceof ProcessingRecipe) guarantees the RecipeHolder cast.
+    @SuppressWarnings("unchecked")
     private void completeProcessing() {
         if (level == null || activeRecipeId == null) {
             clearProcessing();

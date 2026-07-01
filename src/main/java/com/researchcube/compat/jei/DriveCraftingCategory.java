@@ -32,6 +32,9 @@ import java.util.List;
  * Shows the drive requirement, ingredients, and the recipe output.
  * Supports both shaped (3×3 grid) and shapeless (4×2 flat) layouts.
  */
+// Uses JEI's current getBackground()/tooltip-callback API, deprecated for removal in newer JEI.
+// Migration needs in-game JEI testing (JEI is compileOnly here); suppressed until then.
+@SuppressWarnings("removal")
 public class DriveCraftingCategory implements IRecipeCategory<DriveCraftingRecipe> {
 
     public static final ResourceLocation UID = ResearchCubeMod.rl("drive_crafting");
