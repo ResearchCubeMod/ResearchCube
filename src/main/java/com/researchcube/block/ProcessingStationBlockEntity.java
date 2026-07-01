@@ -36,7 +36,6 @@ import net.neoforged.neoforge.items.ItemStackHandler;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
-import java.util.Optional;
 
 /**
  * BlockEntity for the Processing Station.
@@ -370,19 +369,20 @@ public class ProcessingStationBlockEntity extends BlockEntity {
             return;
         }
 
-        // Find the recipe again to get outputs
+        // Find the recipe again to get outputs. Cast the recipe value (a concrete class)
+        // rather than the RecipeHolder's type parameter, so the downcast is checked.
         RecipeManager recipeManager = level.getRecipeManager();
-        Optional<RecipeHolder<ProcessingRecipe>> holderOpt = recipeManager.byKey(activeRecipeId)
-                .filter(h -> h.value() instanceof ProcessingRecipe)
-                .map(h -> (RecipeHolder<ProcessingRecipe>) (RecipeHolder<?>) h);
+        ProcessingRecipe recipe = recipeManager.byKey(activeRecipeId)
+                .map(RecipeHolder::value)
+                .filter(ProcessingRecipe.class::isInstance)
+                .map(ProcessingRecipe.class::cast)
+                .orElse(null);
 
-        if (holderOpt.isEmpty()) {
+        if (recipe == null) {
             ResearchCubeMod.LOGGER.warn("[ResearchCube] Processing recipe '{}' no longer exists", activeRecipeId);
             clearProcessing();
             return;
         }
-
-        ProcessingRecipe recipe = holderOpt.get().value();
 
         // Produce item outputs
         List<ItemStack> outputs = recipe.getResults();

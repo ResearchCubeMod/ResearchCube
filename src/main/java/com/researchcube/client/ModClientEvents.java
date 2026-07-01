@@ -27,7 +27,7 @@ import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsE
  * Client-side event handlers: registers screens, block entity renderers,
  * and fluid rendering extensions.
  */
-@EventBusSubscriber(modid = ResearchCubeMod.MOD_ID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
+@EventBusSubscriber(modid = ResearchCubeMod.MOD_ID, value = Dist.CLIENT)
 public class ModClientEvents {
 
     @SubscribeEvent

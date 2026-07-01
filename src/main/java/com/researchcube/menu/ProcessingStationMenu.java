@@ -33,15 +33,24 @@ public class ProcessingStationMenu extends AbstractContainerMenu {
     public static final int DATA_FLUID_OUT_AMOUNT = 4;
     public static final int DATA_COUNT = 5;
 
-    // Layout coordinates shared with screen rendering
-    public static final int INPUT_GRID_X = 24;
+    // ══════════════════════════════════════════════════════════════
+    // Layout coordinates (shared by screen + texture generator)
+    //
+    // Machine panel (8,16,240,104): 4x4 inputs | tanks/progress/button | 2x4 outputs
+    // Inventory panel (8,124,240,96): 9x3 inventory + hotbar
+    // ══════════════════════════════════════════════════════════════
+
+    public static final int GUI_WIDTH = 256;
+    public static final int GUI_HEIGHT = 226;
+
+    public static final int INPUT_GRID_X = 20;
     public static final int INPUT_GRID_Y = 36;
-    public static final int OUTPUT_GRID_X = 232;
+    public static final int OUTPUT_GRID_X = 204;
     public static final int OUTPUT_GRID_Y = 36;
-    public static final int PLAYER_INV_X = 99;
-    public static final int PLAYER_INV_Y = 124;
-    public static final int HOTBAR_X = 99;
-    public static final int HOTBAR_Y = 182;
+    public static final int PLAYER_INV_X = 47;
+    public static final int PLAYER_INV_Y = 140;
+    public static final int HOTBAR_X = 47;
+    public static final int HOTBAR_Y = 198;
 
     // Constructor for server-side
     public ProcessingStationMenu(int containerId, Inventory playerInv, ProcessingStationBlockEntity be) {

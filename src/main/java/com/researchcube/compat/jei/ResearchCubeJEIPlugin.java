@@ -46,7 +46,8 @@ public class ResearchCubeJEIPlugin implements IModPlugin {
 
     @Override
     public void registerItemSubtypes(ISubtypeRegistration registration) {
-        // Drives with different stored recipes should be treated as different subtypes
+        // Drives with different stored recipes should be treated as different subtypes.
+        // Subtype data is the sorted, comma-joined recipe ids (null = no distinct subtype).
         ISubtypeInterpreter<ItemStack> driveInterpreter = new ISubtypeInterpreter<>() {
             @Override
             public Object getSubtypeData(ItemStack stack, UidContext context) {
@@ -58,20 +59,18 @@ public class ResearchCubeJEIPlugin implements IModPlugin {
 
             @Override
             public String getLegacyStringSubtypeInfo(ItemStack stack, UidContext context) {
-                if (!(stack.getItem() instanceof DriveItem)) return "";
-                List<String> recipes = NbtUtil.readRecipes(stack);
-                if (recipes.isEmpty()) return "";
-                return recipes.stream().sorted().collect(Collectors.joining(","));
+                Object data = getSubtypeData(stack, context);
+                return data == null ? "" : data.toString();
             }
         };
 
-        registration.registerSubtypeInterpreter(ModItems.METADATA_IRRECOVERABLE.get(), driveInterpreter);
-        registration.registerSubtypeInterpreter(ModItems.METADATA_UNSTABLE.get(), driveInterpreter);
-        registration.registerSubtypeInterpreter(ModItems.METADATA_RECLAIMED.get(), driveInterpreter);
-        registration.registerSubtypeInterpreter(ModItems.METADATA_ENHANCED.get(), driveInterpreter);
-        registration.registerSubtypeInterpreter(ModItems.METADATA_ELABORATE.get(), driveInterpreter);
-        registration.registerSubtypeInterpreter(ModItems.METADATA_CYBERNETIC.get(), driveInterpreter);
-        registration.registerSubtypeInterpreter(ModItems.METADATA_SELF_AWARE.get(), driveInterpreter);
+        registration.registerSubtypeInterpreter(VanillaTypes.ITEM_STACK, ModItems.METADATA_IRRECOVERABLE.get(), driveInterpreter);
+        registration.registerSubtypeInterpreter(VanillaTypes.ITEM_STACK, ModItems.METADATA_UNSTABLE.get(), driveInterpreter);
+        registration.registerSubtypeInterpreter(VanillaTypes.ITEM_STACK, ModItems.METADATA_RECLAIMED.get(), driveInterpreter);
+        registration.registerSubtypeInterpreter(VanillaTypes.ITEM_STACK, ModItems.METADATA_ENHANCED.get(), driveInterpreter);
+        registration.registerSubtypeInterpreter(VanillaTypes.ITEM_STACK, ModItems.METADATA_ELABORATE.get(), driveInterpreter);
+        registration.registerSubtypeInterpreter(VanillaTypes.ITEM_STACK, ModItems.METADATA_CYBERNETIC.get(), driveInterpreter);
+        registration.registerSubtypeInterpreter(VanillaTypes.ITEM_STACK, ModItems.METADATA_SELF_AWARE.get(), driveInterpreter);
     }
 
     @Override

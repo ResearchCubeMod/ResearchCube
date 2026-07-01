@@ -52,23 +52,129 @@ public class ResearchTableMenu extends AbstractContainerMenu {
     public static final int DATA_FLUID_TYPE = 3;       // 0=empty, 1=thinking, 2=pondering, 3=reasoning, 4=imagination
     public static final int DATA_COUNT = 4;
 
-    // Layout coordinates shared by screens
-    public static final int DRIVE_X = 66;
-    public static final int DRIVE_Y = 79;
-    public static final int CUBE_X = 66;
-    public static final int CUBE_Y = 113;
-    public static final int COST_X = 113;
-    public static final int COST_Y = 79;
-    public static final int BUCKET_IN_X = 185;
-    public static final int BUCKET_IN_Y = 79;
-    public static final int BUCKET_OUT_X = 185;
-    public static final int BUCKET_OUT_Y = 97;
-    public static final int IDEA_CHIP_X = 167;
-    public static final int IDEA_CHIP_Y = 113;
-    public static final int PLAYER_INV_X = 245;
-    public static final int PLAYER_INV_Y = 191;
-    public static final int HOTBAR_X = 245;
-    public static final int HOTBAR_Y = 266;
+    // ══════════════════════════════════════════════════════════════
+    // Layout coordinates (shared by screens)
+    // ══════════════════════════════════════════════════════════════
+    //
+    // GUI Dimensions: 470 x 280
+    //
+    // TOP SECTION: Research Browser (centered, y=8 to y=140)
+    //   - Search box + Tree button
+    //   - Research list (5 visible rows)
+    //   - Detail pane
+    //
+    // BOTTOM SECTION: Machine Panel + Player Inventory (side by side, y=148)
+    //   - Machine Panel (left): Drive, Cube, Cost grid, Buckets, Idea, Gauge, Progress, Buttons
+    //   - Player Inventory (right): 9x3 main + hotbar
+
+    public static final int GUI_WIDTH = 470;
+    public static final int GUI_HEIGHT = 260;
+
+    // ═══════════════════════════════════════════════════════════════
+    // UPPER PANEL (top, centered) - shows List/Tree/Progress views
+    // Panel contains: search/controls bar + main content area
+    // ═══════════════════════════════════════════════════════════════
+    public static final int UPPER_PANEL_X = 8;
+    public static final int UPPER_PANEL_Y = 4;
+    public static final int UPPER_PANEL_W = 454;
+    public static final int UPPER_PANEL_H = 140;     // extended to fit detail pane
+
+    // Controls bar (search + buttons)
+    public static final int SEARCH_X = 16;
+    public static final int SEARCH_Y = 10;
+    public static final int SEARCH_W = 340;
+    public static final int SEARCH_H = 14;
+
+    public static final int TREE_BTN_X = 364;
+    public static final int TREE_BTN_Y = 8;
+    public static final int TREE_BTN_W = 46;
+    public static final int TREE_BTN_H = 16;
+
+    public static final int LIST_BTN_X = 414;
+    public static final int LIST_BTN_Y = 8;
+    public static final int LIST_BTN_W = 40;
+    public static final int LIST_BTN_H = 16;
+
+    // List view components
+    public static final int LIST_X = 16;
+    public static final int LIST_Y = 28;
+    public static final int LIST_W = 438;
+    public static final int LIST_ROW_H = 18;
+    public static final int LIST_VISIBLE_ROWS = 4;
+
+    public static final int DETAIL_X = 16;
+    public static final int DETAIL_Y = 102;
+    public static final int DETAIL_W = 438;
+    public static final int DETAIL_H = 38;
+
+    // Progress view components (replaces list when researching)
+    public static final int PROGRESS_VIEW_X = 16;
+    public static final int PROGRESS_VIEW_Y = 28;
+    public static final int PROGRESS_VIEW_W = 438;
+    public static final int PROGRESS_VIEW_H = 112;   // full content area for progress info
+
+    public static final int PROGRESS_BAR_X = 16;
+    public static final int PROGRESS_BAR_Y = 120;    // near bottom of upper panel
+    public static final int PROGRESS_BAR_W = 438;
+    public static final int PROGRESS_BAR_H = 12;
+
+    // ═══════════════════════════════════════════════════════════════
+    // MACHINE PANEL (bottom left) - HORIZONTAL LAYOUT
+    // Row 1: Drive, Cube, Idea | Cost grid top | Fluid gauge, Bucket In
+    // Row 2:                   | Cost grid bot | Fluid gauge, Bucket Out
+    // Row 3: Buttons
+    // ═══════════════════════════════════════════════════════════════
+    public static final int MACHINE_PANEL_X = 12;
+    public static final int MACHINE_PANEL_Y = 148;
+    public static final int MACHINE_PANEL_W = 200;
+
+    // Labels row
+    public static final int LABEL_Y = 156;
+    public static final int LABEL_HEIGHT = 10;
+
+    // Slot row 1 & 2 (y=168 and y=186)
+    public static final int SLOT_ROW_1_Y = 168;
+    public static final int SLOT_ROW_2_Y = 186;
+
+    // Drive/Cube/Idea - horizontal row
+    public static final int DRIVE_X = 20;
+    public static final int DRIVE_Y = 168;
+    public static final int CUBE_X = 40;
+    public static final int CUBE_Y = 168;
+    public static final int IDEA_CHIP_X = 60;
+    public static final int IDEA_CHIP_Y = 168;
+
+    // Cost grid (3x2) - center
+    public static final int COST_X = 96;
+    public static final int COST_Y = 168;
+    // Grid: x=96,114,132 ; y=168,186
+
+    // Fluid gauge + Buckets - right side
+    public static final int FLUID_GAUGE_X = 168;
+    public static final int FLUID_GAUGE_Y = 168;
+    public static final int FLUID_GAUGE_W = 18;
+    public static final int FLUID_GAUGE_H = 36;  // 2 slots tall
+
+    public static final int BUCKET_IN_X = 190;
+    public static final int BUCKET_IN_Y = 168;
+    public static final int BUCKET_OUT_X = 190;
+    public static final int BUCKET_OUT_Y = 186;
+
+    // Buttons (single row, moved up)
+    public static final int BUTTON_Y = 210;
+    public static final int BUTTON_W = 42;
+    public static final int BUTTON_H = 14;
+    public static final int START_BTN_X = 20;
+    public static final int STOP_BTN_X = 66;
+    public static final int WIPE_BTN_X = 112;
+
+    // ═══════════════════════════════════════════════════════════════
+    // PLAYER INVENTORY (bottom right) - aligned with machine panel
+    // ═══════════════════════════════════════════════════════════════
+    public static final int PLAYER_INV_X = 229;
+    public static final int PLAYER_INV_Y = 168;   // same as slot row 1
+    public static final int HOTBAR_X = 229;
+    public static final int HOTBAR_Y = 230;       // below main inv
 
     // ── Constructor from server (block entity available) ──
     public ResearchTableMenu(int containerId, Inventory playerInv, ResearchTableBlockEntity be) {

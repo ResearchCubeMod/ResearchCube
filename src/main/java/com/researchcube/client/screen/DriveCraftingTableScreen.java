@@ -1,42 +1,39 @@
 package com.researchcube.client.screen;
 
+import com.researchcube.ResearchCubeMod;
 import com.researchcube.menu.DriveCraftingTableMenu;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 
 /**
  * Screen for the Drive Crafting Table.
- * Programmatic background rendering (no texture dependency), matching the mod's visual style.
+ * Static background comes from a texture; only the section labels and
+ * tooltips are drawn dynamically.
  *
- * Layout:
- *   Left: Drive slot with label
- *   Center: 3x3 crafting grid
- *   Right: Arrow + result slot
- *   Bottom: Player inventory
+ * Layout (see DriveCraftingTableMenu constants):
+ *   Machine panel: Drive slot | 3x3 crafting grid | arrow | result slot
+ *   Inventory panel: player inventory + hotbar
  */
 public class DriveCraftingTableScreen extends AbstractContainerScreen<DriveCraftingTableMenu> {
 
-    // ── Colors (matching ResearchTableScreen style) ──
-    private static final int BG_OUTER = 0xFFC6C6C6;
-    private static final int PANEL_BG = 0xFF444A5E;
-    private static final int PANEL_INNER = 0xFF2A2E3A;
-    private static final int PANEL_BORDER_LIGHT = 0xFF8F99B8;
-    private static final int PANEL_BORDER_DARK = 0xFF14161C;
-    private static final int SLOT_BG = 0xFF8B8B8B;
-    private static final int SLOT_INNER = 0xFF272830;
-    private static final int ARROW_COLOR = 0xFFB9C0D8;
+    private static final ResourceLocation TEXTURE =
+            ResourceLocation.fromNamespaceAndPath(ResearchCubeMod.MOD_ID, "textures/gui/drive_crafting_table.png");
+    private static final int TEX_W = DriveCraftingTableMenu.GUI_WIDTH;
+    private static final int TEX_H = DriveCraftingTableMenu.GUI_HEIGHT;
+
     private static final int LABEL_COLOR = 0xFFE6EAF5;
     private static final int SUBLABEL_COLOR = 0xFFA3AAC0;
 
     public DriveCraftingTableScreen(DriveCraftingTableMenu menu, Inventory playerInv, Component title) {
         super(menu, playerInv, title);
-        this.imageWidth = 246;
-        this.imageHeight = 200;
-        this.inventoryLabelX = 10;
-        this.inventoryLabelY = 104;
+        this.imageWidth = DriveCraftingTableMenu.GUI_WIDTH;
+        this.imageHeight = DriveCraftingTableMenu.GUI_HEIGHT;
+        this.inventoryLabelX = DriveCraftingTableMenu.INV_X - 1;
+        this.inventoryLabelY = DriveCraftingTableMenu.INV_Y - 12;
     }
 
     @Override
@@ -49,57 +46,18 @@ public class DriveCraftingTableScreen extends AbstractContainerScreen<DriveCraft
     protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
         int x = this.leftPos;
         int y = this.topPos;
-        int w = this.imageWidth;
-        int h = this.imageHeight;
 
-        // ── Outer background ──
-        graphics.fill(x, y, x + w, y + h, BG_OUTER);
-        // Outer bevel: top/left highlight, bottom/right shadow
-        graphics.fill(x, y, x + w, y + 1, 0xFFFFFFFF);
-        graphics.fill(x, y, x + 1, y + h, 0xFFFFFFFF);
-        graphics.fill(x + w - 1, y, x + w, y + h, PANEL_BORDER_DARK);
-        graphics.fill(x, y + h - 1, x + w, y + h, PANEL_BORDER_DARK);
+        graphics.blit(TEXTURE, x, y, 0, 0, imageWidth, imageHeight, TEX_W, TEX_H);
 
-        // ── Machine and inventory panels ──
-        int panelX = x + 8;
-        int panelY = y + 18;
-        int panelW = w - 16;
-        int panelH = 84;
-        drawInsetPanel(graphics, panelX, panelY, panelW, panelH);
-        drawInsetPanel(graphics, x + 8, y + 104, w - 16, 88);
+        // Section labels, centered over their slots
+        int labelY = y + DriveCraftingTableMenu.LABEL_Y;
+        drawCentered(graphics, "Drive", x + DriveCraftingTableMenu.DRIVE_X + 8, labelY);
+        drawCentered(graphics, "Craft Matrix", x + DriveCraftingTableMenu.GRID_X + 27, labelY);
+        drawCentered(graphics, "Result", x + DriveCraftingTableMenu.RESULT_X + 8, labelY);
+    }
 
-        // ── Draw all slots ──
-        drawSlot(graphics, x + DriveCraftingTableMenu.DRIVE_X, y + DriveCraftingTableMenu.DRIVE_Y);
-
-        // 3x3 grid
-        for (int row = 0; row < 3; row++) {
-            for (int col = 0; col < 3; col++) {
-                drawSlot(graphics, x + DriveCraftingTableMenu.GRID_X + col * 18, y + DriveCraftingTableMenu.GRID_Y + row * 18);
-            }
-        }
-
-        // Result slot
-        drawResultSlot(graphics, x + DriveCraftingTableMenu.RESULT_X, y + DriveCraftingTableMenu.RESULT_Y);
-
-        // ── Arrow between grid and result ──
-        drawArrow(graphics, x + 170, y + 45);
-
-        // ── Drive info label ──
-        graphics.drawString(this.font, "Drive", x + 30, y + 24, SUBLABEL_COLOR, false);
-        graphics.drawString(this.font, "Craft Matrix", x + 88, y + 20, SUBLABEL_COLOR, false);
-        graphics.drawString(this.font, "Result", x + 192, y + 24, SUBLABEL_COLOR, false);
-
-
-        // Player inventory slots visual
-        for (int row = 0; row < 3; row++) {
-            for (int col = 0; col < 9; col++) {
-                drawSlot(graphics, x + DriveCraftingTableMenu.INV_X + col * 18, y + DriveCraftingTableMenu.INV_Y + row * 18);
-            }
-        }
-        // Hotbar slots
-        for (int col = 0; col < 9; col++) {
-            drawSlot(graphics, x + DriveCraftingTableMenu.INV_X + col * 18, y + DriveCraftingTableMenu.INV_Y + 58);
-        }
+    private void drawCentered(GuiGraphics g, String text, int centerX, int y) {
+        g.drawString(this.font, text, centerX - this.font.width(text) / 2, y, SUBLABEL_COLOR, false);
     }
 
     @Override
@@ -107,7 +65,7 @@ public class DriveCraftingTableScreen extends AbstractContainerScreen<DriveCraft
         super.render(graphics, mouseX, mouseY, partialTick);
         renderTooltip(graphics, mouseX, mouseY);
 
-        // Extra tooltip when hovering the drive slot: show stored recipe IDs
+        // Extra tooltip when hovering the empty drive slot
         int driveSlotX = this.leftPos + DriveCraftingTableMenu.DRIVE_X;
         int driveSlotY = this.topPos + DriveCraftingTableMenu.DRIVE_Y;
         if (mouseX >= driveSlotX && mouseX < driveSlotX + 16 && mouseY >= driveSlotY && mouseY < driveSlotY + 16) {
@@ -120,44 +78,7 @@ public class DriveCraftingTableScreen extends AbstractContainerScreen<DriveCraft
 
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
-        graphics.drawString(this.font, this.title, this.titleLabelX, 6, 0xFF404040, false);
+        graphics.drawString(this.font, this.title, this.titleLabelX, 6, LABEL_COLOR, false);
         graphics.drawString(this.font, this.playerInventoryTitle, this.inventoryLabelX, this.inventoryLabelY, LABEL_COLOR, false);
-    }
-
-    // ── Drawing helpers ──
-
-    private void drawInsetPanel(GuiGraphics g, int x, int y, int w, int h) {
-        g.fill(x, y, x + w, y + h, PANEL_BG);
-        g.fill(x + 1, y + 1, x + w - 1, y + h - 1, PANEL_INNER);
-        // Top and left borders (darker — inset shadow)
-        g.fill(x, y, x + w, y + 1, PANEL_BORDER_DARK);
-        g.fill(x, y, x + 1, y + h, PANEL_BORDER_DARK);
-        // Bottom and right borders (lighter — inset highlight)
-        g.fill(x, y + h - 1, x + w, y + h, PANEL_BORDER_LIGHT);
-        g.fill(x + w - 1, y, x + w, y + h, PANEL_BORDER_LIGHT);
-    }
-
-    private void drawSlot(GuiGraphics g, int x, int y) {
-        // Outer slot border
-        g.fill(x - 1, y - 1, x + 17, y + 17, SLOT_BG);
-        // Inner slot background
-        g.fill(x, y, x + 16, y + 16, SLOT_INNER);
-        g.fill(x - 1, y - 1, x + 17, y, PANEL_BORDER_DARK);
-        g.fill(x - 1, y - 1, x, y + 17, PANEL_BORDER_DARK);
-    }
-
-    private void drawResultSlot(GuiGraphics g, int x, int y) {
-        g.fill(x - 3, y - 3, x + 19, y + 19, 0xFF7B8451);
-        g.fill(x - 2, y - 2, x + 18, y + 18, SLOT_BG);
-        g.fill(x, y, x + 16, y + 16, SLOT_INNER);
-    }
-
-    private void drawArrow(GuiGraphics g, int x, int y) {
-        g.fill(x, y + 3, x + 18, y + 5, ARROW_COLOR);
-        g.fill(x + 12, y + 1, x + 18, y + 2, ARROW_COLOR);
-        g.fill(x + 13, y + 2, x + 18, y + 3, ARROW_COLOR);
-        g.fill(x + 14, y + 3, x + 18, y + 5, ARROW_COLOR);
-        g.fill(x + 13, y + 5, x + 18, y + 6, ARROW_COLOR);
-        g.fill(x + 12, y + 6, x + 18, y + 7, ARROW_COLOR);
     }
 }

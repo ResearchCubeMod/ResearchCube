@@ -16,8 +16,46 @@ public final class ScreenRenderHelper {
     public static final int PANEL_BORDER_LIGHT = 0xFF7E87A6;
     public static final int SLOT_BORDER = 0xFF8B8B8B;
     public static final int SLOT_INNER = 0xFF373737;
+    public static final int LIST_BG = 0xFF252A3E;
+    public static final int GAUGE_BG = 0xFF222222;
 
     private ScreenRenderHelper() {}
+
+    /**
+     * Fill a box and draw a 1px bevel: dark top/left, light bottom/right.
+     * Replaces the hand-rolled four-fill border pattern used throughout the screens.
+     */
+    public static void drawBevelBox(GuiGraphics g, int x, int y, int w, int h, int fillColor) {
+        g.fill(x, y, x + w, y + h, fillColor);
+        g.fill(x, y, x + w, y + 1, PANEL_BORDER_DARK);
+        g.fill(x, y, x + 1, y + h, PANEL_BORDER_DARK);
+        g.fill(x + w - 1, y, x + w, y + h, PANEL_BORDER_LIGHT);
+        g.fill(x, y + h - 1, x + w, y + h, PANEL_BORDER_LIGHT);
+    }
+
+    /**
+     * Draw the full-size vertical fluid gauge (fills bottom-to-top), with the mod's
+     * dark-outer / light-lower bevel. Pass {@code color == 0} (or {@code amount <= 0})
+     * to render an empty gauge.
+     */
+    public static void drawFluidGauge(GuiGraphics g, int gx, int gy, int gw, int gh,
+                                      int amount, int capacity, int color) {
+        g.fill(gx - 1, gy - 1, gx + gw + 1, gy + gh + 1, PANEL_BORDER_DARK);
+        g.fill(gx, gy, gx + gw, gy + gh, GAUGE_BG);
+
+        if (amount > 0 && color != 0 && capacity > 0) {
+            int fillHeight = Math.min(gh, (int) ((float) gh * amount / capacity));
+            int fillY = gy + gh - fillHeight;
+            g.fill(gx, fillY, gx + gw, gy + gh, color);
+            if (fillHeight > 2) {
+                int shine = (color & 0x00FFFFFF) | 0x44000000;
+                g.fill(gx, fillY, gx + gw, fillY + 1, shine);
+            }
+        }
+
+        g.fill(gx + gw, gy - 1, gx + gw + 1, gy + gh + 1, PANEL_BORDER_LIGHT);
+        g.fill(gx - 1, gy + gh, gx + gw + 1, gy + gh + 1, PANEL_BORDER_LIGHT);
+    }
 
     /**
      * Draw a dark recessed panel with a 1px bevel border.

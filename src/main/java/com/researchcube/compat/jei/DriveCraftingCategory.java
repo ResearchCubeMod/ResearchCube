@@ -38,13 +38,10 @@ public class DriveCraftingCategory implements IRecipeCategory<DriveCraftingRecip
     public static final RecipeType<DriveCraftingRecipe> RECIPE_TYPE =
             new RecipeType<>(UID, DriveCraftingRecipe.class);
 
-    private final IDrawable background;
     private final IDrawable icon;
     private final Component title;
 
     public DriveCraftingCategory(IGuiHelper guiHelper) {
-        // Increased height to accommodate 3×3 grid for shaped recipes
-        this.background = guiHelper.createBlankDrawable(150, 72);
         this.icon = guiHelper.createDrawableIngredient(VanillaTypes.ITEM_STACK,
                 new ItemStack(ModItems.METADATA_RECLAIMED.get()));
         this.title = Component.literal("Drive Crafting");
@@ -61,8 +58,13 @@ public class DriveCraftingCategory implements IRecipeCategory<DriveCraftingRecip
     }
 
     @Override
-    public IDrawable getBackground() {
-        return background;
+    public int getWidth() {
+        return 150;
+    }
+
+    @Override
+    public int getHeight() {
+        return 72;
     }
 
     @Override
@@ -158,7 +160,7 @@ public class DriveCraftingCategory implements IRecipeCategory<DriveCraftingRecip
 
         builder.addSlot(RecipeIngredientRole.INPUT, 1, 1)
                 .addItemStack(preloadedDrive)
-                .addTooltipCallback((recipeSlotView, tooltip) -> {
+                .addRichTooltipCallback((recipeSlotView, tooltip) -> {
                     tooltip.add(Component.literal("\u00A77Requires recipe: \u00A7e" + requiredRecipeId));
                     // Show which research unlocks this recipe with completion status
                     if (!unlockingResearch.isEmpty()) {

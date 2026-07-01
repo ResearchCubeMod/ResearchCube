@@ -46,22 +46,34 @@ public class DriveCraftingTableMenu extends AbstractContainerMenu {
     @Nullable
     private RecipeHolder<DriveCraftingRecipe> currentRecipe = null;
 
-    // ── Slot layout constants ──
+    // ══════════════════════════════════════════════════════════════
+    // Layout coordinates (shared by screen + texture generator)
+    //
+    // Machine panel (8,16,184,84): drive | 3x3 grid | arrow | result
+    // Inventory panel (8,104,184,98): 9x3 inventory + hotbar
+    // ══════════════════════════════════════════════════════════════
+
+    public static final int GUI_WIDTH = 200;
+    public static final int GUI_HEIGHT = 208;
+
+    // Section label row inside the machine panel
+    public static final int LABEL_Y = 24;
+
     // Drive slot pixel position
-    public static final int DRIVE_X = 34;
-    public static final int DRIVE_Y = 38;
+    public static final int DRIVE_X = 28;
+    public static final int DRIVE_Y = 54;
 
     // 3x3 grid top-left
-    public static final int GRID_X = 88;
-    public static final int GRID_Y = 30;
+    public static final int GRID_X = 72;
+    public static final int GRID_Y = 36;
 
     // Result slot position
-    public static final int RESULT_X = 196;
-    public static final int RESULT_Y = 38;
+    public static final int RESULT_X = 154;
+    public static final int RESULT_Y = 54;
 
     // Player inventory top-left
-    public static final int INV_X = 43;
-    public static final int INV_Y = 106;
+    public static final int INV_X = 19;
+    public static final int INV_Y = 120;
 
     // ── Server-side constructor (with real BE) ──
     public DriveCraftingTableMenu(int containerId, Inventory playerInv, DriveCraftingTableBlockEntity be) {
