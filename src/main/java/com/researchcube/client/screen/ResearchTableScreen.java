@@ -341,8 +341,7 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         int hx = x + ResearchTableMenu.SEARCH_X;
         int hy = y + ResearchTableMenu.TREE_BTN_Y + (ResearchTableMenu.TREE_BTN_H - 8) / 2;
         if (currentView == ViewMode.TREE) {
-            g.drawString(font, "Research Tree", hx, hy, 0xFFE6EAF5, false);
-            graphView.renderLegend(g, hx + font.width("Research Tree") + 14, hy);
+            graphView.renderLegend(g, hx, hy);
         } else if (currentView == ViewMode.PROGRESS) {
             g.drawString(font, "Research Station", hx, hy, 0xFFE6EAF5, false);
         }
