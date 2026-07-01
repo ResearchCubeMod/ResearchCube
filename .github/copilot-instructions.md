@@ -219,6 +219,20 @@ Fluid behavior:
 - Research definitions: `src/main/resources/data/researchcube/research/`
 - Recipe files: `src/main/resources/data/researchcube/recipe/`
 
+## Asset conventions
+Keep `assets/researchcube/` organised by kind so new assets stay consistent:
+- **Flat (2D) items**: texture in `textures/item/<id>.png` + model `models/item/<id>.json`
+  (`parent: minecraft:item/generated`, `layer0: researchcube:item/<id>`).
+- **Blocks**: textures in `textures/block/` + `models/block/<id>.json` + `blockstates/<id>.json`;
+  the item model parents the block model.
+- **GeckoLib cubes** (rendered 3D via `CubeItemModel` + BEWLR, not flat icons): geometry in
+  `geo/`, animation in `animations/`, texture in `textures/cube/`. Their `models/item/*.json` are
+  `builtin/entity` placeholders and reference **no** texture — do **not** add `textures/item/cube_*.png`
+  (they would be dead files). Six tiers share three shapes (basic/advanced/flawless = 1×1/2×2/3×3).
+- **Fluids** reuse vanilla water textures with a runtime tint (see `ModClientEvents`); no bespoke
+  fluid textures.
+- `textures/block/baum.txt` is an inside joke — never delete or modify it.
+
 ## Build and validation
 - Build: `./gradlew.bat build`
 - Client dev run: `./gradlew.bat runClient`
