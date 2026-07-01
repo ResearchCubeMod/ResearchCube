@@ -29,23 +29,18 @@ import java.util.List;
  * Shows item inputs (up to 16), fluid inputs (up to 2), item outputs (up to 8), 
  * and fluid output (1), along with processing duration.
  */
-// Uses JEI's current getBackground()/tooltip-callback API, deprecated for removal in newer JEI.
-// Migration needs in-game JEI testing (JEI is compileOnly here); suppressed until then.
-@SuppressWarnings("removal")
 public class ProcessingCategory implements IRecipeCategory<ProcessingRecipe> {
 
     public static final ResourceLocation UID = ResearchCubeMod.rl("processing");
     public static final RecipeType<ProcessingRecipe> RECIPE_TYPE =
             new RecipeType<>(UID, ProcessingRecipe.class);
 
-    private final IDrawable background;
     private final IDrawable icon;
     private final Component title;
 
     public ProcessingCategory(IGuiHelper guiHelper) {
         // Layout: inputs on left (4x4 grid = 72px), arrow, outputs on right (2x4 grid = 36px)
         // Plus fluids underneath
-        this.background = guiHelper.createBlankDrawable(176, 100);
         this.icon = guiHelper.createDrawableIngredient(VanillaTypes.ITEM_STACK,
                 new ItemStack(ModItems.PROCESSING_STATION_ITEM.get()));
         this.title = Component.literal("Processing Station");
@@ -62,8 +57,13 @@ public class ProcessingCategory implements IRecipeCategory<ProcessingRecipe> {
     }
 
     @Override
-    public IDrawable getBackground() {
-        return background;
+    public int getWidth() {
+        return 176;
+    }
+
+    @Override
+    public int getHeight() {
+        return 100;
     }
 
     @Override
@@ -160,7 +160,7 @@ public class ProcessingCategory implements IRecipeCategory<ProcessingRecipe> {
             builder.addSlot(RecipeIngredientRole.INPUT, 1, 76)
                     .setFluidRenderer(8000, false, 16, 16)
                     .addFluidStack(fluid1.getFluid(), fluid1.getAmount())
-                    .addTooltipCallback((view, tooltip) -> {
+                    .addRichTooltipCallback((view, tooltip) -> {
                         tooltip.add(Component.literal(fluid1.getAmount() + " mB"));
                     });
         }
@@ -169,7 +169,7 @@ public class ProcessingCategory implements IRecipeCategory<ProcessingRecipe> {
             builder.addSlot(RecipeIngredientRole.INPUT, 19, 76)
                     .setFluidRenderer(8000, false, 16, 16)
                     .addFluidStack(fluid2.getFluid(), fluid2.getAmount())
-                    .addTooltipCallback((view, tooltip) -> {
+                    .addRichTooltipCallback((view, tooltip) -> {
                         tooltip.add(Component.literal(fluid2.getAmount() + " mB"));
                     });
         }
@@ -198,7 +198,7 @@ public class ProcessingCategory implements IRecipeCategory<ProcessingRecipe> {
             builder.addSlot(RecipeIngredientRole.OUTPUT, 156, 76)
                     .setFluidRenderer(8000, false, 16, 16)
                     .addFluidStack(fluidOut.getFluid(), fluidOut.getAmount())
-                    .addTooltipCallback((view, tooltip) -> {
+                    .addRichTooltipCallback((view, tooltip) -> {
                         tooltip.add(Component.literal(fluidOut.getAmount() + " mB"));
                     });
         }

@@ -10,7 +10,8 @@ import com.researchcube.util.NbtUtil;
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
 import mezz.jei.api.constants.VanillaTypes;
-import mezz.jei.api.ingredients.subtypes.IIngredientSubtypeInterpreter;
+import mezz.jei.api.ingredients.subtypes.ISubtypeInterpreter;
+import mezz.jei.api.ingredients.subtypes.UidContext;
 import mezz.jei.api.registration.IRecipeCatalystRegistration;
 import mezz.jei.api.registration.IRecipeCategoryRegistration;
 import mezz.jei.api.registration.IRecipeRegistration;
@@ -33,10 +34,6 @@ import java.util.stream.Collectors;
  * This class is loaded via JEI's annotation-based discovery.
  * Since JEI is a compileOnly dependency, this class is only loaded when JEI is present.
  */
-// Targets the current JEI API (subtype interpreters); some of these methods are deprecated
-// for removal in newer JEI. Migrating requires in-game JEI testing (JEI is compileOnly here),
-// so the deprecation warnings are suppressed intentionally until that migration is scheduled.
-@SuppressWarnings({"removal", "deprecation"})
 @JeiPlugin
 public class ResearchCubeJEIPlugin implements IModPlugin {
 
@@ -49,12 +46,22 @@ public class ResearchCubeJEIPlugin implements IModPlugin {
 
     @Override
     public void registerItemSubtypes(ISubtypeRegistration registration) {
-        // Drives with different stored recipes should be treated as different subtypes
-        IIngredientSubtypeInterpreter<ItemStack> driveInterpreter = (stack, context) -> {
-            if (!(stack.getItem() instanceof DriveItem)) return IIngredientSubtypeInterpreter.NONE;
-            List<String> recipes = NbtUtil.readRecipes(stack);
-            if (recipes.isEmpty()) return IIngredientSubtypeInterpreter.NONE;
-            return recipes.stream().sorted().collect(Collectors.joining(","));
+        // Drives with different stored recipes should be treated as different subtypes.
+        // Subtype data is the sorted, comma-joined recipe ids (null = no distinct subtype).
+        ISubtypeInterpreter<ItemStack> driveInterpreter = new ISubtypeInterpreter<>() {
+            @Override
+            public Object getSubtypeData(ItemStack stack, UidContext context) {
+                if (!(stack.getItem() instanceof DriveItem)) return null;
+                List<String> recipes = NbtUtil.readRecipes(stack);
+                if (recipes.isEmpty()) return null;
+                return recipes.stream().sorted().collect(Collectors.joining(","));
+            }
+
+            @Override
+            public String getLegacyStringSubtypeInfo(ItemStack stack, UidContext context) {
+                Object data = getSubtypeData(stack, context);
+                return data == null ? "" : data.toString();
+            }
         };
 
         registration.registerSubtypeInterpreter(VanillaTypes.ITEM_STACK, ModItems.METADATA_IRRECOVERABLE.get(), driveInterpreter);
