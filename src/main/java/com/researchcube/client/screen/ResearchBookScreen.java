@@ -1,5 +1,6 @@
 package com.researchcube.client.screen;
 
+import com.researchcube.ResearchCubeMod;
 import com.researchcube.research.*;
 import com.researchcube.research.prerequisite.NonePrerequisite;
 import com.researchcube.util.RecipeOutputResolver;
@@ -23,9 +24,20 @@ public class ResearchBookScreen extends Screen {
 
     private final Set<String> completedResearch;
 
-    // Layout
+    private static final ResourceLocation TEXTURE =
+            ResourceLocation.fromNamespaceAndPath(ResearchCubeMod.MOD_ID, "textures/gui/research_book.png");
+
+    // Layout — vertical zones: title, stats, search, column header, list, footer.
+    // The texture bakes the window frame, search field and list area.
     private static final int PANEL_WIDTH = 340;
-    private static final int PANEL_HEIGHT = 232;
+    private static final int PANEL_HEIGHT = 240;
+    private static final int TITLE_Y = 8;
+    private static final int STATS_Y = 20;
+    private static final int SEARCH_Y = 32;
+    private static final int SEARCH_H = 14;
+    private static final int HEADER_Y = 52;
+    private static final int LIST_Y = 64;
+    private static final int LIST_H = 154;
     private int panelX, panelY;
 
     // Scrolling
@@ -59,12 +71,12 @@ public class ResearchBookScreen extends Screen {
         super.init();
         panelX = (width - PANEL_WIDTH) / 2;
         panelY = (height - PANEL_HEIGHT) / 2;
-        visibleRows = (PANEL_HEIGHT - 90) / ROW_HEIGHT; // reserve header, search box, and footer areas
+        visibleRows = LIST_H / ROW_HEIGHT;
 
         buildEntryList();
 
-        // Search box above the list
-        searchBox = new EditBox(font, panelX + 8, panelY + 28, PANEL_WIDTH - 16, 12,
+        // Search box above the list (bounds match the field baked into the texture)
+        searchBox = new EditBox(font, panelX + 8, panelY + SEARCH_Y, PANEL_WIDTH - 16, SEARCH_H,
                 Component.literal("Search..."));
         searchBox.setMaxLength(50);
         searchBox.setHint(Component.literal("Search...").withStyle(s -> s.withColor(0xFF666666)));
@@ -75,9 +87,9 @@ public class ResearchBookScreen extends Screen {
         });
         addRenderableWidget(searchBox);
 
-        // Close button
+        // Close button (footer, bottom right)
         addRenderableWidget(Button.builder(Component.literal("Close"), btn -> onClose())
-            .bounds(panelX + PANEL_WIDTH - 54, panelY + PANEL_HEIGHT - 22, 48, 16)
+                .bounds(panelX + PANEL_WIDTH - 62, panelY + PANEL_HEIGHT - 20, 54, 16)
                 .build());
     }
 
@@ -140,41 +152,29 @@ public class ResearchBookScreen extends Screen {
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
 
-        // Panel background
-        graphics.fill(panelX - 2, panelY - 2, panelX + PANEL_WIDTH + 2, panelY + PANEL_HEIGHT + 2, 0xFF111111);
-        graphics.fill(panelX, panelY, panelX + PANEL_WIDTH, panelY + PANEL_HEIGHT, 0xFF293047);
-        graphics.fill(panelX + 1, panelY + 1, panelX + PANEL_WIDTH - 1, panelY + PANEL_HEIGHT - 1, 0xFF1E2435);
-        graphics.fill(panelX + 6, panelY + 28, panelX + PANEL_WIDTH - 6, panelY + PANEL_HEIGHT - 30, 0xFF242D46);
+        // Static window background from texture
+        graphics.blit(TEXTURE, panelX, panelY, 0, 0, PANEL_WIDTH, PANEL_HEIGHT, PANEL_WIDTH, PANEL_HEIGHT);
 
         // Title
-        graphics.drawCenteredString(font, "Research Encyclopedia", panelX + PANEL_WIDTH / 2, panelY + 6, 0xFFFFAA);
+        graphics.drawCenteredString(font, "Research Encyclopedia", panelX + PANEL_WIDTH / 2, panelY + TITLE_Y, 0xFFFFAA);
 
         // Stats line
         long totalResearch = ResearchRegistry.getAll().stream().filter(d -> d.getTier().isFunctional()).count();
         long completedCount = completedResearch.size();
         String statsText = "Progress: " + completedCount + "/" + totalResearch;
-        graphics.drawCenteredString(font, statsText, panelX + PANEL_WIDTH / 2, panelY + 18, 0x88AAFF);
+        graphics.drawCenteredString(font, statsText, panelX + PANEL_WIDTH / 2, panelY + STATS_Y, 0x88AAFF);
 
-        int progressBarX = panelX + 10;
-        int progressBarY = panelY + PANEL_HEIGHT - 36;
-        int progressBarW = PANEL_WIDTH - 70;
-        int progressBarH = 8;
-        float progressRatio = totalResearch <= 0 ? 0f : (float) completedCount / totalResearch;
-        int progressFill = Math.max(0, Math.min(progressBarW, Math.round(progressBarW * progressRatio)));
-        graphics.fill(progressBarX, progressBarY, progressBarX + progressBarW, progressBarY + progressBarH, 0xFF151A26);
-        graphics.fill(progressBarX, progressBarY, progressBarX + progressFill, progressBarY + progressBarH, 0xFF3BA55D);
-        graphics.fill(progressBarX + progressBarW, progressBarY, progressBarX + progressBarW + 1, progressBarY + progressBarH + 1, 0xFF68708C);
-        graphics.fill(progressBarX, progressBarY + progressBarH, progressBarX + progressBarW + 1, progressBarY + progressBarH + 1, 0xFF68708C);
+        // Column header row (between search box and list)
+        int headerY = panelY + HEADER_Y;
+        graphics.drawString(font, "Status", panelX + 10, headerY, 0xFF8EA3D1, false);
+        graphics.drawString(font, "Research", panelX + 46, headerY, 0xFF8EA3D1, false);
+        graphics.drawString(font, "Time", panelX + PANEL_WIDTH - 100, headerY, 0xFF8EA3D1, false);
+        graphics.drawString(font, "Category", panelX + PANEL_WIDTH - 54, headerY, 0xFF8EA3D1, false);
 
         // Research list
-        int listY = panelY + 48;
+        int listY = panelY + LIST_Y;
         int maxScroll = Math.max(0, entries.size() - visibleRows);
         scrollOffset = Math.min(scrollOffset, maxScroll);
-
-        graphics.drawString(font, "Status", panelX + 10, listY - 10, 0xFF8EA3D1, false);
-        graphics.drawString(font, "Research", panelX + 48, listY - 10, 0xFF8EA3D1, false);
-        graphics.drawString(font, "Time", panelX + PANEL_WIDTH - 100, listY - 10, 0xFF8EA3D1, false);
-        graphics.drawString(font, "Category", panelX + PANEL_WIDTH - 54, listY - 10, 0xFF8EA3D1, false);
 
         for (int i = 0; i < visibleRows; i++) {
             int idx = scrollOffset + i;
@@ -185,7 +185,7 @@ public class ResearchBookScreen extends Screen {
 
             if (entry.isHeader()) {
                 // Tier header row
-                graphics.fill(panelX + 8, rowY, panelX + PANEL_WIDTH - 8, rowY + ROW_HEIGHT - 1, 0xFF242E4F);
+                graphics.fill(panelX + 8, rowY, panelX + PANEL_WIDTH - 8, rowY + ROW_HEIGHT - 1, 0xFF1E1E1E);
                 graphics.drawCenteredString(font, entry.headerText(), panelX + PANEL_WIDTH / 2, rowY + 2,
                         entry.headerColor() | 0xFF000000);
             } else {
@@ -194,18 +194,18 @@ public class ResearchBookScreen extends Screen {
                 boolean done = entry.completed();
 
                 // Row background (subtle alternation)
-                int bg = (idx % 2 == 0) ? 0xFF283252 : 0xFF2D375A;
+                int bg = (idx % 2 == 0) ? 0xFF141414 : 0xFF181818;
                 graphics.fill(panelX + 8, rowY, panelX + PANEL_WIDTH - 8, rowY + ROW_HEIGHT - 1, bg);
 
-                // Completion icon
-                String icon = done ? "\u2714 " : "\u2718 ";
+                // Completion icon (centered under the "Status" header)
+                String icon = done ? "\u2714" : "\u2718";
                 int iconColor = done ? 0xFF55FF55 : 0xFF555555;
-                graphics.drawString(font, icon, panelX + 10, rowY + 2, iconColor, false);
+                graphics.drawString(font, icon, panelX + 22 - font.width(icon) / 2, rowY + 2, iconColor, false);
 
                 // Research name (tier-colored if completed, grey if not)
                 int nameColor = done ? (def.getTier().getColor() | 0xFF000000) : 0xFF888888;
                 String name = trimToWidth(def.getDisplayName(), 168);
-                graphics.drawString(font, name, panelX + 30, rowY + 2, nameColor, false);
+                graphics.drawString(font, name, panelX + 46, rowY + 2, nameColor, false);
 
                 // Category tag (right-aligned)
                 if (def.getCategory() != null) {
