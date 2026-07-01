@@ -48,6 +48,10 @@ public class ResearchGraphView {
     private static final int LAYER_X_GAP = 178;
     private static final int LAYER_Y_GAP = 64;
 
+    // Dashed-line pattern (for OR edges): DASH_ON px drawn, then a gap, repeating every DASH_PERIOD.
+    private static final int DASH_ON = 3;
+    private static final int DASH_PERIOD = 5;
+
     private enum EdgeStyle { SINGLE, AND, OR }
 
     private static final class NodeBox {
@@ -338,14 +342,37 @@ public class ResearchGraphView {
         drawEdges(g);
         drawNodes(g);
         g.disableScissor();
+    }
 
-        // ── Edge legend (top-left corner of the viewport) ──
-        int legendX = vpX + 4;
-        int legendY = vpY + 4;
-        g.fill(legendX - 2, legendY - 2, legendX + 62, legendY + 12, 0xAA1A1E2A);
-        g.drawString(font, "AND", legendX, legendY, EDGE_AND, false);
-        g.drawString(font, "OR", legendX + 22, legendY, EDGE_OR, false);
-        g.drawString(font, "S", legendX + 38, legendY, EDGE_SINGLE, false);
+    /**
+     * Draw a compact edge legend (solid teal = all/AND, dashed amber = any/OR, solid grey = prereq)
+     * starting at the given position. Meant for the screen's top bar, not inside the graph.
+     *
+     * @return the x coordinate just past the legend, so callers can lay out following content.
+     */
+    public int renderLegend(GuiGraphics g, int x, int y) {
+        int lx = x;
+        int lineY = y + 3;
+        int labelColor = 0xFFAAB0C0;
+
+        // AND — solid teal
+        g.fill(lx, lineY, lx + 10, lineY + 1, EDGE_AND);
+        g.drawString(font, "all", lx + 12, y, labelColor, false);
+        lx += 12 + font.width("all") + 8;
+
+        // OR — dashed amber
+        for (int px = lx; px < lx + 10; px += DASH_PERIOD) {
+            g.fill(px, lineY, Math.min(px + DASH_ON, lx + 10), lineY + 1, EDGE_OR);
+        }
+        g.drawString(font, "any", lx + 12, y, labelColor, false);
+        lx += 12 + font.width("any") + 8;
+
+        // SINGLE — solid grey
+        g.fill(lx, lineY, lx + 10, lineY + 1, EDGE_SINGLE);
+        g.drawString(font, "req", lx + 12, y, labelColor, false);
+        lx += 12 + font.width("req");
+
+        return lx;
     }
 
     private void drawEdges(GuiGraphics g) {
@@ -360,36 +387,47 @@ public class ResearchGraphView {
             int ty = worldToScreenY(to.worldY + NODE_H / 2);
 
             int midX = sx + (tx - sx) / 2;
-            int color = switch (edge.style()) {
-                case AND -> EDGE_AND;
-                case OR -> EDGE_OR;
-                case SINGLE -> EDGE_SINGLE;
-            };
-
-            if (edge.style() == EdgeStyle.OR) {
-                drawPolyline(g, sx, sy - 1, midX, sy - 1, midX, ty - 1, tx, ty - 1, color);
-                drawPolyline(g, sx, sy + 1, midX, sy + 1, midX, ty + 1, tx, ty + 1, color);
-            } else {
-                drawPolyline(g, sx, sy, midX, sy, midX, ty, tx, ty, color);
+            // AND = solid teal (all required), OR = dashed amber (any one),
+            // SINGLE = solid grey (lone prerequisite).
+            int color;
+            boolean dashed;
+            switch (edge.style()) {
+                case AND -> { color = EDGE_AND; dashed = false; }
+                case OR -> { color = EDGE_OR; dashed = true; }
+                default -> { color = EDGE_SINGLE; dashed = false; }
             }
+            drawPolyline(g, sx, sy, midX, sy, midX, ty, tx, ty, color, dashed);
         }
     }
 
-    private void drawPolyline(GuiGraphics g, int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4, int color) {
-        drawLine(g, x1, y1, x2, y2, color);
-        drawLine(g, x2, y2, x3, y3, color);
-        drawLine(g, x3, y3, x4, y4, color);
+    private void drawPolyline(GuiGraphics g, int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4,
+                              int color, boolean dashed) {
+        drawLine(g, x1, y1, x2, y2, color, dashed);
+        drawLine(g, x2, y2, x3, y3, color, dashed);
+        drawLine(g, x3, y3, x4, y4, color, dashed);
     }
 
-    private void drawLine(GuiGraphics g, int x1, int y1, int x2, int y2, int color) {
+    private void drawLine(GuiGraphics g, int x1, int y1, int x2, int y2, int color, boolean dashed) {
         if (x1 == x2) {
             int minY = Math.min(y1, y2);
             int maxY = Math.max(y1, y2);
-            g.fill(x1, minY, x1 + 1, maxY + 1, color);
+            if (dashed) {
+                for (int py = minY; py < maxY; py += DASH_PERIOD) {
+                    g.fill(x1, py, x1 + 1, Math.min(py + DASH_ON, maxY) + 1, color);
+                }
+            } else {
+                g.fill(x1, minY, x1 + 1, maxY + 1, color);
+            }
         } else if (y1 == y2) {
             int minX = Math.min(x1, x2);
             int maxX = Math.max(x1, x2);
-            g.fill(minX, y1, maxX + 1, y1 + 1, color);
+            if (dashed) {
+                for (int px = minX; px < maxX; px += DASH_PERIOD) {
+                    g.fill(px, y1, Math.min(px + DASH_ON, maxX) + 1, y1 + 1, color);
+                }
+            } else {
+                g.fill(minX, y1, maxX + 1, y1 + 1, color);
+            }
         }
     }
 

@@ -335,6 +335,16 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
             case PROGRESS -> renderProgressView(g, x, y);
         }
 
+        // ── Top control bar header (LIST uses the search box instead) ──
+        int hx = x + ResearchTableMenu.SEARCH_X;
+        int hy = y + ResearchTableMenu.SEARCH_Y + 3;
+        if (currentView == ViewMode.TREE) {
+            g.drawString(font, "Research Tree", hx, hy, 0xFFE6EAF5, false);
+            graphView.renderLegend(g, hx + font.width("Research Tree") + 14, hy);
+        } else if (currentView == ViewMode.PROGRESS) {
+            g.drawString(font, "Research Station", hx, hy, 0xFFE6EAF5, false);
+        }
+
         // ── Slot labels (above slot row) ──
         int labelY = y + ResearchTableMenu.LABEL_Y;
         g.drawString(font, "Dr", x + ResearchTableMenu.DRIVE_X + 2, labelY, 0xFFD3D7E5, false);
@@ -909,10 +919,8 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
 
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
-        // Don't render title in LIST view - it would overlap the search bar
-        if (currentView != ViewMode.LIST) {
-            graphics.drawString(this.font, this.title, this.titleLabelX, this.titleLabelY, 0xFF343841, false);
-        }
+        // The upper-panel header (search box / "Research Tree" / "Research Station") is drawn per
+        // view in renderBg, so the panel title is intentionally not repeated here.
         graphics.drawString(this.font, this.playerInventoryTitle, this.inventoryLabelX, this.inventoryLabelY, 0xFFE6EAF5, false);
     }
 }
