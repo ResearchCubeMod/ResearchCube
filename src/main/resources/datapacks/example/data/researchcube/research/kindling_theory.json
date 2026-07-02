@@ -1,0 +1,29 @@
+{
+  "name": "Kindling Theory",
+  "description": "Controlled fire, warm camps. Demonstrates a single string prerequisite, item costs, a fluid cost and a weighted recipe pool.",
+  "flavor_text": "The first spark was an accident. The second one was science.",
+  "category": "foundations",
+  "tier": "UNSTABLE",
+  "duration": 1200,
+  "prerequisites": "researchcube:curious_mind",
+  "item_costs": [
+    {
+      "item": "minecraft:coal",
+      "count": 4
+    }
+  ],
+  "fluid_cost": {
+    "fluid": "researchcube:thinking_fluid",
+    "amount": 500
+  },
+  "recipe_pool": [
+    {
+      "id": "researchcube:campfire_technique",
+      "weight": 3
+    },
+    {
+      "id": "researchcube:soul_kindling",
+      "weight": 1
+    }
+  ]
+}

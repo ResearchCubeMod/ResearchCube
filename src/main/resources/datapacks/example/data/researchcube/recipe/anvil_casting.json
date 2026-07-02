@@ -1,0 +1,19 @@
+{
+  "type": "researchcube:drive_crafting",
+  "pattern": [
+    "BB",
+    "II"
+  ],
+  "key": {
+    "B": {
+      "item": "minecraft:iron_block"
+    },
+    "I": {
+      "item": "minecraft:iron_ingot"
+    }
+  },
+  "result": {
+    "id": "minecraft:anvil",
+    "count": 1
+  }
+}

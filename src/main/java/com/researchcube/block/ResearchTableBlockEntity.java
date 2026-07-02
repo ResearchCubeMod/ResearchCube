@@ -436,6 +436,10 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
                     CompleteResearchTrigger.INSTANCE.trigger(player, definition.getId());
                 }
             }
+
+            // Push the updated completed set to the whole team so JEI/EMI and the
+            // research book reflect the unlock immediately
+            ResearchSync.syncCompletedForKey(serverLevel.getServer(), researchKey);
         }
 
         // Play completion sound and spawn particles

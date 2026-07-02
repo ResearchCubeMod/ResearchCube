@@ -1,0 +1,37 @@
+{
+  "name": "Soul Resonance",
+  "description": "Light that remembers the dead, and stone that glows on demand.",
+  "flavor_text": "The souls don't mind. They like the warm glow too.",
+  "category": "alchemy",
+  "tier": "PRECISE",
+  "duration": 8400,
+  "prerequisites": {
+    "type": "AND",
+    "values": [
+      "researchcube:mechanical_minds",
+      "researchcube:crystal_cultivation"
+    ]
+  },
+  "item_costs": [
+    {
+      "item": "minecraft:soul_sand",
+      "count": 8
+    },
+    {
+      "item": "minecraft:quartz",
+      "count": 8
+    },
+    {
+      "item": "minecraft:glowstone_dust",
+      "count": 8
+    }
+  ],
+  "fluid_cost": {
+    "fluid": "researchcube:reasoning_fluid",
+    "amount": 1500
+  },
+  "recipe_pool": [
+    "researchcube:soul_lantern_weaving",
+    "researchcube:glowstone_condensation"
+  ]
+}

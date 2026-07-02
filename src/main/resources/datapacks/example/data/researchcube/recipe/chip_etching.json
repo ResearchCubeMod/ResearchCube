@@ -1,0 +1,22 @@
+{
+  "type": "researchcube:drive_crafting",
+  "pattern": [
+    "PGP",
+    "GRG"
+  ],
+  "key": {
+    "P": {
+      "item": "minecraft:paper"
+    },
+    "G": {
+      "item": "minecraft:glowstone_dust"
+    },
+    "R": {
+      "item": "minecraft:redstone"
+    }
+  },
+  "result": {
+    "id": "researchcube:research_chip",
+    "count": 1
+  }
+}

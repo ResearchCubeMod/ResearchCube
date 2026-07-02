@@ -1,0 +1,33 @@
+{
+  "name": "Redstone Logic",
+  "description": "Bulk-fabricate redstone components. Unlocks discounted repeater or comparator crafting.",
+  "flavor_text": "Dust that thinks, if you arrange it politely.",
+  "category": "engineering",
+  "tier": "BASIC",
+  "duration": 2400,
+  "prerequisites": "researchcube:kindling_theory",
+  "item_costs": [
+    {
+      "item": "minecraft:redstone",
+      "count": 16
+    },
+    {
+      "item": "minecraft:iron_ingot",
+      "count": 4
+    }
+  ],
+  "fluid_cost": {
+    "fluid": "researchcube:thinking_fluid",
+    "amount": 1000
+  },
+  "recipe_pool": [
+    {
+      "id": "researchcube:repeater_array",
+      "weight": 2
+    },
+    {
+      "id": "researchcube:comparator_logic",
+      "weight": 1
+    }
+  ]
+}

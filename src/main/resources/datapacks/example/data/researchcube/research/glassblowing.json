@@ -1,0 +1,26 @@
+{
+  "name": "Glassblowing",
+  "description": "Melt sand into glass without a furnace. Demonstrates a processing recipe inside a research pool.",
+  "flavor_text": "Sand remembers being liquid. Remind it.",
+  "category": "foundations",
+  "tier": "UNSTABLE",
+  "duration": 1200,
+  "prerequisites": "researchcube:curious_mind",
+  "item_costs": [
+    {
+      "item": "minecraft:sand",
+      "count": 12
+    },
+    {
+      "item": "minecraft:coal",
+      "count": 4
+    }
+  ],
+  "fluid_cost": {
+    "fluid": "researchcube:thinking_fluid",
+    "amount": 500
+  },
+  "recipe_pool": [
+    "researchcube:sand_fusion"
+  ]
+}

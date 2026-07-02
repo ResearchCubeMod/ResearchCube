@@ -66,24 +66,20 @@ public class DriveItem extends Item {
     /**
      * Right-click a filled drive in hand (not on a block) to open the Drive Inspector screen.
      * Only works client-side when the drive has recipes.
+     * The screen is opened via ClientHooks so this class never references client
+     * classes directly (that would crash dedicated servers during item registration).
      */
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
         if (level.isClientSide() && hasRecipes(stack)) {
-            openInspectorScreen(stack);
+            com.researchcube.client.ClientHooks.openDriveInspector(stack);
             return InteractionResultHolder.success(stack);
         }
         if (hasRecipes(stack)) {
             return InteractionResultHolder.success(stack);
         }
         return InteractionResultHolder.pass(stack);
-    }
-
-    /** Client-only method to open the inspector screen. */
-    private void openInspectorScreen(ItemStack stack) {
-        net.minecraft.client.Minecraft.getInstance().setScreen(
-                new com.researchcube.client.screen.DriveInspectorScreen(stack));
     }
 
     @Override

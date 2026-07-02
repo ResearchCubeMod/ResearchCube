@@ -1,0 +1,30 @@
+{
+  "type": "researchcube:processing",
+  "inputs": [
+    {
+      "item": "minecraft:iron_ingot"
+    },
+    {
+      "item": "minecraft:iron_ingot"
+    },
+    {
+      "item": "minecraft:iron_ingot"
+    },
+    {
+      "item": "minecraft:iron_ingot"
+    }
+  ],
+  "fluid_inputs": [
+    {
+      "fluid": "researchcube:reasoning_fluid",
+      "amount": 750
+    }
+  ],
+  "outputs": [
+    {
+      "id": "minecraft:gold_ingot",
+      "count": 2
+    }
+  ],
+  "duration": 400
+}

@@ -1,0 +1,45 @@
+{
+  "name": "Transmutation Principles",
+  "description": "Convert one metal into another. Demonstrates a nested prerequisite: alloy_tempering AND (gem_faceting OR idea_transcription).",
+  "flavor_text": "Alchemy was never wrong, merely early.",
+  "category": "transmutation",
+  "tier": "PRECISE",
+  "duration": 9600,
+  "prerequisites": {
+    "type": "AND",
+    "values": [
+      "researchcube:alloy_tempering",
+      {
+        "type": "OR",
+        "values": [
+          "researchcube:gem_faceting",
+          "researchcube:idea_transcription"
+        ]
+      }
+    ]
+  },
+  "item_costs": [
+    {
+      "item": "minecraft:gold_ingot",
+      "count": 8
+    },
+    {
+      "item": "minecraft:quartz",
+      "count": 16
+    }
+  ],
+  "fluid_cost": {
+    "fluid": "researchcube:reasoning_fluid",
+    "amount": 2000
+  },
+  "recipe_pool": [
+    {
+      "id": "researchcube:golden_transmutation",
+      "weight": 2
+    },
+    {
+      "id": "researchcube:lapis_transmutation",
+      "weight": 1
+    }
+  ]
+}

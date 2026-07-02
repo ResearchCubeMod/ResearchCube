@@ -1,0 +1,33 @@
+{
+  "name": "Gem Faceting",
+  "description": "Split gemstones along invisible seams. Duplicate diamonds or emeralds with reasoning fluid.",
+  "flavor_text": "Every gem contains a second gem, sulking.",
+  "category": "transmutation",
+  "tier": "PRECISE",
+  "duration": 9600,
+  "prerequisites": "researchcube:crystal_cultivation",
+  "item_costs": [
+    {
+      "item": "minecraft:diamond",
+      "count": 4
+    },
+    {
+      "item": "minecraft:emerald",
+      "count": 2
+    }
+  ],
+  "fluid_cost": {
+    "fluid": "researchcube:reasoning_fluid",
+    "amount": 1500
+  },
+  "recipe_pool": [
+    {
+      "id": "researchcube:diamond_faceting",
+      "weight": 1
+    },
+    {
+      "id": "researchcube:emerald_faceting",
+      "weight": 2
+    }
+  ]
+}

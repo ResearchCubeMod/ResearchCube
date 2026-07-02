@@ -1,0 +1,30 @@
+{
+  "type": "researchcube:processing",
+  "inputs": [
+    {
+      "item": "minecraft:amethyst_block"
+    },
+    {
+      "item": "minecraft:amethyst_block"
+    },
+    {
+      "item": "minecraft:amethyst_block"
+    },
+    {
+      "item": "minecraft:amethyst_block"
+    }
+  ],
+  "fluid_inputs": [
+    {
+      "fluid": "researchcube:pondering_fluid",
+      "amount": 1000
+    }
+  ],
+  "outputs": [
+    {
+      "id": "minecraft:budding_amethyst",
+      "count": 1
+    }
+  ],
+  "duration": 400
+}

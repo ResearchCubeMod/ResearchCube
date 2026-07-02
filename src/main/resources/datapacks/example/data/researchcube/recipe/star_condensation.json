@@ -1,0 +1,33 @@
+{
+  "type": "researchcube:processing",
+  "inputs": [
+    {
+      "item": "minecraft:glowstone"
+    },
+    {
+      "item": "minecraft:glowstone"
+    },
+    {
+      "item": "minecraft:glowstone"
+    },
+    {
+      "item": "minecraft:glowstone"
+    },
+    {
+      "item": "minecraft:diamond_block"
+    }
+  ],
+  "fluid_inputs": [
+    {
+      "fluid": "researchcube:imagination_fluid",
+      "amount": 4000
+    }
+  ],
+  "outputs": [
+    {
+      "id": "minecraft:nether_star",
+      "count": 1
+    }
+  ],
+  "duration": 1200
+}

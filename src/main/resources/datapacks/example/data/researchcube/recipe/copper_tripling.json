@@ -1,0 +1,21 @@
+{
+  "type": "researchcube:processing",
+  "inputs": [
+    {
+      "item": "minecraft:raw_copper"
+    }
+  ],
+  "fluid_inputs": [
+    {
+      "fluid": "researchcube:thinking_fluid",
+      "amount": 500
+    }
+  ],
+  "outputs": [
+    {
+      "id": "minecraft:copper_ingot",
+      "count": 3
+    }
+  ],
+  "duration": 160
+}

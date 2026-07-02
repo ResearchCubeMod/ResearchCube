@@ -1,0 +1,36 @@
+{
+  "name": "Hearty Cooking",
+  "description": "Proper meals from simple ingredients. Demonstrates an OR prerequisite and a processing recipe with multiple outputs.",
+  "flavor_text": "An army of researchers marches on its stomach.",
+  "category": "foundations",
+  "tier": "BASIC",
+  "duration": 1800,
+  "prerequisites": {
+    "type": "OR",
+    "values": [
+      "researchcube:kindling_theory",
+      "researchcube:glassblowing"
+    ]
+  },
+  "item_costs": [
+    {
+      "item": "minecraft:bowl",
+      "count": 4
+    },
+    {
+      "item": "minecraft:carrot",
+      "count": 8
+    },
+    {
+      "item": "minecraft:potato",
+      "count": 8
+    }
+  ],
+  "fluid_cost": {
+    "fluid": "researchcube:thinking_fluid",
+    "amount": 1000
+  },
+  "recipe_pool": [
+    "researchcube:stew_synthesis"
+  ]
+}

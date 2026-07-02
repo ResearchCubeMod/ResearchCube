@@ -1,0 +1,39 @@
+{
+  "name": "Alloy Tempering",
+  "description": "Stretch metal further than any smith could. Discounted chains or anvils.",
+  "flavor_text": "Bend it until it agrees with you.",
+  "category": "engineering",
+  "tier": "ADVANCED",
+  "duration": 6000,
+  "prerequisites": {
+    "type": "AND",
+    "values": [
+      "researchcube:ore_intuition",
+      "researchcube:redstone_logic"
+    ]
+  },
+  "item_costs": [
+    {
+      "item": "minecraft:iron_block",
+      "count": 2
+    },
+    {
+      "item": "minecraft:copper_block",
+      "count": 2
+    }
+  ],
+  "fluid_cost": {
+    "fluid": "researchcube:pondering_fluid",
+    "amount": 2000
+  },
+  "recipe_pool": [
+    {
+      "id": "researchcube:chain_extrusion",
+      "weight": 2
+    },
+    {
+      "id": "researchcube:anvil_casting",
+      "weight": 1
+    }
+  ]
+}

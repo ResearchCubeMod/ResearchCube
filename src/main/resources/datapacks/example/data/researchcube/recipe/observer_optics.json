@@ -1,0 +1,22 @@
+{
+  "type": "researchcube:drive_crafting",
+  "pattern": [
+    "CCC",
+    "RRQ"
+  ],
+  "key": {
+    "C": {
+      "item": "minecraft:cobblestone"
+    },
+    "R": {
+      "item": "minecraft:redstone"
+    },
+    "Q": {
+      "item": "minecraft:quartz"
+    }
+  },
+  "result": {
+    "id": "minecraft:observer",
+    "count": 2
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "pack": {
+    "description": "ResearchCube example content: default research tree, recipes and advancements. Disable this pack (/datapack disable) to replace it with your own datapack.",
+    "pack_format": 48
+  }
+}

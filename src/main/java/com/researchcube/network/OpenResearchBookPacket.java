@@ -1,9 +1,8 @@
 package com.researchcube.network;
 
 import com.researchcube.ResearchCubeMod;
+import com.researchcube.client.ClientHooks;
 import com.researchcube.client.ClientResearchData;
-import com.researchcube.client.screen.ResearchBookScreen;
-import net.minecraft.client.Minecraft;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -48,6 +47,8 @@ public record OpenResearchBookPacket(Set<ResourceLocation> completedResearch) im
 
     /**
      * Client-side handler. Opens the Research Book screen.
+     * Goes through ClientHooks — referencing the screen class here directly would
+     * make the JVM verifier load client classes on dedicated servers and crash them.
      */
     public static void handle(OpenResearchBookPacket packet, IPayloadContext context) {
         context.enqueueWork(() -> {
@@ -56,7 +57,7 @@ public record OpenResearchBookPacket(Set<ResourceLocation> completedResearch) im
                 completedStrings.add(rl.toString());
             }
             ClientResearchData.updateCompleted(completedStrings);
-            Minecraft.getInstance().setScreen(new ResearchBookScreen(completedStrings));
+            ClientHooks.openResearchBook(completedStrings);
         });
     }
 }

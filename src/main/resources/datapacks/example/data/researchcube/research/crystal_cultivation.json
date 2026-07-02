@@ -1,0 +1,26 @@
+{
+  "name": "Crystal Cultivation",
+  "description": "Coax amethyst into growing where you want it. Unlocks a way to create budding amethyst — impossible to obtain by hand.",
+  "flavor_text": "It hums back when you hum at it.",
+  "category": "alchemy",
+  "tier": "ADVANCED",
+  "duration": 4800,
+  "prerequisites": "researchcube:ore_intuition",
+  "item_costs": [
+    {
+      "item": "minecraft:amethyst_shard",
+      "count": 8
+    },
+    {
+      "item": "minecraft:diamond",
+      "count": 1
+    }
+  ],
+  "fluid_cost": {
+    "fluid": "researchcube:pondering_fluid",
+    "amount": 1000
+  },
+  "recipe_pool": [
+    "researchcube:budding_synthesis"
+  ]
+}

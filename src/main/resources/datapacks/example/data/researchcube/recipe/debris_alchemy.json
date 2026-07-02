@@ -1,0 +1,27 @@
+{
+  "type": "researchcube:processing",
+  "inputs": [
+    {
+      "item": "minecraft:netherite_scrap"
+    },
+    {
+      "item": "minecraft:gold_ingot"
+    },
+    {
+      "item": "minecraft:gold_ingot"
+    }
+  ],
+  "fluid_inputs": [
+    {
+      "fluid": "researchcube:reasoning_fluid",
+      "amount": 2000
+    }
+  ],
+  "outputs": [
+    {
+      "id": "minecraft:netherite_ingot",
+      "count": 1
+    }
+  ],
+  "duration": 800
+}

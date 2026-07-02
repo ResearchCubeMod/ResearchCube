@@ -25,7 +25,13 @@ import java.util.List;
  */
 public class DriveCraftingRecipe implements CraftingRecipe {
 
-    private final String recipeId;
+    /**
+     * The recipe ID a drive must carry for this recipe to match.
+     * Usually empty in JSON ("recipe_id" is optional) and bound to the recipe's own
+     * ID after datapack load via {@link #bindId} — declaring it explicitly is only
+     * needed when several recipe files should share one unlock ID.
+     */
+    private String recipeId;
     private final NonNullList<Ingredient> ingredients;
     @Nullable
     private final ShapedRecipePattern shapedPattern;
@@ -34,7 +40,7 @@ public class DriveCraftingRecipe implements CraftingRecipe {
 
     /** Shapeless constructor. */
     public DriveCraftingRecipe(String recipeId, NonNullList<Ingredient> ingredients, ItemStack result, String group) {
-        this.recipeId = recipeId;
+        this.recipeId = recipeId != null ? recipeId : "";
         this.ingredients = ingredients;
         this.shapedPattern = null;
         this.result = result;
@@ -43,7 +49,7 @@ public class DriveCraftingRecipe implements CraftingRecipe {
 
     /** Shaped constructor. */
     public DriveCraftingRecipe(String recipeId, ShapedRecipePattern pattern, ItemStack result, String group) {
-        this.recipeId = recipeId;
+        this.recipeId = recipeId != null ? recipeId : "";
         this.ingredients = NonNullList.create();
         this.shapedPattern = pattern;
         this.result = result;
@@ -52,6 +58,17 @@ public class DriveCraftingRecipe implements CraftingRecipe {
 
     public String getRequiredRecipeId() {
         return recipeId;
+    }
+
+    /**
+     * Bind this recipe to its own registry ID if the JSON omitted "recipe_id".
+     * Called by ResearchManager after every datapack (re)load, before recipes are
+     * synced to clients — the network codec always transmits the resolved ID.
+     */
+    public void bindId(net.minecraft.resources.ResourceLocation ownId) {
+        if (this.recipeId.isEmpty()) {
+            this.recipeId = ownId.toString();
+        }
     }
 
     public boolean isShaped() {
@@ -65,6 +82,11 @@ public class DriveCraftingRecipe implements CraftingRecipe {
 
     @Override
     public boolean matches(CraftingInput input, Level level) {
+        if (recipeId.isEmpty()) {
+            // Not bound yet (should not happen in practice) — never match rather than
+            // matching drives with unrelated content.
+            return false;
+        }
         if (isShaped()) {
             return matchesShapedMode(input);
         }

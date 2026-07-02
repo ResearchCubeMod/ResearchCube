@@ -1,0 +1,20 @@
+{
+  "type": "researchcube:drive_crafting",
+  "pattern": [
+    "N",
+    "I",
+    "N"
+  ],
+  "key": {
+    "N": {
+      "item": "minecraft:iron_nugget"
+    },
+    "I": {
+      "item": "minecraft:iron_ingot"
+    }
+  },
+  "result": {
+    "id": "minecraft:chain",
+    "count": 16
+  }
+}

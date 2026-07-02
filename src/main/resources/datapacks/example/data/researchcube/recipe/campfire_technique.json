@@ -1,0 +1,22 @@
+{
+  "type": "researchcube:drive_crafting",
+  "pattern": [
+    "SCS",
+    "LLL"
+  ],
+  "key": {
+    "S": {
+      "item": "minecraft:stick"
+    },
+    "C": {
+      "item": "minecraft:coal"
+    },
+    "L": {
+      "tag": "minecraft:logs"
+    }
+  },
+  "result": {
+    "id": "minecraft:campfire",
+    "count": 1
+  }
+}

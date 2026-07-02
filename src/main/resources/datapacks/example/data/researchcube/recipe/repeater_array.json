@@ -1,0 +1,22 @@
+{
+  "type": "researchcube:drive_crafting",
+  "pattern": [
+    "TRT",
+    "SSS"
+  ],
+  "key": {
+    "T": {
+      "item": "minecraft:redstone_torch"
+    },
+    "R": {
+      "item": "minecraft:redstone"
+    },
+    "S": {
+      "item": "minecraft:stone"
+    }
+  },
+  "result": {
+    "id": "minecraft:repeater",
+    "count": 4
+  }
+}

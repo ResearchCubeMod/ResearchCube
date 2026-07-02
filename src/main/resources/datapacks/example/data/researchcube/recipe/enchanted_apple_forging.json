@@ -1,0 +1,19 @@
+{
+  "type": "researchcube:drive_crafting",
+  "pattern": [
+    "GGG",
+    "GAG"
+  ],
+  "key": {
+    "G": {
+      "item": "minecraft:gold_block"
+    },
+    "A": {
+      "item": "minecraft:apple"
+    }
+  },
+  "result": {
+    "id": "minecraft:enchanted_golden_apple",
+    "count": 1
+  }
+}

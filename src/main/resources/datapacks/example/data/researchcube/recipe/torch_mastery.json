@@ -1,0 +1,15 @@
+{
+  "type": "researchcube:drive_crafting",
+  "ingredients": [
+    {
+      "item": "minecraft:coal"
+    },
+    {
+      "item": "minecraft:stick"
+    }
+  ],
+  "result": {
+    "id": "minecraft:torch",
+    "count": 8
+  }
+}

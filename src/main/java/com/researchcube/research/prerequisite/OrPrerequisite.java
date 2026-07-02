@@ -25,6 +25,13 @@ public class OrPrerequisite implements Prerequisite {
     }
 
     @Override
+    public void collectResearchIds(java.util.function.Consumer<String> collector) {
+        for (Prerequisite child : children) {
+            child.collectResearchIds(collector);
+        }
+    }
+
+    @Override
     public String describe() {
         return "ANY of: [" + children.stream()
                 .map(Prerequisite::describe)

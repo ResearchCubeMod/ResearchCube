@@ -1,8 +1,7 @@
 package com.researchcube.network;
 
 import com.researchcube.ResearchCubeMod;
-import com.researchcube.client.screen.ChipEncoderScreen;
-import net.minecraft.client.Minecraft;
+import com.researchcube.client.ClientHooks;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -47,9 +46,11 @@ public record OpenChipEncoderPacket(Set<ResourceLocation> completedResearch, boo
         return TYPE;
     }
 
+    /**
+     * Client-side handler. Opens the encoder screen via ClientHooks so this class
+     * stays loadable on dedicated servers.
+     */
     public static void handle(OpenChipEncoderPacket packet, IPayloadContext context) {
-        context.enqueueWork(() -> {
-            Minecraft.getInstance().setScreen(new ChipEncoderScreen(packet.completedResearch, packet.mainHand));
-        });
+        context.enqueueWork(() -> ClientHooks.openChipEncoder(packet.completedResearch, packet.mainHand));
     }
 }

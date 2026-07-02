@@ -1,0 +1,22 @@
+{
+  "type": "researchcube:drive_crafting",
+  "pattern": [
+    "TQT",
+    "SSS"
+  ],
+  "key": {
+    "T": {
+      "item": "minecraft:redstone_torch"
+    },
+    "Q": {
+      "item": "minecraft:quartz"
+    },
+    "S": {
+      "item": "minecraft:stone"
+    }
+  },
+  "result": {
+    "id": "minecraft:comparator",
+    "count": 2
+  }
+}

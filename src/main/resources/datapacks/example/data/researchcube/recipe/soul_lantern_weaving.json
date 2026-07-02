@@ -1,0 +1,19 @@
+{
+  "type": "researchcube:drive_crafting",
+  "pattern": [
+    "NNN",
+    "NTN"
+  ],
+  "key": {
+    "N": {
+      "item": "minecraft:iron_nugget"
+    },
+    "T": {
+      "item": "minecraft:soul_torch"
+    }
+  },
+  "result": {
+    "id": "minecraft:soul_lantern",
+    "count": 2
+  }
+}

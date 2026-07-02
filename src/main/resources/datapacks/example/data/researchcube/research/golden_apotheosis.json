@@ -1,0 +1,32 @@
+{
+  "name": "Golden Apotheosis",
+  "description": "Forge the legendary enchanted golden apple — uncraftable since the old days.",
+  "flavor_text": "They said the recipe was lost. It was only misplaced.",
+  "category": "ascension",
+  "tier": "FLAWLESS",
+  "duration": 14400,
+  "prerequisites": {
+    "type": "AND",
+    "values": [
+      "researchcube:soul_resonance",
+      "researchcube:gem_faceting"
+    ]
+  },
+  "item_costs": [
+    {
+      "item": "minecraft:gold_block",
+      "count": 8
+    },
+    {
+      "item": "minecraft:apple",
+      "count": 4
+    }
+  ],
+  "fluid_cost": {
+    "fluid": "researchcube:reasoning_fluid",
+    "amount": 4000
+  },
+  "recipe_pool": [
+    "researchcube:enchanted_apple_forging"
+  ]
+}

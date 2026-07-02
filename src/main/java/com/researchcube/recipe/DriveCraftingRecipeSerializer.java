@@ -44,7 +44,7 @@ public class DriveCraftingRecipeSerializer implements RecipeSerializer<DriveCraf
     /** Shapeless codec (uses "ingredients" field). */
     private static final MapCodec<DriveCraftingRecipe> SHAPELESS_CODEC = RecordCodecBuilder.mapCodec(instance ->
             instance.group(
-                    Codec.STRING.fieldOf("recipe_id").forGetter(DriveCraftingRecipe::getRequiredRecipeId),
+                    Codec.STRING.optionalFieldOf("recipe_id", "").forGetter(DriveCraftingRecipe::getRequiredRecipeId),
                     Ingredient.CODEC_NONEMPTY.listOf().fieldOf("ingredients").flatXmap(
                             list -> {
                                 Ingredient[] ingredients = list.toArray(Ingredient[]::new);
@@ -70,7 +70,7 @@ public class DriveCraftingRecipeSerializer implements RecipeSerializer<DriveCraf
     /** Shaped codec using ShapedRecipePattern (uses "pattern" and "key" fields). */
     private static final MapCodec<DriveCraftingRecipe> SHAPED_CODEC = RecordCodecBuilder.mapCodec(instance ->
             instance.group(
-                    Codec.STRING.fieldOf("recipe_id").forGetter(DriveCraftingRecipe::getRequiredRecipeId),
+                    Codec.STRING.optionalFieldOf("recipe_id", "").forGetter(DriveCraftingRecipe::getRequiredRecipeId),
                     ShapedRecipePattern.MAP_CODEC.forGetter(r -> r.getShapedPattern()),
                     ItemStack.STRICT_CODEC.fieldOf("result").forGetter(r -> r.getResultItem(null)),
                     Codec.STRING.optionalFieldOf("group", "").forGetter(DriveCraftingRecipe::getGroup)

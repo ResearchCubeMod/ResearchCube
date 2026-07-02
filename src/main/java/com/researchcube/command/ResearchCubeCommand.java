@@ -10,6 +10,7 @@ import com.researchcube.registry.ModItems;
 import com.researchcube.research.ResearchDefinition;
 import com.researchcube.research.ResearchRegistry;
 import com.researchcube.research.ResearchSavedData;
+import com.researchcube.research.ResearchSync;
 import com.researchcube.research.ResearchTier;
 import com.researchcube.research.WeightedRecipe;
 import com.researchcube.util.NbtUtil;
@@ -120,6 +121,7 @@ public class ResearchCubeCommand {
         }
 
         data.addCompleted(key, researchId);
+        ResearchSync.syncCompletedForKey(source.getServer(), key);
         source.sendSuccess(() -> Component.literal("Unlocked " + researchId + " for "
                 + player.getName().getString()), true);
         return 1;
@@ -141,6 +143,7 @@ public class ResearchCubeCommand {
         }
 
         int finalCount = count;
+        ResearchSync.syncCompletedForKey(source.getServer(), key);
         source.sendSuccess(() -> Component.literal("Unlocked " + finalCount + " research(es) for "
                 + player.getName().getString()), true);
         return count;
@@ -167,6 +170,7 @@ public class ResearchCubeCommand {
         }
 
         data.removeCompleted(key, researchId);
+        ResearchSync.syncCompletedForKey(source.getServer(), key);
         source.sendSuccess(() -> Component.literal("Locked " + researchId + " for "
                 + player.getName().getString()), true);
         return 1;
@@ -197,6 +201,7 @@ public class ResearchCubeCommand {
         ResearchSavedData data = ResearchSavedData.get(source.getServer());
         String key = ResearchSavedData.getResearchKey(player);
         data.addCompleted(key, researchId);
+        ResearchSync.syncCompletedForKey(source.getServer(), key);
 
         // Give the drive to the player
         if (!player.getInventory().add(driveStack)) {

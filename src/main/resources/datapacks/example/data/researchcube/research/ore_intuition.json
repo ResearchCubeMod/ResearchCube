@@ -1,0 +1,39 @@
+{
+  "name": "Ore Intuition",
+  "description": "Squeeze more metal out of every raw ore. Demonstrates an AND prerequisite and a weighted pool of processing recipes.",
+  "flavor_text": "The ore was never the limit. The smelter was.",
+  "category": "engineering",
+  "tier": "BASIC",
+  "duration": 2400,
+  "prerequisites": {
+    "type": "AND",
+    "values": [
+      "researchcube:kindling_theory",
+      "researchcube:glassblowing"
+    ]
+  },
+  "item_costs": [
+    {
+      "item": "minecraft:raw_iron",
+      "count": 6
+    },
+    {
+      "item": "minecraft:raw_copper",
+      "count": 6
+    }
+  ],
+  "fluid_cost": {
+    "fluid": "researchcube:thinking_fluid",
+    "amount": 1500
+  },
+  "recipe_pool": [
+    {
+      "id": "researchcube:iron_doubling",
+      "weight": 3
+    },
+    {
+      "id": "researchcube:copper_tripling",
+      "weight": 2
+    }
+  ]
+}

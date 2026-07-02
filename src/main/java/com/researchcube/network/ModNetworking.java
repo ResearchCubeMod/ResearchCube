@@ -63,5 +63,17 @@ public class ModNetworking {
                 SyncResearchProgressPacket.STREAM_CODEC,
                 SyncResearchProgressPacket::handle
         );
+
+        registrar.playToClient(
+                SyncResearchDefinitionsPacket.TYPE,
+                SyncResearchDefinitionsPacket.STREAM_CODEC,
+                SyncResearchDefinitionsPacket::handle
+        );
+
+        registrar.playToClient(
+                SyncCompletedResearchPacket.TYPE,
+                SyncCompletedResearchPacket.STREAM_CODEC,
+                SyncCompletedResearchPacket::handle
+        );
     }
 }

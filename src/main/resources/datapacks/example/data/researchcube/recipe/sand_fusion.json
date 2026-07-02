@@ -1,0 +1,24 @@
+{
+  "type": "researchcube:processing",
+  "inputs": [
+    {
+      "item": "minecraft:sand"
+    },
+    {
+      "item": "minecraft:sand"
+    }
+  ],
+  "fluid_inputs": [
+    {
+      "fluid": "researchcube:thinking_fluid",
+      "amount": 250
+    }
+  ],
+  "outputs": [
+    {
+      "id": "minecraft:glass",
+      "count": 3
+    }
+  ],
+  "duration": 100
+}

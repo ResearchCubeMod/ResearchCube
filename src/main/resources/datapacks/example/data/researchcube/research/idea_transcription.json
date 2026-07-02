@@ -1,0 +1,32 @@
+{
+  "name": "Idea Transcription",
+  "description": "Turn a fleeting idea into printable research chips. Demonstrates the idea_chip requirement: bring the matching chip to start this research.",
+  "flavor_text": "Ideas evaporate. Ink does not.",
+  "category": "alchemy",
+  "tier": "ADVANCED",
+  "duration": 3600,
+  "prerequisites": "researchcube:ore_intuition",
+  "idea_chip": {
+    "id": "researchcube:metadata_irrecoverable",
+    "components": {
+      "minecraft:custom_name": "{\"text\":\"Fragmented Idea\",\"italic\":false,\"color\":\"light_purple\"}"
+    }
+  },
+  "item_costs": [
+    {
+      "item": "minecraft:paper",
+      "count": 8
+    },
+    {
+      "item": "minecraft:glowstone_dust",
+      "count": 4
+    }
+  ],
+  "fluid_cost": {
+    "fluid": "researchcube:pondering_fluid",
+    "amount": 1000
+  },
+  "recipe_pool": [
+    "researchcube:chip_etching"
+  ]
+}

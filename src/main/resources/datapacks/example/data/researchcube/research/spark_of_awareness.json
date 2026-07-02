@@ -1,0 +1,47 @@
+{
+  "name": "Spark of Awareness",
+  "description": "The capstone: creation itself. A three-recipe weighted pool of things no crafting table could ever produce.",
+  "flavor_text": "The cube opened its eye. It was your eye all along.",
+  "category": "ascension",
+  "tier": "SELF_AWARE",
+  "duration": 24000,
+  "prerequisites": {
+    "type": "AND",
+    "values": [
+      "researchcube:netherite_reclamation",
+      "researchcube:golden_apotheosis"
+    ]
+  },
+  "item_costs": [
+    {
+      "item": "minecraft:nether_star",
+      "count": 1
+    },
+    {
+      "item": "minecraft:netherite_ingot",
+      "count": 1
+    },
+    {
+      "item": "minecraft:amethyst_block",
+      "count": 4
+    }
+  ],
+  "fluid_cost": {
+    "fluid": "researchcube:imagination_fluid",
+    "amount": 4000
+  },
+  "recipe_pool": [
+    {
+      "id": "researchcube:star_condensation",
+      "weight": 1
+    },
+    {
+      "id": "researchcube:elytra_weaving",
+      "weight": 1
+    },
+    {
+      "id": "researchcube:totem_of_self",
+      "weight": 2
+    }
+  ]
+}

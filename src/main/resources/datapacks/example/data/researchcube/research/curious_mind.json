@@ -1,0 +1,11 @@
+{
+  "name": "Curious Mind",
+  "description": "Every great discovery starts with a simple question. The minimal research file: just a tier, a duration and a recipe pool.",
+  "flavor_text": "What if... ?",
+  "category": "foundations",
+  "tier": "UNSTABLE",
+  "duration": 600,
+  "recipe_pool": [
+    "researchcube:torch_mastery"
+  ]
+}

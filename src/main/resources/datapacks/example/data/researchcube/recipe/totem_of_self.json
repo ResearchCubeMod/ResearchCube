@@ -1,0 +1,19 @@
+{
+  "type": "researchcube:drive_crafting",
+  "pattern": [
+    " E ",
+    "GEG"
+  ],
+  "key": {
+    "E": {
+      "item": "minecraft:emerald_block"
+    },
+    "G": {
+      "item": "minecraft:gold_ingot"
+    }
+  },
+  "result": {
+    "id": "minecraft:totem_of_undying",
+    "count": 1
+  }
+}

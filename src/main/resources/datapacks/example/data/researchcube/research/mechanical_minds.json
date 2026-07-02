@@ -1,0 +1,37 @@
+{
+  "name": "Mechanical Minds",
+  "description": "Machines that observe and machines that push. Discounted piston or observer fabrication.",
+  "flavor_text": "The block watched back. Progress!",
+  "category": "engineering",
+  "tier": "ADVANCED",
+  "duration": 4800,
+  "prerequisites": "researchcube:redstone_logic",
+  "item_costs": [
+    {
+      "item": "minecraft:iron_ingot",
+      "count": 12
+    },
+    {
+      "item": "minecraft:redstone",
+      "count": 8
+    },
+    {
+      "item": "minecraft:quartz",
+      "count": 4
+    }
+  ],
+  "fluid_cost": {
+    "fluid": "researchcube:pondering_fluid",
+    "amount": 1500
+  },
+  "recipe_pool": [
+    {
+      "id": "researchcube:piston_engineering",
+      "weight": 2
+    },
+    {
+      "id": "researchcube:observer_optics",
+      "weight": 1
+    }
+  ]
+}

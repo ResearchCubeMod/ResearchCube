@@ -23,6 +23,11 @@ public class SinglePrerequisite implements Prerequisite {
     }
 
     @Override
+    public void collectResearchIds(java.util.function.Consumer<String> collector) {
+        collector.accept(researchId);
+    }
+
+    @Override
     public String describe() {
         return researchId;
     }
