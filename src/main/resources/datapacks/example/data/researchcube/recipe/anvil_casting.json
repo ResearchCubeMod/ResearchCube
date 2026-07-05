@@ -1,19 +1,34 @@
 {
-  "type": "researchcube:drive_crafting",
-  "pattern": [
-    "BB",
-    "II"
-  ],
-  "key": {
-    "B": {
+  "type": "researchcube:processing",
+  "inputs": [
+    {
       "item": "minecraft:iron_block"
     },
-    "I": {
+    {
+      "item": "minecraft:iron_block"
+    },
+    {
+      "item": "minecraft:iron_ingot"
+    },
+    {
       "item": "minecraft:iron_ingot"
     }
-  },
-  "result": {
-    "id": "minecraft:anvil",
-    "count": 1
-  }
+  ],
+  "fluid_inputs": [
+    {
+      "fluid": "minecraft:lava",
+      "amount": 1000
+    },
+    {
+      "fluid": "researchcube:pondering_fluid",
+      "amount": 500
+    }
+  ],
+  "outputs": [
+    {
+      "id": "minecraft:anvil",
+      "count": 1
+    }
+  ],
+  "duration": 400
 }

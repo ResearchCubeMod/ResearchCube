@@ -1,6 +1,7 @@
 package com.researchcube.block;
 
 import com.researchcube.ResearchCubeMod;
+import com.researchcube.item.DriveItem;
 import com.researchcube.recipe.ProcessingFluidStack;
 import com.researchcube.recipe.ProcessingRecipe;
 import com.researchcube.registry.ModBlockEntities;
@@ -12,6 +13,7 @@ import com.researchcube.sideio.IOMode;
 import com.researchcube.sideio.ItemChannelSpec;
 import com.researchcube.sideio.SideConfigurable;
 import com.researchcube.sideio.SideIOConfig;
+import com.researchcube.util.NbtUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
@@ -49,11 +51,13 @@ import java.util.Set;
 
 /**
  * BlockEntity for the Processing Station.
- * 
+ *
  * Slot layout:
  *   0-15: Item inputs (16 slots)
  *   16-23: Item outputs (8 slots)
- * 
+ *   24: Drive (research unlock carrier — recipes only start when the inserted
+ *       drive carries the recipe's required recipe_id; never consumed)
+ *
  * Fluid tanks:
  *   fluidInput1: First fluid input tank (8000 mB)
  *   fluidInput2: Second fluid input tank (8000 mB)
@@ -65,7 +69,9 @@ public class ProcessingStationBlockEntity extends BlockEntity implements SideCon
     public static final int INPUT_SLOT_COUNT = 16;
     public static final int OUTPUT_SLOT_START = 16;
     public static final int OUTPUT_SLOT_COUNT = 8;
-    public static final int TOTAL_SLOTS = INPUT_SLOT_START + INPUT_SLOT_COUNT + OUTPUT_SLOT_COUNT; // 24
+    // Drive slot appended AFTER the original 24 slots so existing world NBT keeps its indices.
+    public static final int SLOT_DRIVE = INPUT_SLOT_COUNT + OUTPUT_SLOT_COUNT; // 24
+    public static final int TOTAL_SLOTS = SLOT_DRIVE + 1; // 25
     public static final int TANK_CAPACITY = 8000;
 
     /** Interval (in ticks) between auto-mode start attempts. */
@@ -259,7 +265,30 @@ public class ProcessingStationBlockEntity extends BlockEntity implements SideCon
         return null;
     }
 
+    /**
+     * Whether the drive in {@link #SLOT_DRIVE} unlocks the given recipe.
+     * Mirrors {@code DriveCraftingRecipe.matches}: an unbound (empty) recipe_id never
+     * matches, so a mis-configured recipe can't accidentally run drive-free.
+     */
+    private boolean hasUnlockedDrive(ProcessingRecipe recipe) {
+        String requiredId = recipe.getRequiredRecipeId();
+        if (requiredId.isEmpty()) {
+            return false; // not bound yet — never match
+        }
+        ItemStack driveStack = inventory.getStackInSlot(SLOT_DRIVE);
+        return !driveStack.isEmpty()
+                && driveStack.getItem() instanceof DriveItem
+                && NbtUtil.hasRecipe(driveStack, requiredId);
+    }
+
     private boolean matchesRecipe(ProcessingRecipe recipe) {
+        // Research lock: the inserted drive must carry this recipe's ID.
+        // Checked at start only — the drive is never consumed, and pulling it
+        // mid-process does not abort a running job.
+        if (!hasUnlockedDrive(recipe)) {
+            return false;
+        }
+
         // Check item inputs (shapeless)
         List<Ingredient> ingredients = recipe.getIngredients();
         boolean[] slotUsed = new boolean[INPUT_SLOT_COUNT];

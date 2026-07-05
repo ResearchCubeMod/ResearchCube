@@ -1,6 +1,6 @@
 {
   "name": "Ore Intuition",
-  "description": "Squeeze more metal out of every raw ore. Demonstrates an AND prerequisite and a weighted pool of processing recipes.",
+  "description": "Squeeze more metal out of every raw ore. Demonstrates an AND prerequisite and a weighted pool of processing recipes (both smelt with lava — insert the drive into the Processing Station to run them).",
   "flavor_text": "The ore was never the limit. The smelter was.",
   "category": "engineering",
   "tier": "BASIC",

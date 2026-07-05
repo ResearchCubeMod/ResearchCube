@@ -16,8 +16,8 @@
   ],
   "fluid_inputs": [
     {
-      "fluid": "researchcube:thinking_fluid",
-      "amount": 250
+      "fluid": "minecraft:water",
+      "amount": 500
     }
   ],
   "outputs": [

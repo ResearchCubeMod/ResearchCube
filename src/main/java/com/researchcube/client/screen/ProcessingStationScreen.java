@@ -222,6 +222,11 @@ public class ProcessingStationScreen extends AbstractContainerScreen<ProcessingS
             int percent = (int) (menu.getProgress() * 100);
             String status = "Processing " + percent + "%";
             g.drawString(font, status, CONTROL_CENTER_X - font.width(status) / 2, STATUS_Y, 0xFF4ADE80, false);
+        } else if (menu.getBlockEntity().getInventory()
+                .getStackInSlot(ProcessingStationBlockEntity.SLOT_DRIVE).isEmpty()) {
+            // Idle without a drive: recipes are research-locked, so hint at the requirement
+            String status = Component.translatable("gui.researchcube.processing.insert_drive").getString();
+            g.drawString(font, status, CONTROL_CENTER_X - font.width(status) / 2, STATUS_Y, 0xFFCCAA00, false);
         } else {
             String status = "Idle";
             g.drawString(font, status, CONTROL_CENTER_X - font.width(status) / 2, STATUS_Y, 0xFFB0B0B0, false);
@@ -268,6 +273,11 @@ public class ProcessingStationScreen extends AbstractContainerScreen<ProcessingS
         } else {
             lines.add(Component.literal("Idle")
                     .withStyle(s -> s.withColor(0xAAAAAA)));
+            if (menu.getBlockEntity().getInventory()
+                    .getStackInSlot(ProcessingStationBlockEntity.SLOT_DRIVE).isEmpty()) {
+                lines.add(Component.translatable("gui.researchcube.processing.insert_drive.tooltip")
+                        .withStyle(s -> s.withColor(0xCCAA00).withItalic(true)));
+            }
             lines.add(Component.literal("Insert valid inputs and press Start")
                     .withStyle(s -> s.withColor(0x888888).withItalic(true)));
         }

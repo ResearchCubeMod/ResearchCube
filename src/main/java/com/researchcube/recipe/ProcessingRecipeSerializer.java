@@ -33,14 +33,17 @@ public class ProcessingRecipeSerializer implements RecipeSerializer<ProcessingRe
 
     public static final MapCodec<ProcessingRecipe> CODEC = RecordCodecBuilder.mapCodec(instance ->
             instance.group(
+                    // "recipe_id" is optional: empty means "bind to my own recipe ID after load"
+                    // (resolved by ResearchManager); explicit values are only for aliasing.
+                    Codec.STRING.optionalFieldOf("recipe_id", "").forGetter(ProcessingRecipe::getRequiredRecipeId),
                     Codec.STRING.optionalFieldOf("group", "").forGetter(ProcessingRecipe::getGroup),
                     Ingredient.CODEC_NONEMPTY.listOf().optionalFieldOf("inputs", List.of()).forGetter(r -> r.getIngredients().stream().toList()),
                     FLUID_STACK_CODEC.listOf().optionalFieldOf("fluid_inputs", List.of()).forGetter(ProcessingRecipe::getFluidInputs),
                     ItemStack.STRICT_CODEC.listOf().fieldOf("outputs").forGetter(ProcessingRecipe::getResults),
                     FLUID_STACK_CODEC.optionalFieldOf("fluid_output").forGetter(r -> Optional.ofNullable(r.getFluidOutput())),
                     Codec.INT.fieldOf("duration").forGetter(ProcessingRecipe::getDuration)
-            ).apply(instance, (group, inputs, fluidInputs, outputs, fluidOutput, duration) ->
-                    new ProcessingRecipe(group, inputs, fluidInputs, outputs, fluidOutput.orElse(null), duration))
+            ).apply(instance, (recipeId, group, inputs, fluidInputs, outputs, fluidOutput, duration) ->
+                    new ProcessingRecipe(recipeId, group, inputs, fluidInputs, outputs, fluidOutput.orElse(null), duration))
     );
 
     // ── StreamCodec for Network ──
@@ -53,6 +56,8 @@ public class ProcessingRecipeSerializer implements RecipeSerializer<ProcessingRe
 
     private static ProcessingRecipe fromNetwork(RegistryFriendlyByteBuf buf) {
         String group = buf.readUtf();
+        // Always the RESOLVED id — bindId ran server-side before recipe sync.
+        String recipeId = buf.readUtf();
         int duration = buf.readVarInt();
 
         // Read ingredients
@@ -86,11 +91,12 @@ public class ProcessingRecipeSerializer implements RecipeSerializer<ProcessingRe
             fluidOutput = new ProcessingFluidStack(fluidId, amount);
         }
 
-        return new ProcessingRecipe(group, ingredients, fluidInputs, outputs, fluidOutput, duration);
+        return new ProcessingRecipe(recipeId, group, ingredients, fluidInputs, outputs, fluidOutput, duration);
     }
 
     private static void toNetwork(RegistryFriendlyByteBuf buf, ProcessingRecipe recipe) {
         buf.writeUtf(recipe.getGroup());
+        buf.writeUtf(recipe.getRequiredRecipeId());
         buf.writeVarInt(recipe.getDuration());
 
         // Write ingredients

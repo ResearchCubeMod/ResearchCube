@@ -56,5 +56,8 @@
   "gui.researchcube.auto_mode.on": "Auto: On",
   "gui.researchcube.auto_mode.off": "Auto: Off",
   "gui.researchcube.auto_mode.tooltip": "Automatically start processing when valid inputs are present.",
-  "gui.researchcube.io_config.tooltip": "Configure item/fluid sides for automation."
+  "gui.researchcube.io_config.tooltip": "Configure item/fluid sides for automation.",
+
+  "gui.researchcube.processing.insert_drive": "Insert Drive",
+  "gui.researchcube.processing.insert_drive.tooltip": "Insert a drive to unlock recipes."
 }

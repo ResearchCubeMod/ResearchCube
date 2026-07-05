@@ -1,9 +1,13 @@
 package com.researchcube.compat.jei;
 
 import com.researchcube.ResearchCubeMod;
+import com.researchcube.client.ClientResearchData;
 import com.researchcube.recipe.ProcessingFluidStack;
 import com.researchcube.recipe.ProcessingRecipe;
 import com.researchcube.registry.ModItems;
+import com.researchcube.research.ResearchDefinition;
+import com.researchcube.util.NbtUtil;
+import com.researchcube.util.RecipeOutputResolver;
 import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.drawable.IDrawable;
@@ -115,6 +119,20 @@ public class ProcessingCategory implements IRecipeCategory<ProcessingRecipe> {
         int durationW = font.width(durationStr);
         g.drawString(font, durationStr, arrowX + 10 - durationW / 2, arrowY + 10, 0xFF888888, false);
 
+        // Drive slot outline (below the arrow) — recipes are research-locked
+        drawSlotOutline(g, 83, 56, 18, 18);
+
+        // Completion indicator under the drive slot (mirrors DriveCraftingCategory)
+        String requiredRecipeId = recipe.getRequiredRecipeId();
+        List<ResearchDefinition> unlocking = RecipeOutputResolver.findResearchForRecipe(requiredRecipeId);
+        if (!unlocking.isEmpty()) {
+            boolean completed = unlocking.stream()
+                    .anyMatch(def -> ClientResearchData.isCompleted(def.getId().toString()));
+            String indicator = completed ? "✔" : "✘";
+            int color = completed ? 0xFF22CC55 : 0xFFCC3333;
+            g.drawString(font, indicator, 89, 78, color, false);
+        }
+
         // Output grid slot outlines (2x4)
         for (int row = 0; row < 4; row++) {
             for (int col = 0; col < 2; col++) {
@@ -135,6 +153,33 @@ public class ProcessingCategory implements IRecipeCategory<ProcessingRecipe> {
 
     @Override
     public void setRecipe(IRecipeLayoutBuilder builder, ProcessingRecipe recipe, IFocusGroup focuses) {
+        // Drive requirement (mirrors DriveCraftingCategory): a pre-loaded drive with the
+        // recipe_id imprinted, so "show uses" on a filled drive finds this recipe.
+        String requiredRecipeId = recipe.getRequiredRecipeId();
+        List<ResearchDefinition> unlockingResearch = RecipeOutputResolver.findResearchForRecipe(requiredRecipeId);
+
+        ItemStack preloadedDrive;
+        if (!unlockingResearch.isEmpty()) {
+            preloadedDrive = RecipeOutputResolver.getDriveForTier(unlockingResearch.getFirst().getTier());
+        } else {
+            preloadedDrive = new ItemStack(ModItems.METADATA_RECLAIMED.get());
+        }
+        NbtUtil.addRecipe(preloadedDrive, requiredRecipeId);
+
+        builder.addSlot(RecipeIngredientRole.INPUT, 84, 57)
+                .addItemStack(preloadedDrive)
+                .addRichTooltipCallback((recipeSlotView, tooltip) -> {
+                    tooltip.add(Component.literal("§7Requires recipe: §e" + requiredRecipeId));
+                    if (!unlockingResearch.isEmpty()) {
+                        for (ResearchDefinition def : unlockingResearch) {
+                            boolean completed = ClientResearchData.isCompleted(def.getId().toString());
+                            String status = completed ? "§a✔ " : "§c✘ ";
+                            tooltip.add(Component.literal(status + "§aUnlocked by: §f" + def.getDisplayName()
+                                    + " §7(" + def.getTier().getDisplayName() + ")"));
+                        }
+                    }
+                });
+
         // Item inputs in a 4x4 grid (slots 0-15)
         List<Ingredient> ingredients = recipe.getIngredients();
         int ingredientIndex = 0;

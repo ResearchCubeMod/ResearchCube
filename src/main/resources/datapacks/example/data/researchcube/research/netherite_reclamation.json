@@ -1,6 +1,6 @@
 {
   "name": "Netherite Reclamation",
-  "description": "Refine netherite with a fraction of the usual gold.",
+  "description": "Refine netherite with a fraction of the usual gold. The refinement drinks reasoning fluid AND molten lava — feed each into its own input tank.",
   "flavor_text": "The ancient smiths wasted so much. You won't.",
   "category": "transmutation",
   "tier": "FLAWLESS",

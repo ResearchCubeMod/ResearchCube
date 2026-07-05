@@ -10,7 +10,7 @@
   ],
   "fluid_inputs": [
     {
-      "fluid": "researchcube:thinking_fluid",
+      "fluid": "minecraft:lava",
       "amount": 250
     }
   ],

@@ -8,6 +8,7 @@ import com.google.gson.JsonObject;
 import com.mojang.serialization.DynamicOps;
 import com.researchcube.ResearchCubeMod;
 import com.researchcube.recipe.DriveCraftingRecipe;
+import com.researchcube.recipe.ProcessingRecipe;
 import com.researchcube.registry.ModRecipeTypes;
 import com.researchcube.research.prerequisite.Prerequisite;
 import com.researchcube.research.prerequisite.PrerequisiteParser;
@@ -50,11 +51,13 @@ import java.util.Set;
  * After loading, the manager runs a validation pass that reports (without crashing):
  *   - unknown prerequisite references and prerequisite cycles
  *   - recipe_pool entries that don't resolve to a loaded recipe
- *   - recipe_pool entries that no drive_crafting recipe would ever match
+ *   - recipe_pool entries that no drive_crafting/processing recipe would ever match
  *   - unknown items in item_costs and unknown fluids in fluid_cost
  *
- * It also binds every drive_crafting recipe that omitted the optional "recipe_id"
- * field to its own recipe ID, which removes the old copy-the-filename footgun.
+ * It also binds every drive_crafting AND processing recipe that omitted the optional
+ * "recipe_id" field to its own recipe ID, which removes the old copy-the-filename
+ * footgun. Both recipe types are research-locked the same way: the drive must carry
+ * the resolved recipe_id.
  */
 public class ResearchManager extends SimpleJsonResourceReloadListener {
 
@@ -109,11 +112,12 @@ public class ResearchManager extends SimpleJsonResourceReloadListener {
 
         ResearchRegistry.setAll(loaded.values());
 
-        // Bind drive_crafting recipes without an explicit recipe_id to their own ID,
-        // then validate everything that can only be checked after recipes are loaded.
+        // Bind drive_crafting + processing recipes without an explicit recipe_id to their
+        // own ID, then validate everything that can only be checked after recipes are loaded.
         RecipeManager recipeManager = serverResources != null ? serverResources.getRecipeManager() : null;
         Set<String> driveRecipeIds = bindDriveCraftingRecipes(recipeManager);
-        int warnings = validate(loaded, recipeManager, driveRecipeIds);
+        Set<String> processingRecipeIds = bindProcessingRecipes(recipeManager);
+        int warnings = validate(loaded, recipeManager, driveRecipeIds, processingRecipeIds);
 
         ResearchCubeMod.LOGGER.info(
                 "[ResearchCube] Loaded {} research definitions ({} failed, {} skipped by conditions, {} validation warnings).",
@@ -267,7 +271,7 @@ public class ResearchManager extends SimpleJsonResourceReloadListener {
                 .filter(stack -> !stack.isEmpty());
     }
 
-    // ── Drive recipe binding ──
+    // ── Recipe binding ──
 
     /**
      * Bind all drive_crafting recipes that omitted "recipe_id" to their own recipe ID
@@ -287,6 +291,25 @@ public class ResearchManager extends SimpleJsonResourceReloadListener {
         return boundIds;
     }
 
+    /**
+     * Bind all processing recipes that omitted "recipe_id" to their own recipe ID
+     * and return the set of all recipe_id strings processing recipes respond to.
+     * Processing recipes are research-locked exactly like drive_crafting ones.
+     */
+    private Set<String> bindProcessingRecipes(@Nullable RecipeManager recipeManager) {
+        Set<String> boundIds = new HashSet<>();
+        if (recipeManager == null) return boundIds;
+        try {
+            for (RecipeHolder<ProcessingRecipe> holder : recipeManager.getAllRecipesFor(ModRecipeTypes.PROCESSING.get())) {
+                holder.value().bindId(holder.id());
+                boundIds.add(holder.value().getRequiredRecipeId());
+            }
+        } catch (Exception e) {
+            ResearchCubeMod.LOGGER.error("Failed to bind processing recipe IDs: {}", e.getMessage());
+        }
+        return boundIds;
+    }
+
     // ── Validation ──
 
     /**
@@ -296,7 +319,8 @@ public class ResearchManager extends SimpleJsonResourceReloadListener {
      */
     private int validate(Map<ResourceLocation, ResearchDefinition> definitions,
                          @Nullable RecipeManager recipeManager,
-                         Set<String> driveRecipeIds) {
+                         Set<String> driveRecipeIds,
+                         Set<String> processingRecipeIds) {
         int warnings = 0;
 
         for (ResearchDefinition def : definitions.values()) {
@@ -338,6 +362,10 @@ public class ResearchManager extends SimpleJsonResourceReloadListener {
                     } else if (holder.get().value() instanceof DriveCraftingRecipe && !driveRecipeIds.contains(wr.id().toString())) {
                         // The drive would be imprinted with an ID no drive_crafting recipe answers to
                         ResearchCubeMod.LOGGER.warn("[ResearchCube] Research '{}': recipe_pool entry '{}' is a drive_crafting recipe, but no drive_crafting recipe uses that recipe_id — the imprinted drive would be useless. Remove the explicit \"recipe_id\" from the recipe file or make it match.", def.getId(), wr.id());
+                        warnings++;
+                    } else if (holder.get().value() instanceof ProcessingRecipe && !processingRecipeIds.contains(wr.id().toString())) {
+                        // Same dead-unlock check for processing recipes
+                        ResearchCubeMod.LOGGER.warn("[ResearchCube] Research '{}': recipe_pool entry '{}' is a processing recipe, but no processing recipe uses that recipe_id — the imprinted drive would be useless. Remove the explicit \"recipe_id\" from the recipe file or make it match.", def.getId(), wr.id());
                         warnings++;
                     }
                 }

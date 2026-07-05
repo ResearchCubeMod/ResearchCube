@@ -1,8 +1,12 @@
 package com.researchcube.compat.emi;
 
 import com.researchcube.ResearchCubeMod;
+import com.researchcube.client.ClientResearchData;
 import com.researchcube.recipe.ProcessingFluidStack;
 import com.researchcube.recipe.ProcessingRecipe;
+import com.researchcube.research.ResearchDefinition;
+import com.researchcube.util.NbtUtil;
+import com.researchcube.util.RecipeOutputResolver;
 import dev.emi.emi.api.recipe.BasicEmiRecipe;
 import dev.emi.emi.api.stack.EmiIngredient;
 import dev.emi.emi.api.stack.EmiStack;
@@ -18,16 +22,36 @@ import java.util.List;
 /**
  * EMI recipe wrapper for ProcessingRecipe.
  * Shows 4x4 input grid, fluid inputs, 2x4 output grid, fluid output, and processing arrow.
+ * Like drive crafting, processing recipes are research-locked: a pre-loaded drive with
+ * the required recipe_id is shown as an input so viewers never look "free".
  */
 public class EmiProcessingRecipe extends BasicEmiRecipe {
 
     private final ProcessingRecipe recipe;
+    private final List<ResearchDefinition> unlockingResearch;
+    private final EmiIngredient driveIngredient;
 
     public EmiProcessingRecipe(ProcessingRecipe recipe, ResourceLocation recipeId) {
         super(ResearchCubeEMIPlugin.PROCESSING,
                 ResearchCubeMod.rl("/processing/" + recipeId.getPath()),
                 176, 100);
         this.recipe = recipe;
+
+        // Drive requirement (mirrors EmiDriveCraftingRecipe): pre-loaded drive with the
+        // recipe_id baked in so "show uses" on an imprinted drive finds this recipe.
+        String requiredRecipeId = recipe.getRequiredRecipeId();
+        this.unlockingResearch = RecipeOutputResolver.findResearchForRecipe(requiredRecipeId);
+
+        ItemStack preloadedDrive;
+        if (!unlockingResearch.isEmpty()) {
+            preloadedDrive = RecipeOutputResolver.getDriveForTier(unlockingResearch.getFirst().getTier());
+        } else {
+            preloadedDrive = RecipeOutputResolver.getDriveForTier(
+                    com.researchcube.research.ResearchTier.BASIC);
+        }
+        NbtUtil.addRecipe(preloadedDrive, requiredRecipeId);
+        this.driveIngredient = EmiStack.of(preloadedDrive);
+        this.inputs.add(this.driveIngredient);
 
         // Item inputs
         for (Ingredient ing : recipe.getIngredients()) {
@@ -99,6 +123,9 @@ public class EmiProcessingRecipe extends BasicEmiRecipe {
         // Processing arrow
         widgets.addFillingArrow(82, 36, recipe.getDuration() * 50);
 
+        // Drive requirement below the arrow — the recipe only runs with this drive inserted
+        widgets.addSlot(driveIngredient, 84, 56).appendTooltip(buildDriveTooltip());
+
         // Item outputs: 2x4 grid
         List<ItemStack> results = recipe.getResults();
         int resultIndex = 0;
@@ -131,5 +158,21 @@ public class EmiProcessingRecipe extends BasicEmiRecipe {
                 List.of(Component.literal("Duration: " + (recipe.getDuration() / 20.0f) + "s")),
                 82, 36, 22, 16
         );
+    }
+
+    private Component buildDriveTooltip() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("§7Requires recipe: §e").append(recipe.getRequiredRecipeId());
+        if (!unlockingResearch.isEmpty()) {
+            for (ResearchDefinition def : unlockingResearch) {
+                sb.append("\n");
+                String status = ClientResearchData.isCompleted(def.getId().toString())
+                        ? "§a✔ " : "§c✘ ";
+                sb.append(status).append("§aUnlocked by: §f")
+                        .append(def.getDisplayName())
+                        .append(" §7(").append(def.getTier().getDisplayName()).append(")");
+            }
+        }
+        return Component.literal(sb.toString());
     }
 }

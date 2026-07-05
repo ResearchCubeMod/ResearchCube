@@ -1,6 +1,6 @@
 {
   "name": "Hearty Cooking",
-  "description": "Proper meals from simple ingredients. Demonstrates an OR prerequisite and a processing recipe with multiple outputs.",
+  "description": "Proper meals from simple ingredients. Demonstrates an OR prerequisite and a processing recipe with multiple item outputs (cooked with plain water in the Processing Station).",
   "flavor_text": "An army of researchers marches on its stomach.",
   "category": "foundations",
   "tier": "BASIC",

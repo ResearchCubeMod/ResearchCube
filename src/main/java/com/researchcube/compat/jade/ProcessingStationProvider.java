@@ -28,6 +28,8 @@ public enum ProcessingStationProvider implements IBlockComponentProvider, IServe
         if (accessor.getBlockEntity() instanceof ProcessingStationBlockEntity be) {
             data.putBoolean("isProcessing", be.isProcessing());
             data.putFloat("progress", be.getProgress());
+            data.putBoolean("hasDrive", !be.getInventory()
+                    .getStackInSlot(ProcessingStationBlockEntity.SLOT_DRIVE).isEmpty());
 
             FluidStack fluid1 = be.getFluidInput1().getFluid();
             data.putInt("fluidInput1Amount", be.getFluidInput1().getFluidAmount());
@@ -63,6 +65,13 @@ public enum ProcessingStationProvider implements IBlockComponentProvider, IServe
                     .withStyle(ChatFormatting.GREEN));
         } else {
             tooltip.add(Component.literal("Idle").withStyle(ChatFormatting.GRAY));
+        }
+
+        // Drive presence — processing recipes are research-locked behind the inserted drive
+        if (data.getBoolean("hasDrive")) {
+            tooltip.add(Component.literal("Drive inserted").withStyle(ChatFormatting.AQUA));
+        } else {
+            tooltip.add(Component.literal("No drive — recipes locked").withStyle(ChatFormatting.RED));
         }
 
         int tankCapacity = ProcessingStationBlockEntity.TANK_CAPACITY;

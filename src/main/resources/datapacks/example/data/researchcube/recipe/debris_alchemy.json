@@ -15,6 +15,10 @@
     {
       "fluid": "researchcube:reasoning_fluid",
       "amount": 2000
+    },
+    {
+      "fluid": "minecraft:lava",
+      "amount": 1000
     }
   ],
   "outputs": [

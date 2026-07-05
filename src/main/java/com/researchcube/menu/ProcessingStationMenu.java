@@ -1,6 +1,7 @@
 package com.researchcube.menu;
 
 import com.researchcube.block.ProcessingStationBlockEntity;
+import com.researchcube.item.DriveItem;
 import com.researchcube.registry.ModMenus;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.entity.player.Inventory;
@@ -13,10 +14,11 @@ import net.neoforged.neoforge.items.SlotItemHandler;
 
 /**
  * Menu for the Processing Station.
- * 
+ *
  * Layout:
  *   4×4 input grid (16 slots)
  *   2×4 output grid (8 slots)
+ *   Drive slot (research unlock carrier, control column)
  *   2 fluid input tanks
  *   1 fluid output tank
  *   Progress bar
@@ -47,6 +49,11 @@ public class ProcessingStationMenu extends AbstractContainerMenu {
     public static final int INPUT_GRID_Y = 36;
     public static final int OUTPUT_GRID_X = 204;
     public static final int OUTPUT_GRID_Y = 36;
+    // Drive slot: control column, right of the progress bar / Start row —
+    // the drive "powers" the process. Clear of tanks (y36-68), flow arrows
+    // (y66-74), the output grid (x>=203) and the status line (y>=107).
+    public static final int DRIVE_SLOT_X = 180;
+    public static final int DRIVE_SLOT_Y = 80;
     public static final int PLAYER_INV_X = 47;
     public static final int PLAYER_INV_Y = 140;
     public static final int HOTBAR_X = 47;
@@ -74,6 +81,14 @@ public class ProcessingStationMenu extends AbstractContainerMenu {
                 addSlot(new OutputSlot(inventory, slotIndex, OUTPUT_GRID_X + col * 18, OUTPUT_GRID_Y + row * 18));
             }
         }
+
+        // Drive slot (only accepts drives; gates which recipes may start)
+        addSlot(new SlotItemHandler(inventory, ProcessingStationBlockEntity.SLOT_DRIVE, DRIVE_SLOT_X, DRIVE_SLOT_Y) {
+            @Override
+            public boolean mayPlace(ItemStack stack) {
+                return stack.getItem() instanceof DriveItem;
+            }
+        });
 
         // Player inventory
         for (int row = 0; row < 3; row++) {
@@ -164,13 +179,20 @@ public class ProcessingStationMenu extends AbstractContainerMenu {
             ItemStack slotStack = slot.getItem();
             result = slotStack.copy();
 
-            int beSlots = ProcessingStationBlockEntity.TOTAL_SLOTS; // 24
+            int beSlots = ProcessingStationBlockEntity.TOTAL_SLOTS; // 25 (incl. drive slot at menu index 24)
             int playerStart = beSlots;
             int playerEnd = playerStart + 36;
+            int driveSlotIndex = ProcessingStationBlockEntity.SLOT_DRIVE; // menu index matches BE index
 
             if (index < beSlots) {
-                // From BE to player
+                // From BE to player (works for inputs, outputs and the drive slot)
                 if (!this.moveItemStackTo(slotStack, playerStart, playerEnd, true)) {
+                    return ItemStack.EMPTY;
+                }
+            } else if (slotStack.getItem() instanceof DriveItem) {
+                // Drives go to the drive slot first; fall back to the input grid if occupied
+                if (!this.moveItemStackTo(slotStack, driveSlotIndex, driveSlotIndex + 1, false)
+                        && !this.moveItemStackTo(slotStack, 0, ProcessingStationBlockEntity.INPUT_SLOT_COUNT, false)) {
                     return ItemStack.EMPTY;
                 }
             } else {

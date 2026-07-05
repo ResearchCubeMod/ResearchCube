@@ -1,6 +1,7 @@
 package com.researchcube.util;
 
 import com.researchcube.recipe.DriveCraftingRecipe;
+import com.researchcube.recipe.ProcessingRecipe;
 import com.researchcube.research.ResearchDefinition;
 import com.researchcube.research.ResearchRegistry;
 import com.researchcube.research.ResearchTier;
@@ -30,6 +31,8 @@ public final class RecipeOutputResolver {
 
     /**
      * Resolve a recipe ID string to its output ItemStack.
+     * Handles both drive_crafting and processing recipes (both are research-locked
+     * unlock targets); other recipe types fall back to EMPTY.
      * Returns ItemStack.EMPTY if the recipe cannot be found or the client is not connected.
      */
     public static ItemStack resolveOutput(String recipeId) {
@@ -39,8 +42,14 @@ public final class RecipeOutputResolver {
         try {
             ResourceLocation rl = ResourceLocation.parse(recipeId);
             Optional<RecipeHolder<?>> holder = rm.byKey(rl);
-            if (holder.isPresent() && holder.get().value() instanceof DriveCraftingRecipe dcr) {
-                return dcr.getResultItem(null);
+            if (holder.isPresent()) {
+                if (holder.get().value() instanceof DriveCraftingRecipe dcr) {
+                    return dcr.getResultItem(null);
+                }
+                if (holder.get().value() instanceof ProcessingRecipe pr) {
+                    // First item output represents the unlock in list/tooltip displays
+                    return pr.getResultItem(null);
+                }
             }
         } catch (Exception e) {
             // Malformed recipe ID or other issue — fall back to empty

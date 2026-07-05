@@ -13,9 +13,21 @@ import java.util.List;
 /**
  * Recipe type for the Processing Station.
  * Supports up to 16 item inputs, 2 fluid inputs, 8 item outputs, and 1 fluid output.
+ *
+ * <p>Like {@link DriveCraftingRecipe}, every processing recipe is research-locked: the
+ * Processing Station only starts it when the inserted drive carries
+ * {@link #getRequiredRecipeId()} (checked by the block entity, since fluid/drive state
+ * lives outside the {@link RecipeInput}).
  */
 public class ProcessingRecipe implements Recipe<RecipeInput> {
 
+    /**
+     * The recipe ID a drive must carry for this recipe to run.
+     * Usually empty in JSON ("recipe_id" is optional) and bound to the recipe's own
+     * ID after datapack load via {@link #bindId} — declaring it explicitly is only
+     * needed when several recipe files should share one unlock ID.
+     */
+    private String recipeId;
     private final String group;
     private final List<Ingredient> ingredients;
     private final List<ProcessingFluidStack> fluidInputs;
@@ -24,6 +36,7 @@ public class ProcessingRecipe implements Recipe<RecipeInput> {
     private final int duration;
 
     public ProcessingRecipe(
+            String recipeId,
             String group,
             List<Ingredient> ingredients,
             List<ProcessingFluidStack> fluidInputs,
@@ -31,12 +44,28 @@ public class ProcessingRecipe implements Recipe<RecipeInput> {
             ProcessingFluidStack fluidOutput,
             int duration
     ) {
+        this.recipeId = recipeId != null ? recipeId : "";
         this.group = group;
         this.ingredients = ingredients;
         this.fluidInputs = fluidInputs;
         this.results = results;
         this.fluidOutput = fluidOutput;
         this.duration = duration;
+    }
+
+    public String getRequiredRecipeId() {
+        return recipeId;
+    }
+
+    /**
+     * Bind this recipe to its own registry ID if the JSON omitted "recipe_id".
+     * Called by ResearchManager after every datapack (re)load, before recipes are
+     * synced to clients — the network codec always transmits the resolved ID.
+     */
+    public void bindId(net.minecraft.resources.ResourceLocation ownId) {
+        if (this.recipeId.isEmpty()) {
+            this.recipeId = ownId.toString();
+        }
     }
 
     @Override
