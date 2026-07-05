@@ -1,6 +1,7 @@
 package com.researchcube;
 
 import com.researchcube.registry.*;
+import com.researchcube.sideio.SideIOCapabilities;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
@@ -8,7 +9,6 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig.Type;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
-import net.neoforged.neoforge.fluids.capability.templates.FluidTank;
 import org.slf4j.Logger;
 import com.mojang.logging.LogUtils;
 
@@ -46,17 +46,29 @@ public class ResearchCubeMod {
     }
 
     private void registerCapabilities(RegisterCapabilitiesEvent event) {
+        // Both machines expose side-configurable item + fluid handlers through the
+        // reusable sideio framework. Providers return null for closed sides so pipes
+        // correctly see "nothing" there.
+        event.registerBlockEntity(
+                Capabilities.ItemHandler.BLOCK,
+                ModBlockEntities.RESEARCH_STATION.get(),
+                SideIOCapabilities::itemHandler
+        );
         event.registerBlockEntity(
                 Capabilities.FluidHandler.BLOCK,
                 ModBlockEntities.RESEARCH_STATION.get(),
-                (be, side) -> be.getFluidTank()
+                SideIOCapabilities::fluidHandler
         );
 
-        // Processing Station exposes a combined fluid handler for all three tanks
+        event.registerBlockEntity(
+                Capabilities.ItemHandler.BLOCK,
+                ModBlockEntities.PROCESSING_STATION.get(),
+                SideIOCapabilities::itemHandler
+        );
         event.registerBlockEntity(
                 Capabilities.FluidHandler.BLOCK,
                 ModBlockEntities.PROCESSING_STATION.get(),
-                (be, side) -> be.getCombinedFluidHandler()
+                SideIOCapabilities::fluidHandler
         );
     }
 }

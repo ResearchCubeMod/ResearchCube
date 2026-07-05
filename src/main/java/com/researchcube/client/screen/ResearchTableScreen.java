@@ -7,6 +7,7 @@ import com.researchcube.menu.ResearchTableMenu;
 import com.researchcube.network.CancelResearchPacket;
 import com.researchcube.network.StartResearchPacket;
 import com.researchcube.network.WipeTankPacket;
+import net.minecraft.client.gui.components.Tooltip;
 import com.researchcube.registry.ModFluids;
 import com.researchcube.research.ResearchDefinition;
 import com.researchcube.research.ResearchRegistry;
@@ -79,12 +80,18 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
     private Button startButton;
     private Button cancelButton;
     private Button wipeButton;
+    private Button ioButton;
     private Button listTabButton;
     private Button treeTabButton;
     private EditBox searchBox;
     private String searchFilter = "";
 
     private ResearchGraphView graphView;
+    private SideConfigPanel sideConfigPanel;
+
+    // IO config toggle button (same button row, right of Wipe)
+    private static final int IO_BTN_X = 158;
+    private static final int IO_BTN_W = 30;
 
     public ResearchTableScreen(ResearchTableMenu menu, Inventory playerInv, Component title) {
         super(menu, playerInv, title);
@@ -118,6 +125,18 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
                         ResearchTableMenu.BUTTON_W, ResearchTableMenu.BUTTON_H)
                 .build();
         addRenderableWidget(wipeButton);
+
+        // Side IO config toggle
+        ioButton = Button.builder(Component.literal("IO"), btn -> onToggleSideConfig())
+                .bounds(leftPos + IO_BTN_X, topPos + ResearchTableMenu.BUTTON_Y,
+                        IO_BTN_W, ResearchTableMenu.BUTTON_H)
+                .tooltip(Tooltip.create(Component.translatable("gui.researchcube.io_config.tooltip")))
+                .build();
+        addRenderableWidget(ioButton);
+
+        if (sideConfigPanel == null) {
+            sideConfigPanel = new SideConfigPanel(font, menu.getBlockEntity(), menu.getBlockEntity().getBlockPos());
+        }
 
         // ── View tabs (top right): List | Tree ──
         listTabButton = Button.builder(Component.literal("List"), btn -> onSelectView(ViewMode.LIST))
@@ -244,6 +263,27 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
     private void onWipeTank() {
         ResearchTableBlockEntity be = menu.getBlockEntity();
         PacketDistributor.sendToServer(new WipeTankPacket(be.getBlockPos()));
+    }
+
+    private void onToggleSideConfig() {
+        if (sideConfigPanel != null) {
+            sideConfigPanel.toggleVisible();
+        }
+    }
+
+    /**
+     * Absolute screen X where the side-config overlay is drawn: right of the GUI when it
+     * fits, otherwise left of it, otherwise clamped to the screen edge. The 470px-wide
+     * Research Table GUI leaves no side room at small logical resolutions, so the clamp
+     * matters here in particular.
+     */
+    private int panelX() {
+        return SideConfigPanel.clampX(leftPos + imageWidth + 4, leftPos, this.width);
+    }
+
+    /** Absolute screen Y where the side-config overlay is drawn (machine panel row, clamped). */
+    private int panelY() {
+        return SideConfigPanel.clampY(topPos + ResearchTableMenu.MACHINE_PANEL_Y, this.height);
     }
 
     /** Switch the browsing view (List/Tree) and remember it as the user's preference. */
@@ -522,6 +562,11 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         renderIdeaChipTooltip(graphics, mouseX, mouseY);
 
         renderTooltip(graphics, mouseX, mouseY);
+
+        // Side-config overlay renders last so it (and its tooltips) sit above everything.
+        if (sideConfigPanel != null) {
+            sideConfigPanel.render(graphics, panelX(), panelY(), mouseX, mouseY);
+        }
     }
 
     private void renderTabHighlight(GuiGraphics g) {
@@ -822,6 +867,12 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        // Side-config overlay gets first crack at clicks while open.
+        if (sideConfigPanel != null && sideConfigPanel.isVisible()
+                && sideConfigPanel.mouseClicked(mouseX, mouseY, button)) {
+            return true;
+        }
+
         if (currentView == ViewMode.TREE) {
             if (graphView.mouseClicked(mouseX, mouseY, button)) {
                 selectResearch(graphView.getSelectedId());

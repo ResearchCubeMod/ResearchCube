@@ -6,7 +6,14 @@ import com.researchcube.recipe.ProcessingRecipe;
 import com.researchcube.registry.ModBlockEntities;
 import com.researchcube.registry.ModConfig;
 import com.researchcube.registry.ModRecipeTypes;
+import com.researchcube.sideio.FluidChannelSpec;
+import com.researchcube.sideio.IOChannel;
+import com.researchcube.sideio.IOMode;
+import com.researchcube.sideio.ItemChannelSpec;
+import com.researchcube.sideio.SideConfigurable;
+import com.researchcube.sideio.SideIOConfig;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -35,7 +42,10 @@ import net.neoforged.neoforge.fluids.capability.templates.FluidTank;
 import net.neoforged.neoforge.items.ItemStackHandler;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * BlockEntity for the Processing Station.
@@ -49,7 +59,7 @@ import java.util.List;
  *   fluidInput2: Second fluid input tank (8000 mB)
  *   fluidOutput: Fluid output tank (8000 mB)
  */
-public class ProcessingStationBlockEntity extends BlockEntity {
+public class ProcessingStationBlockEntity extends BlockEntity implements SideConfigurable {
 
     public static final int INPUT_SLOT_START = 0;
     public static final int INPUT_SLOT_COUNT = 16;
@@ -57,6 +67,50 @@ public class ProcessingStationBlockEntity extends BlockEntity {
     public static final int OUTPUT_SLOT_COUNT = 8;
     public static final int TOTAL_SLOTS = INPUT_SLOT_START + INPUT_SLOT_COUNT + OUTPUT_SLOT_COUNT; // 24
     public static final int TANK_CAPACITY = 8000;
+
+    /** Interval (in ticks) between auto-mode start attempts. */
+    private static final int AUTO_ATTEMPT_INTERVAL = 10;
+
+    // ── Side IO Configuration ──
+
+    public static final String CHANNEL_ITEMS = "items";
+    public static final String CHANNEL_FLUID_IN_1 = "fluid_input_1";
+    public static final String CHANNEL_FLUID_IN_2 = "fluid_input_2";
+    public static final String CHANNEL_FLUID_OUT = "fluid_output";
+
+    private static final List<IOChannel> IO_CHANNELS = List.of(
+            new IOChannel(CHANNEL_ITEMS, "gui.researchcube.channel.items", IOChannel.Type.ITEM,
+                    EnumSet.of(IOMode.NONE, IOMode.INPUT, IOMode.OUTPUT, IOMode.BOTH), IOMode.BOTH),
+            new IOChannel(CHANNEL_FLUID_IN_1, "gui.researchcube.channel.fluid_input_1", IOChannel.Type.FLUID,
+                    EnumSet.of(IOMode.NONE, IOMode.INPUT, IOMode.OUTPUT, IOMode.BOTH), IOMode.INPUT),
+            new IOChannel(CHANNEL_FLUID_IN_2, "gui.researchcube.channel.fluid_input_2", IOChannel.Type.FLUID,
+                    EnumSet.of(IOMode.NONE, IOMode.INPUT, IOMode.OUTPUT, IOMode.BOTH), IOMode.INPUT),
+            new IOChannel(CHANNEL_FLUID_OUT, "gui.researchcube.channel.fluid_output", IOChannel.Type.FLUID,
+                    EnumSet.of(IOMode.NONE, IOMode.OUTPUT), IOMode.OUTPUT)
+    );
+
+    /** Externally insertable item slots: the 16 input slots. */
+    private static final Set<Integer> INSERTABLE_ITEM_SLOTS;
+    /** Externally extractable item slots: the 8 output slots. */
+    private static final Set<Integer> EXTRACTABLE_ITEM_SLOTS;
+    static {
+        Set<Integer> insertable = new HashSet<>();
+        for (int i = INPUT_SLOT_START; i < INPUT_SLOT_START + INPUT_SLOT_COUNT; i++) {
+            insertable.add(i);
+        }
+        INSERTABLE_ITEM_SLOTS = Set.copyOf(insertable);
+
+        Set<Integer> extractable = new HashSet<>();
+        for (int i = OUTPUT_SLOT_START; i < OUTPUT_SLOT_START + OUTPUT_SLOT_COUNT; i++) {
+            extractable.add(i);
+        }
+        EXTRACTABLE_ITEM_SLOTS = Set.copyOf(extractable);
+    }
+
+    private final SideIOConfig sideConfig = new SideIOConfig(IO_CHANNELS);
+
+    /** When true, the station tries to auto-start a matching recipe while idle. */
+    private boolean autoMode = false;
 
     private final ItemStackHandler inventory = new ItemStackHandler(TOTAL_SLOTS) {
         @Override
@@ -110,61 +164,61 @@ public class ProcessingStationBlockEntity extends BlockEntity {
         return fluidOutput;
     }
 
-    /**
-     * Returns a combined fluid handler that exposes all three tanks for pipe interactions.
-     * Tank 0: Input 1, Tank 1: Input 2, Tank 2: Output
-     */
-    public IFluidHandler getCombinedFluidHandler() {
-        return new IFluidHandler() {
-            @Override
-            public int getTanks() {
-                return 3;
-            }
+    // ── Side IO Configuration ──
 
-            @Override
-            public FluidStack getFluidInTank(int tank) {
-                return switch (tank) {
-                    case 0 -> fluidInput1.getFluid();
-                    case 1 -> fluidInput2.getFluid();
-                    case 2 -> fluidOutput.getFluid();
-                    default -> FluidStack.EMPTY;
-                };
-            }
+    @Override
+    public SideIOConfig getSideIOConfig() {
+        return sideConfig;
+    }
 
-            @Override
-            public int getTankCapacity(int tank) {
-                return TANK_CAPACITY;
-            }
+    @Override
+    public List<IOChannel> getIOChannels() {
+        return IO_CHANNELS;
+    }
 
-            @Override
-            public boolean isFluidValid(int tank, FluidStack stack) {
-                return tank < 2; // Only input tanks accept fluid
-            }
+    @Override
+    public Direction getIOFacing() {
+        return getBlockState().getValue(ProcessingStationBlock.FACING);
+    }
 
-            @Override
-            public int fill(FluidStack resource, FluidAction action) {
-                // Try to fill input tanks
-                int filled = fluidInput1.fill(resource, action);
-                if (filled < resource.getAmount()) {
-                    FluidStack remainder = resource.copy();
-                    remainder.setAmount(resource.getAmount() - filled);
-                    filled += fluidInput2.fill(remainder, action);
-                }
-                return filled;
-            }
+    @Override
+    public void onSideConfigChanged() {
+        setChanged();
+        if (level != null) {
+            level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
+            level.invalidateCapabilities(worldPosition);
+        }
+    }
 
-            @Override
-            public FluidStack drain(FluidStack resource, FluidAction action) {
-                // Drain from output tank only
-                return fluidOutput.drain(resource, action);
-            }
+    @Override
+    public ItemChannelSpec getItemChannelSpec() {
+        return new ItemChannelSpec(
+                CHANNEL_ITEMS,
+                inventory,
+                INSERTABLE_ITEM_SLOTS,
+                EXTRACTABLE_ITEM_SLOTS,
+                null // no per-slot item filter on the processing station
+        );
+    }
 
-            @Override
-            public FluidStack drain(int maxDrain, FluidAction action) {
-                // Drain from output tank only
-                return fluidOutput.drain(maxDrain, action);
-            }
-        };
+    @Override
+    public List<FluidChannelSpec> getFluidChannelSpecs() {
+        return List.of(
+                new FluidChannelSpec(CHANNEL_FLUID_IN_1, fluidInput1),
+                new FluidChannelSpec(CHANNEL_FLUID_IN_2, fluidInput2),
+                new FluidChannelSpec(CHANNEL_FLUID_OUT, fluidOutput)
+        );
+    }
+
+    // ── Auto Mode ──
+
+    public boolean isAutoMode() {
+        return autoMode;
+    }
+
+    public void setAutoMode(boolean autoMode) {
+        this.autoMode = autoMode;
+        setChanged();
     }
 
     public boolean isProcessing() {
@@ -285,18 +339,30 @@ public class ProcessingStationBlockEntity extends BlockEntity {
     // ── Processing Control ──
 
     /**
-     * Try to start processing with the current recipe.
+     * Try to start processing with the current recipe (player-initiated: logs and plays
+     * a click on failure).
      */
     public boolean tryStartProcessing() {
+        return tryStartProcessing(false);
+    }
+
+    /**
+     * Try to start processing with the current recipe.
+     *
+     * @param quiet when true (auto-mode polling), failures are silent — no warn log and no
+     *              click sound — so idle machines do not spam the log or click every attempt.
+     * @return true if processing started
+     */
+    public boolean tryStartProcessing(boolean quiet) {
         if (level == null || level.isClientSide()) return false;
         if (isProcessing()) {
-            ResearchCubeMod.LOGGER.warn("[ResearchCube] Cannot start processing: already processing");
+            if (!quiet) ResearchCubeMod.LOGGER.warn("[ResearchCube] Cannot start processing: already processing");
             return false;
         }
 
         RecipeHolder<ProcessingRecipe> holder = findMatchingRecipe();
         if (holder == null) {
-            ResearchCubeMod.LOGGER.warn("[ResearchCube] Cannot start processing: no matching recipe");
+            if (!quiet) ResearchCubeMod.LOGGER.warn("[ResearchCube] Cannot start processing: no matching recipe");
             return false;
         }
 
@@ -351,12 +417,16 @@ public class ProcessingStationBlockEntity extends BlockEntity {
 
     public static void serverTick(Level level, BlockPos pos, BlockState state, ProcessingStationBlockEntity be) {
         if (!be.isProcessing()) {
+            // Auto-mode: quietly attempt to start a matching recipe on a fixed cadence.
+            if (be.autoMode && level.getGameTime() % AUTO_ATTEMPT_INTERVAL == 0) {
+                be.tryStartProcessing(true);
+            }
             return;
         }
 
         long elapsed = level.getGameTime() - be.startTime;
         int adjustedDuration = (int) (be.recipeDuration * ModConfig.getProcessingDurationMultiplier());
-        
+
         if (elapsed >= adjustedDuration) {
             be.completeProcessing();
         }
@@ -453,6 +523,10 @@ public class ProcessingStationBlockEntity extends BlockEntity {
         tag.putString("ActiveRecipeId", activeRecipeId != null ? activeRecipeId.toString() : "");
         tag.putLong("StartTime", startTime);
         tag.putInt("RecipeDuration", recipeDuration);
+
+        // Side IO + auto mode
+        tag.put("SideConfig", sideConfig.save());
+        tag.putBoolean("AutoMode", autoMode);
     }
 
     @Override
@@ -470,6 +544,12 @@ public class ProcessingStationBlockEntity extends BlockEntity {
         activeRecipeId = recipeIdStr.isEmpty() ? null : ResourceLocation.tryParse(recipeIdStr);
         startTime = tag.getLong("StartTime");
         recipeDuration = tag.getInt("RecipeDuration");
+
+        // Side IO + auto mode
+        if (tag.contains("SideConfig")) {
+            sideConfig.load(tag.getCompound("SideConfig"));
+        }
+        autoMode = tag.getBoolean("AutoMode");
     }
 
     @Override

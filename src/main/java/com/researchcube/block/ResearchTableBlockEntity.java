@@ -13,7 +13,14 @@ import com.researchcube.util.NbtUtil;
 import com.researchcube.util.TierUtil;
 import com.researchcube.util.IdeaChipMatcher;
 import com.researchcube.network.SyncResearchProgressPacket;
+import com.researchcube.sideio.FluidChannelSpec;
+import com.researchcube.sideio.IOChannel;
+import com.researchcube.sideio.IOMode;
+import com.researchcube.sideio.ItemChannelSpec;
+import com.researchcube.sideio.SideConfigurable;
+import com.researchcube.sideio.SideIOConfig;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -49,6 +56,8 @@ import software.bernie.geckolib.animation.*;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -69,7 +78,7 @@ import java.util.Set;
  *   StartTime: game tick when research started
  *   Inventory: item handler contents
  */
-public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEntity {
+public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEntity, SideConfigurable {
 
     public static final int SLOT_DRIVE = 0;
     public static final int SLOT_CUBE = 1;
@@ -117,6 +126,35 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
                fluid == ModFluids.REASONING_FLUID.get() ||
                fluid == ModFluids.IMAGINATION_FLUID.get();
     });
+
+    // ── Side IO Configuration ──
+
+    /** The item channel: cost slots + bucket-in accept insertion, bucket-out allows extraction. */
+    public static final String CHANNEL_ITEMS = "items";
+    /** The single fluid channel governing the research tank. */
+    public static final String CHANNEL_FLUID = "fluid";
+
+    private static final List<IOChannel> IO_CHANNELS = List.of(
+            new IOChannel(CHANNEL_ITEMS, "gui.researchcube.channel.items", IOChannel.Type.ITEM,
+                    EnumSet.of(IOMode.NONE, IOMode.INPUT, IOMode.OUTPUT, IOMode.BOTH), IOMode.BOTH),
+            new IOChannel(CHANNEL_FLUID, "gui.researchcube.channel.fluid", IOChannel.Type.FLUID,
+                    EnumSet.of(IOMode.NONE, IOMode.INPUT, IOMode.OUTPUT, IOMode.BOTH), IOMode.BOTH)
+    );
+
+    /** Externally insertable item slots: cost slots 2-7 plus the bucket-in slot. */
+    private static final Set<Integer> INSERTABLE_ITEM_SLOTS;
+    /** Externally extractable item slots: the empty-bucket output only. */
+    private static final Set<Integer> EXTRACTABLE_ITEM_SLOTS = Set.of(SLOT_BUCKET_OUT);
+    static {
+        Set<Integer> insertable = new HashSet<>();
+        for (int i = COST_SLOT_START; i < SLOT_BUCKET_IN; i++) {
+            insertable.add(i);
+        }
+        insertable.add(SLOT_BUCKET_IN);
+        INSERTABLE_ITEM_SLOTS = Set.copyOf(insertable);
+    }
+
+    private final SideIOConfig sideConfig = new SideIOConfig(IO_CHANNELS);
 
     @Nullable
     private String activeResearchId = null;
@@ -179,9 +217,10 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
 
     /**
      * Map a bucket item to its corresponding research fluid, or null if not a research fluid bucket.
+     * Public+static so the side-IO item filter can reuse it to gate the bucket-input slot.
      */
     @Nullable
-    private Fluid getFluidFromBucket(ItemStack stack) {
+    public static Fluid getFluidFromBucket(ItemStack stack) {
         Item item = stack.getItem();
         if (item == ModItems.THINKING_FLUID_BUCKET.get()) return ModFluids.THINKING_FLUID.get();
         if (item == ModItems.PONDERING_FLUID_BUCKET.get()) return ModFluids.PONDERING_FLUID.get();
@@ -646,6 +685,49 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
         }
     }
 
+    // ── Side IO Configuration ──
+
+    @Override
+    public SideIOConfig getSideIOConfig() {
+        return sideConfig;
+    }
+
+    @Override
+    public List<IOChannel> getIOChannels() {
+        return IO_CHANNELS;
+    }
+
+    @Override
+    public Direction getIOFacing() {
+        return getBlockState().getValue(ResearchTableBlock.FACING);
+    }
+
+    @Override
+    public void onSideConfigChanged() {
+        setChanged();
+        if (level != null) {
+            level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
+            level.invalidateCapabilities(worldPosition);
+        }
+    }
+
+    @Override
+    public ItemChannelSpec getItemChannelSpec() {
+        return new ItemChannelSpec(
+                CHANNEL_ITEMS,
+                inventory,
+                INSERTABLE_ITEM_SLOTS,
+                EXTRACTABLE_ITEM_SLOTS,
+                // Bucket-in slot only accepts research fluid buckets; other insertable slots unrestricted.
+                (slot, stack) -> slot != SLOT_BUCKET_IN || getFluidFromBucket(stack) != null
+        );
+    }
+
+    @Override
+    public List<FluidChannelSpec> getFluidChannelSpecs() {
+        return List.of(new FluidChannelSpec(CHANNEL_FLUID, fluidTank));
+    }
+
     // ── NBT Persistence ──
 
     @Override
@@ -653,6 +735,7 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
         super.saveAdditional(tag, registries);
         tag.put("Inventory", inventory.serializeNBT(registries));
         tag.put("FluidTank", fluidTank.writeToNBT(registries, new CompoundTag()));
+        tag.put("SideConfig", sideConfig.save());
         if (activeResearchId != null) {
             tag.putString("ActiveResearch", activeResearchId);
             tag.putLong("StartTime", startTime);
@@ -685,6 +768,9 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
         inventory.deserializeNBT(registries, tag.getCompound("Inventory"));
         if (tag.contains("FluidTank")) {
             fluidTank.readFromNBT(registries, tag.getCompound("FluidTank"));
+        }
+        if (tag.contains("SideConfig")) {
+            sideConfig.load(tag.getCompound("SideConfig"));
         }
         if (tag.contains("ActiveResearch")) {
             activeResearchId = tag.getString("ActiveResearch");

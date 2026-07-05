@@ -4,6 +4,7 @@ import com.researchcube.ResearchCubeMod;
 import com.researchcube.block.ProcessingStationBlockEntity;
 import com.researchcube.menu.ProcessingStationMenu;
 import com.researchcube.network.StartProcessingPacket;
+import com.researchcube.network.ToggleAutoModePacket;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -63,16 +64,30 @@ public class ProcessingStationScreen extends AbstractContainerScreen<ProcessingS
     private static final int PROGRESS_W = 68;
     private static final int PROGRESS_H = 8;
 
-    // Start button
+    // Start button (shares its row with the Auto toggle)
     private static final int BUTTON_X = 108;
     private static final int BUTTON_Y = 88;
-    private static final int BUTTON_W = 68;
+    private static final int BUTTON_W = 40;
     private static final int BUTTON_H = 16;
+
+    // Auto-mode toggle (right of Start, same row)
+    private static final int AUTO_BTN_X = 150;
+    private static final int AUTO_BTN_Y = 88;
+    private static final int AUTO_BTN_W = 26;
+    private static final int AUTO_BTN_H = 16;
+
+    // IO config toggle button (small square, top-right of the machine panel)
+    private static final int IO_BTN_X = 232;
+    private static final int IO_BTN_Y = 4;
+    private static final int IO_BTN_SIZE = 16;
 
     // Status text baseline
     private static final int STATUS_Y = 107;
 
     private Button startButton;
+    private Button autoButton;
+    private Button ioButton;
+    private SideConfigPanel sideConfigPanel;
 
     public ProcessingStationScreen(ProcessingStationMenu menu, Inventory playerInv, Component title) {
         super(menu, playerInv, title);
@@ -91,6 +106,29 @@ public class ProcessingStationScreen extends AbstractContainerScreen<ProcessingS
                 .bounds(leftPos + BUTTON_X, topPos + BUTTON_Y, BUTTON_W, BUTTON_H)
                 .build();
         addRenderableWidget(startButton);
+
+        autoButton = Button.builder(autoLabel(), btn -> onToggleAuto())
+                .bounds(leftPos + AUTO_BTN_X, topPos + AUTO_BTN_Y, AUTO_BTN_W, AUTO_BTN_H)
+                .tooltip(net.minecraft.client.gui.components.Tooltip.create(
+                        Component.translatable("gui.researchcube.auto_mode.tooltip")))
+                .build();
+        addRenderableWidget(autoButton);
+
+        ioButton = Button.builder(Component.literal("IO"), btn -> onToggleSideConfig())
+                .bounds(leftPos + IO_BTN_X, topPos + IO_BTN_Y, IO_BTN_SIZE, IO_BTN_SIZE)
+                .tooltip(net.minecraft.client.gui.components.Tooltip.create(
+                        Component.translatable("gui.researchcube.io_config.tooltip")))
+                .build();
+        addRenderableWidget(ioButton);
+
+        if (sideConfigPanel == null) {
+            sideConfigPanel = new SideConfigPanel(font, menu.getBlockEntity(), menu.getBlockEntity().getBlockPos());
+        }
+    }
+
+    private Component autoLabel() {
+        return Component.translatable(menu.getBlockEntity().isAutoMode()
+                ? "gui.researchcube.auto_mode.on" : "gui.researchcube.auto_mode.off");
     }
 
     private void onStartProcessing() {
@@ -99,10 +137,35 @@ public class ProcessingStationScreen extends AbstractContainerScreen<ProcessingS
         PacketDistributor.sendToServer(new StartProcessingPacket(be.getBlockPos()));
     }
 
+    private void onToggleAuto() {
+        ProcessingStationBlockEntity be = menu.getBlockEntity();
+        PacketDistributor.sendToServer(new ToggleAutoModePacket(be.getBlockPos()));
+    }
+
+    private void onToggleSideConfig() {
+        if (sideConfigPanel != null) {
+            sideConfigPanel.toggleVisible();
+        }
+    }
+
+    /**
+     * Absolute screen X where the side-config overlay is drawn: right of the GUI when it
+     * fits, otherwise left of it, otherwise clamped to the screen edge.
+     */
+    private int panelX() {
+        return SideConfigPanel.clampX(leftPos + imageWidth + 4, leftPos, this.width);
+    }
+
+    /** Absolute screen Y where the side-config overlay is drawn (clamped to the screen). */
+    private int panelY() {
+        return SideConfigPanel.clampY(topPos + IO_BTN_Y, this.height);
+    }
+
     @Override
     protected void containerTick() {
         super.containerTick();
         startButton.active = !menu.isProcessing();
+        autoButton.setMessage(autoLabel());
     }
 
     @Override
@@ -173,6 +236,20 @@ public class ProcessingStationScreen extends AbstractContainerScreen<ProcessingS
         renderProgressTooltip(guiGraphics, mouseX, mouseY);
 
         renderTooltip(guiGraphics, mouseX, mouseY);
+
+        // Side-config overlay renders last so it (and its tooltips) sit above everything.
+        if (sideConfigPanel != null) {
+            sideConfigPanel.render(guiGraphics, panelX(), panelY(), mouseX, mouseY);
+        }
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (sideConfigPanel != null && sideConfigPanel.isVisible()
+                && sideConfigPanel.mouseClicked(mouseX, mouseY, button)) {
+            return true;
+        }
+        return super.mouseClicked(mouseX, mouseY, button);
     }
 
     private void renderProgressTooltip(GuiGraphics g, int mouseX, int mouseY) {

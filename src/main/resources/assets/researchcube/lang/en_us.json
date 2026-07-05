@@ -33,5 +33,28 @@
   "block.researchcube.research_station": "Research Station",
   "block.researchcube.drive_crafting_table": "Drive Crafting Table",
   "block.researchcube.processing_station": "Processing Station",
-  "item.researchcube.processing_station": "Processing Station"
+  "item.researchcube.processing_station": "Processing Station",
+
+  "gui.researchcube.side.front": "Front",
+  "gui.researchcube.side.back": "Back",
+  "gui.researchcube.side.left": "Left",
+  "gui.researchcube.side.right": "Right",
+  "gui.researchcube.side.top": "Top",
+  "gui.researchcube.side.bottom": "Bottom",
+
+  "gui.researchcube.iomode.none": "Disabled",
+  "gui.researchcube.iomode.input": "Input",
+  "gui.researchcube.iomode.output": "Output",
+  "gui.researchcube.iomode.both": "Input + Output",
+
+  "gui.researchcube.channel.items": "Items",
+  "gui.researchcube.channel.fluid": "Fluid",
+  "gui.researchcube.channel.fluid_input_1": "Fluid 1",
+  "gui.researchcube.channel.fluid_input_2": "Fluid 2",
+  "gui.researchcube.channel.fluid_output": "Fluid Out",
+
+  "gui.researchcube.auto_mode.on": "Auto: On",
+  "gui.researchcube.auto_mode.off": "Auto: Off",
+  "gui.researchcube.auto_mode.tooltip": "Automatically start processing when valid inputs are present.",
+  "gui.researchcube.io_config.tooltip": "Configure item/fluid sides for automation."
 }

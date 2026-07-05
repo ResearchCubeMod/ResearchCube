@@ -46,6 +46,18 @@ public class ModNetworking {
                 EncodeChipPacket::handle
         );
 
+        registrar.playToServer(
+                ToggleAutoModePacket.TYPE,
+                ToggleAutoModePacket.STREAM_CODEC,
+                ToggleAutoModePacket::handle
+        );
+
+        registrar.playToServer(
+                SetSideConfigPacket.TYPE,
+                SetSideConfigPacket.STREAM_CODEC,
+                SetSideConfigPacket::handle
+        );
+
         registrar.playToClient(
                 OpenResearchBookPacket.TYPE,
                 OpenResearchBookPacket.STREAM_CODEC,
