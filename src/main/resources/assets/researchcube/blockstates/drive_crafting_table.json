@@ -1,5 +1,8 @@
 {
   "variants": {
-    "": { "model": "researchcube:block/drive_crafting_table" }
+    "facing=north": {"model": "researchcube:block/drive_crafting_table" },
+    "facing=south": {"model": "researchcube:block/drive_crafting_table" },
+    "facing=east":  {"model": "researchcube:block/drive_crafting_table" },
+    "facing=west":  {"model": "researchcube:block/drive_crafting_table" }
   }
 }
