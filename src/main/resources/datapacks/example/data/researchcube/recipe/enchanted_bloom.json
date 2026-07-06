@@ -1,0 +1,21 @@
+{
+  "type": "researchcube:drive_crafting",
+  "ingredients": [
+    {
+      "item": "minecraft:bone_meal"
+    },
+    {
+      "item": "minecraft:honey_bottle"
+    },
+    {
+      "item": "minecraft:dried_kelp"
+    },
+    {
+      "item": "minecraft:jungle_sapling"
+    }
+  ],
+  "result": {
+    "id": "minecraft:flowering_azalea",
+    "count": 2
+  }
+}

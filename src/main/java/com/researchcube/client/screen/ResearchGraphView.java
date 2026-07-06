@@ -46,7 +46,12 @@ public class ResearchGraphView {
     private static final int NODE_W = 116;
     private static final int NODE_H = 36;
     private static final int LAYER_X_GAP = 178;
-    private static final int LAYER_Y_GAP = 64;
+    /** Minimum vertical centre-to-centre distance between two nodes in the same layer. */
+    private static final int MIN_ROW_PITCH = NODE_H + 20;
+    /** Vertical gap left between two stacked disconnected components. */
+    private static final int COMPONENT_Y_GAP = NODE_H + 40;
+    /** Number of barycenter ordering sweeps used to reduce edge crossings. */
+    private static final int BARYCENTER_PASSES = 4;
 
     // Dashed-line pattern (for OR edges): DASH_ON px drawn, then a gap, repeating every DASH_PERIOD.
     private static final int DASH_ON = 3;
@@ -58,6 +63,11 @@ public class ResearchGraphView {
         private final ResearchDefinition def;
         private int worldX;
         private int worldY;
+
+        // Layout scratch state (valid only during buildGraph()).
+        private int layer;        // column index = longest-path prerequisite depth
+        private int order;        // position within its layer (0 = topmost)
+        private double bary;      // barycenter value used while ordering
 
         private NodeBox(ResearchDefinition def) { this.def = def; }
     }
@@ -151,12 +161,10 @@ public class ResearchGraphView {
         nodesById.clear();
         nodeBoxes.clear();
 
-        Map<Integer, List<NodeBox>> layerMap = new HashMap<>();
         for (ResearchDefinition def : defs) {
-            int depth = depthCache.getOrDefault(def.getId(), 0);
             NodeBox box = new NodeBox(def);
+            box.layer = depthCache.getOrDefault(def.getId(), 0);
             nodesById.put(def.getId(), box);
-            layerMap.computeIfAbsent(depth, d -> new ArrayList<>()).add(box);
             nodeBoxes.add(box);
         }
 
@@ -168,33 +176,165 @@ public class ResearchGraphView {
             }
         }
 
-        int maxLayerSize = 1;
-        for (List<NodeBox> boxes : layerMap.values()) {
-            maxLayerSize = Math.max(maxLayerSize, boxes.size());
-        }
-
-        List<Integer> sortedLayers = new ArrayList<>(layerMap.keySet());
-        Collections.sort(sortedLayers);
-        for (Integer layer : sortedLayers) {
-            List<NodeBox> layerNodes = layerMap.get(layer);
-            layerNodes.sort(Comparator
-                    .comparingInt((NodeBox n) -> n.def.getTier().ordinal())
-                    .thenComparing(n -> n.def.getDisplayName(), String.CASE_INSENSITIVE_ORDER));
-
-            int n = layerNodes.size();
-            int rowOffset = (maxLayerSize - n) * (LAYER_Y_GAP / 2);
-            for (int i = 0; i < n; i++) {
-                NodeBox node = layerNodes.get(i);
-                node.worldX = layer * LAYER_X_GAP;
-                node.worldY = rowOffset + i * LAYER_Y_GAP;
-            }
-        }
-
+        layoutComponents();
         recalcGraphBounds();
 
         if (selectedId != null && !nodesById.containsKey(selectedId)) {
             selectedId = null;
         }
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    //  Layered layout (Sugiyama-style, light)
+    //
+    //  1. Layering: each node's column = its longest-path prerequisite
+    //     depth (already computed as NodeBox.layer).
+    //  2. Components: split the (undirected) graph into connected
+    //     components so disconnected trees are laid out independently and
+    //     stacked vertically.
+    //  3. Ordering: within each component, order nodes inside every layer
+    //     using the barycenter heuristic (a few forward/backward sweeps) to
+    //     reduce edge crossings.
+    //  4. Coordinates: assign world positions with a fixed minimum row
+    //     pitch so nodes never overlap, then centre every layer and every
+    //     component about a shared baseline.
+    // ══════════════════════════════════════════════════════════════
+
+    private void layoutComponents() {
+        if (nodeBoxes.isEmpty()) {
+            return;
+        }
+
+        // Undirected adjacency for component discovery and ordering.
+        Map<NodeBox, List<NodeBox>> neighbors = new HashMap<>();
+        for (NodeBox node : nodeBoxes) {
+            neighbors.put(node, new ArrayList<>());
+        }
+        for (GraphEdge edge : graphEdges) {
+            NodeBox from = nodesById.get(edge.from());
+            NodeBox to = nodesById.get(edge.to());
+            if (from == null || to == null || from == to) continue;
+            neighbors.get(from).add(to);
+            neighbors.get(to).add(from);
+        }
+
+        // ── Discover connected components (BFS over undirected edges). ──
+        // Iterate in the stable sorted order of nodeBoxes so component
+        // discovery and stacking order are deterministic across rebuilds.
+        List<List<NodeBox>> components = new ArrayList<>();
+        Set<NodeBox> visited = new HashSet<>();
+        for (NodeBox seed : nodeBoxes) {
+            if (!visited.add(seed)) continue;
+            List<NodeBox> comp = new ArrayList<>();
+            List<NodeBox> queue = new ArrayList<>();
+            queue.add(seed);
+            int head = 0;
+            while (head < queue.size()) {
+                NodeBox n = queue.get(head++);
+                comp.add(n);
+                for (NodeBox nb : neighbors.get(n)) {
+                    if (visited.add(nb)) {
+                        queue.add(nb);
+                    }
+                }
+            }
+            components.add(comp);
+        }
+
+        // ── Lay out each component, stacking them vertically. ──
+        int componentTop = 0;
+        for (List<NodeBox> comp : components) {
+            int height = layoutSingleComponent(comp, neighbors, componentTop);
+            componentTop += height + COMPONENT_Y_GAP;
+        }
+    }
+
+    /**
+     * Positions one connected component. Returns the vertical extent (in world
+     * pixels) it occupies so the caller can stack the next component below it.
+     */
+    private int layoutSingleComponent(List<NodeBox> comp,
+                                      Map<NodeBox, List<NodeBox>> neighbors,
+                                      int componentTop) {
+        // Group this component's nodes by layer.
+        Map<Integer, List<NodeBox>> layerMap = new HashMap<>();
+        for (NodeBox node : comp) {
+            layerMap.computeIfAbsent(node.layer, l -> new ArrayList<>()).add(node);
+        }
+        List<Integer> layers = new ArrayList<>(layerMap.keySet());
+        Collections.sort(layers);
+
+        // Seed a stable initial ordering per layer (tier, then name).
+        for (Integer layer : layers) {
+            List<NodeBox> layerNodes = layerMap.get(layer);
+            layerNodes.sort(Comparator
+                    .comparingInt((NodeBox n) -> n.def.getTier().ordinal())
+                    .thenComparing(n -> n.def.getDisplayName(), String.CASE_INSENSITIVE_ORDER));
+            assignOrders(layerNodes);
+        }
+
+        // Barycenter sweeps: alternate forward (order by predecessor
+        // positions) and backward (order by successor positions).
+        for (int pass = 0; pass < BARYCENTER_PASSES; pass++) {
+            boolean forward = (pass % 2 == 0);
+            for (int li = 0; li < layers.size(); li++) {
+                int idx = forward ? li : layers.size() - 1 - li;
+                List<NodeBox> layerNodes = layerMap.get(layers.get(idx));
+                barycenterSort(layerNodes, neighbors);
+                assignOrders(layerNodes);
+            }
+        }
+
+        // ── Assign world coordinates. ──
+        // Each layer is a column; nodes within it are stacked with a fixed
+        // pitch, then the shorter columns are centred against the tallest.
+        int maxRows = 1;
+        for (List<NodeBox> layerNodes : layerMap.values()) {
+            maxRows = Math.max(maxRows, layerNodes.size());
+        }
+        int columnHeight = (maxRows - 1) * MIN_ROW_PITCH;
+
+        for (Integer layer : layers) {
+            List<NodeBox> layerNodes = layerMap.get(layer);
+            int rows = layerNodes.size();
+            int layerHeight = (rows - 1) * MIN_ROW_PITCH;
+            int layerOffset = (columnHeight - layerHeight) / 2;
+            for (int i = 0; i < rows; i++) {
+                NodeBox node = layerNodes.get(i);
+                node.worldX = layer * LAYER_X_GAP;
+                node.worldY = componentTop + layerOffset + i * MIN_ROW_PITCH;
+            }
+        }
+
+        return columnHeight + NODE_H;
+    }
+
+    private static void assignOrders(List<NodeBox> layerNodes) {
+        for (int i = 0; i < layerNodes.size(); i++) {
+            layerNodes.get(i).order = i;
+        }
+    }
+
+    /**
+     * Reorder a single layer by the average order-index of each node's
+     * neighbours in adjacent layers (the barycenter heuristic). Nodes with no
+     * cross-layer neighbours keep their current position.
+     */
+    private static void barycenterSort(List<NodeBox> layerNodes, Map<NodeBox, List<NodeBox>> neighbors) {
+        for (NodeBox node : layerNodes) {
+            double sum = 0;
+            int count = 0;
+            for (NodeBox nb : neighbors.get(node)) {
+                if (nb.layer != node.layer) {
+                    sum += nb.order;
+                    count++;
+                }
+            }
+            node.bary = (count == 0) ? node.order : sum / count;
+        }
+        // Stable sort keeps relative order for equal barycenters.
+        layerNodes.sort(Comparator.comparingDouble((NodeBox n) -> n.bary)
+                .thenComparingInt(n -> n.order));
     }
 
     private static void collectDependencies(Prerequisite prereq, EdgeStyle inheritedStyle, List<Dependency> out) {
@@ -355,19 +495,19 @@ public class ResearchGraphView {
         int lineY = y + 3;
         int labelColor = 0xFFAAB0C0;
 
-        // AND — solid teal
+        // AND: solid teal
         g.fill(lx, lineY, lx + 10, lineY + 1, EDGE_AND);
         g.drawString(font, "all", lx + 12, y, labelColor, false);
         lx += 12 + font.width("all") + 8;
 
-        // OR — dashed amber
+        // OR: dashed amber
         for (int px = lx; px < lx + 10; px += DASH_PERIOD) {
             g.fill(px, lineY, Math.min(px + DASH_ON, lx + 10), lineY + 1, EDGE_OR);
         }
         g.drawString(font, "any", lx + 12, y, labelColor, false);
         lx += 12 + font.width("any") + 8;
 
-        // SINGLE — solid grey
+        // SINGLE: solid grey
         g.fill(lx, lineY, lx + 10, lineY + 1, EDGE_SINGLE);
         g.drawString(font, "req", lx + 12, y, labelColor, false);
         lx += 12 + font.width("req");

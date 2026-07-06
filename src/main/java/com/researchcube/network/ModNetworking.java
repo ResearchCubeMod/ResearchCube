@@ -46,6 +46,12 @@ public class ModNetworking {
                 SetSideConfigPacket::handle
         );
 
+        registrar.playToServer(
+                InteractTankPacket.TYPE,
+                InteractTankPacket.STREAM_CODEC,
+                InteractTankPacket::handle
+        );
+
         registrar.playToClient(
                 OpenResearchBookPacket.TYPE,
                 OpenResearchBookPacket.STREAM_CODEC,

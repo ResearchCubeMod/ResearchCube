@@ -13,7 +13,7 @@ import java.util.Set;
  * Client-only entry points for code that lives in common classes (items, packets).
  *
  * IMPORTANT: common classes must never reference client classes (screens, Minecraft)
- * directly — the JVM verifier loads such classes when the referencing class links,
+ * directly; the JVM verifier loads such classes when the referencing class links,
  * which crashes dedicated servers ("Attempted to load class ... for invalid dist").
  * Instead, common code calls these static methods behind an isClientSide()/handler
  * guard; this class is only ever class-loaded on the physical client.

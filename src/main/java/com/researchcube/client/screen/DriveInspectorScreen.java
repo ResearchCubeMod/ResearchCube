@@ -61,13 +61,21 @@ public class DriveInspectorScreen extends Screen {
                 .build());
     }
 
+    /**
+     * Replace MC 1.21's default {@link Screen#renderBackground} (gaussian blur shader + gradient)
+     * with a flat dim overlay, matching the rest of the mod's screens (ResearchBookScreen,
+     * ChipEncoderScreen). The game calls this before render(), so drawing the dim here means the
+     * panel drawn in render() sits crisp over a single standard backdrop instead of being blurred.
+     */
+    @Override
+    public void renderBackground(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+        g.fill(0, 0, width, height, 0x80101010);
+    }
+
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
         int panelX = (width - PANEL_W) / 2;
         int panelY = (height - PANEL_H) / 2;
-
-        // Background dim
-        g.fill(0, 0, width, height, 0x80101010);
 
         // Panel background
         g.fill(panelX, panelY, panelX + PANEL_W, panelY + PANEL_H, 0xFF293047);
@@ -80,7 +88,7 @@ public class DriveInspectorScreen extends Screen {
 
         // Title
         int tierColor = driveTier.getColor() | 0xFF000000;
-        String title = "Drive Inspector — " + driveTier.getDisplayName();
+        String title = "Drive Inspector: " + driveTier.getDisplayName();
         g.drawCenteredString(font, title, panelX + PANEL_W / 2, panelY + 6, tierColor);
 
         // Capacity line
@@ -137,6 +145,10 @@ public class DriveInspectorScreen extends Screen {
                 RecipeDisplay display = recipes.get(idx);
                 List<Component> tooltip = new ArrayList<>();
                 tooltip.add(Component.literal(display.displayName).withStyle(s -> s.withColor(0x55FF55)));
+
+                // Inputs and outputs for this stored recipe (drive-crafting or processing).
+                tooltip.addAll(RecipeOutputResolver.resolveIoTooltip(this.minecraft.level, display.recipeId));
+
                 tooltip.add(Component.literal("Recipe ID: " + display.recipeId).withStyle(s -> s.withColor(0x888888)));
 
                 // Show unlocking research

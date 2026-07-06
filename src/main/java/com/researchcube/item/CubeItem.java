@@ -17,7 +17,7 @@ import java.util.Map;
 /**
  * A Cube item used for tier validation in the Research Table.
  * Cubes define the maximum research tier allowed.
- * They have no NBT data—only a fixed tier.
+ * They have no NBT data, only a fixed tier.
  * <p>
  * Implements GeoItem for 3D Rubik's Cube rendering via GeckoLib.
  * Tiers UNSTABLE through SELF_AWARE get 3D models.
@@ -48,7 +48,7 @@ public class CubeItem extends Item implements GeoItem {
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
         String animName = ANIM_NAMES.get(tier);
-        if (animName == null) return; // UNSTABLE / IRRECOVERABLE — no GeckoLib animation
+        if (animName == null) return; // UNSTABLE / IRRECOVERABLE: no GeckoLib animation
 
         RawAnimation anim = RawAnimation.begin().thenLoop(animName);
         controllers.add(new AnimationController<>(this, "idle", 0, state -> {

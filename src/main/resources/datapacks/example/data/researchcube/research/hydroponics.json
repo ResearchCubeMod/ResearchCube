@@ -1,0 +1,26 @@
+{
+  "name": "Hydroponics",
+  "description": "Grow crops in water instead of soil. Continues the linear chain from Composting Basics and feeds a processing recipe that grows kelp in plain water.",
+  "flavor_text": "Soil was only ever a delivery system.",
+  "category": "botany",
+  "tier": "BASIC",
+  "duration": 2400,
+  "prerequisites": "researchcube:composting_basics",
+  "item_costs": [
+    {
+      "item": "minecraft:kelp",
+      "count": 6
+    },
+    {
+      "item": "minecraft:glass",
+      "count": 4
+    }
+  ],
+  "fluid_cost": {
+    "fluid": "researchcube:thinking_fluid",
+    "amount": 1200
+  },
+  "recipe_pool": [
+    "researchcube:kelp_farming"
+  ]
+}

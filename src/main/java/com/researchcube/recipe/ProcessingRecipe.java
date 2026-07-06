@@ -24,7 +24,7 @@ public class ProcessingRecipe implements Recipe<RecipeInput> {
     /**
      * The recipe ID a drive must carry for this recipe to run.
      * Usually empty in JSON ("recipe_id" is optional) and bound to the recipe's own
-     * ID after datapack load via {@link #bindId} — declaring it explicitly is only
+     * ID after datapack load via {@link #bindId}; declaring it explicitly is only
      * needed when several recipe files should share one unlock ID.
      */
     private String recipeId;
@@ -60,7 +60,7 @@ public class ProcessingRecipe implements Recipe<RecipeInput> {
     /**
      * Bind this recipe to its own registry ID if the JSON omitted "recipe_id".
      * Called by ResearchManager after every datapack (re)load, before recipes are
-     * synced to clients — the network codec always transmits the resolved ID.
+     * synced to clients; the network codec always transmits the resolved ID.
      */
     public void bindId(net.minecraft.resources.ResourceLocation ownId) {
         if (this.recipeId.isEmpty()) {

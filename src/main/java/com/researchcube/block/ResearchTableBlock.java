@@ -124,7 +124,7 @@ public class ResearchTableBlock extends BaseEntityBlock {
     @Override
     protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean movedByPiston) {
         if (!state.is(newState.getBlock())) {
-            // Block was broken — research is lost
+            // Block was broken; research is lost
             if (level.getBlockEntity(pos) instanceof ResearchTableBlockEntity be) {
                 be.dropContents(level, pos);
             }

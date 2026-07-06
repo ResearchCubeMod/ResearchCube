@@ -27,6 +27,8 @@ public class DriveCraftingTableScreen extends AbstractContainerScreen<DriveCraft
 
     private static final int LABEL_COLOR = 0xFFE6EAF5;
     private static final int SUBLABEL_COLOR = 0xFFA3AAC0;
+    // Subdued hint drawn under an empty drive slot so players know a drive goes there.
+    private static final int HINT_COLOR = 0xFF6B7080;
 
     public DriveCraftingTableScreen(DriveCraftingTableMenu menu, Inventory playerInv, Component title) {
         super(menu, playerInv, title);
@@ -51,13 +53,23 @@ public class DriveCraftingTableScreen extends AbstractContainerScreen<DriveCraft
 
         // Section labels, centered over their slots
         int labelY = y + DriveCraftingTableMenu.LABEL_Y;
-        drawCentered(graphics, "Drive", x + DriveCraftingTableMenu.DRIVE_X + 8, labelY);
-        drawCentered(graphics, "Craft Matrix", x + DriveCraftingTableMenu.GRID_X + 27, labelY);
-        drawCentered(graphics, "Result", x + DriveCraftingTableMenu.RESULT_X + 8, labelY);
+        drawCentered(graphics, "Drive", x + DriveCraftingTableMenu.DRIVE_X + 8, labelY, SUBLABEL_COLOR);
+        drawCentered(graphics, "Craft Matrix", x + DriveCraftingTableMenu.GRID_X + 27, labelY, SUBLABEL_COLOR);
+        drawCentered(graphics, "Result", x + DriveCraftingTableMenu.RESULT_X + 8, labelY, SUBLABEL_COLOR);
+
+        // Subdued "Insert Drive" hint under an empty drive slot. Centered on the drive column
+        // but clamped to the machine panel so the wider text never clips the left border.
+        if (this.menu.getSlot(0).getItem().isEmpty()) {
+            String hint = Component.translatable("gui.researchcube.processing.insert_drive").getString();
+            int centerX = x + DriveCraftingTableMenu.DRIVE_X + 8;
+            int textX = Math.max(x + 10, centerX - this.font.width(hint) / 2);
+            graphics.drawString(this.font, hint, textX,
+                    y + DriveCraftingTableMenu.DRIVE_Y + 20, HINT_COLOR, false);
+        }
     }
 
-    private void drawCentered(GuiGraphics g, String text, int centerX, int y) {
-        g.drawString(this.font, text, centerX - this.font.width(text) / 2, y, SUBLABEL_COLOR, false);
+    private void drawCentered(GuiGraphics g, String text, int centerX, int y, int color) {
+        g.drawString(this.font, text, centerX - this.font.width(text) / 2, y, color, false);
     }
 
     @Override
@@ -71,7 +83,8 @@ public class DriveCraftingTableScreen extends AbstractContainerScreen<DriveCraft
         if (mouseX >= driveSlotX && mouseX < driveSlotX + 16 && mouseY >= driveSlotY && mouseY < driveSlotY + 16) {
             ItemStack driveStack = this.menu.getSlot(0).getItem();
             if (driveStack.isEmpty()) {
-                graphics.renderTooltip(this.font, Component.literal("Insert a Drive with researched recipes"), mouseX, mouseY);
+                graphics.renderTooltip(this.font,
+                        Component.translatable("gui.researchcube.processing.insert_drive.tooltip"), mouseX, mouseY);
             }
         }
     }

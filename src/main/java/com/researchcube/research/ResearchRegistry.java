@@ -11,7 +11,7 @@ import java.util.*;
  *
  * On the (logical) server this is populated by {@link ResearchManager} on datapack reload.
  * On remote clients it is populated by SyncResearchDefinitionsPacket whenever the server
- * (re)loads its datapacks — screens, JEI/EMI and tooltips therefore see the same data on
+ * (re)loads its datapacks, so screens, JEI/EMI and tooltips see the same data on
  * both sides, including on dedicated servers.
  *
  * The backing map is an immutable snapshot that is swapped atomically, so readers on
@@ -35,7 +35,7 @@ public class ResearchRegistry {
         for (ResearchDefinition def : definitions) {
             ResearchDefinition previous = map.put(def.getId(), def);
             if (previous != null) {
-                ResearchCubeMod.LOGGER.warn("Duplicate research definition '{}' — keeping the last one.", def.getId());
+                ResearchCubeMod.LOGGER.warn("Duplicate research definition '{}'; keeping the last one.", def.getId());
             }
         }
         snapshot = Collections.unmodifiableMap(map);

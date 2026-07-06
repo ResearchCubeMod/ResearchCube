@@ -1,0 +1,18 @@
+{
+  "type": "researchcube:drive_crafting",
+  "ingredients": [
+    {
+      "item": "minecraft:wheat_seeds"
+    },
+    {
+      "item": "minecraft:string"
+    },
+    {
+      "item": "minecraft:string"
+    }
+  ],
+  "result": {
+    "id": "minecraft:bundle",
+    "count": 1
+  }
+}

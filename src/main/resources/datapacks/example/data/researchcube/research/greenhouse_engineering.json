@@ -1,0 +1,32 @@
+{
+  "name": "Greenhouse Engineering",
+  "description": "Build a climate you control. Demonstrates an AND prerequisite requiring BOTH Hydroponics AND Grafting Techniques.",
+  "flavor_text": "Bring the weather indoors and it stops arguing.",
+  "category": "botany",
+  "tier": "ADVANCED",
+  "duration": 6000,
+  "prerequisites": {
+    "type": "AND",
+    "values": [
+      "researchcube:hydroponics",
+      "researchcube:grafting_techniques"
+    ]
+  },
+  "item_costs": [
+    {
+      "item": "minecraft:glass",
+      "count": 16
+    },
+    {
+      "item": "minecraft:iron_ingot",
+      "count": 4
+    }
+  ],
+  "fluid_cost": {
+    "fluid": "researchcube:pondering_fluid",
+    "amount": 2000
+  },
+  "recipe_pool": [
+    "researchcube:greenhouse_frame"
+  ]
+}

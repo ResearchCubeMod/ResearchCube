@@ -14,13 +14,13 @@ import net.neoforged.neoforge.registries.NeoForgeRegistries;
  * Registers all custom fluids for the ResearchCube mod.
  *
  * Four tiers of research fluid:
- *   1. Thinking Fluid  (cyan)   — UNSTABLE/BASIC research
- *   2. Pondering Fluid  (purple) — ADVANCED research
- *   3. Reasoning Fluid  (gold)   — PRECISE/FLAWLESS research
- *   4. Imagination Fluid (pink)  — SELF_AWARE research
+ *   1. Thinking Fluid  (cyan):   UNSTABLE/BASIC research
+ *   2. Pondering Fluid  (purple): ADVANCED research
+ *   3. Reasoning Fluid  (gold):   PRECISE/FLAWLESS research
+ *   4. Imagination Fluid (pink):  SELF_AWARE research
  *
  * Each fluid has a FluidType, Source, and Flowing variant.
- * No LiquidBlock is registered — these fluids cannot be placed in the world.
+ * No LiquidBlock is registered; these fluids cannot be placed in the world.
  */
 public class ModFluids {
 
@@ -33,7 +33,7 @@ public class ModFluids {
             DeferredRegister.create(Registries.FLUID, ResearchCubeMod.MOD_ID);
 
     // ══════════════════════════════════════════════════════════════
-    //  Thinking Fluid (Tier 1 — cyan)
+    //  Thinking Fluid (Tier 1, cyan)
     // ══════════════════════════════════════════════════════════════
 
     public static final DeferredHolder<FluidType, FluidType> THINKING_FLUID_TYPE =
@@ -58,7 +58,7 @@ public class ModFluids {
     }
 
     // ══════════════════════════════════════════════════════════════
-    //  Pondering Fluid (Tier 2 — purple)
+    //  Pondering Fluid (Tier 2, purple)
     // ══════════════════════════════════════════════════════════════
 
     public static final DeferredHolder<FluidType, FluidType> PONDERING_FLUID_TYPE =
@@ -83,7 +83,7 @@ public class ModFluids {
     }
 
     // ══════════════════════════════════════════════════════════════
-    //  Reasoning Fluid (Tier 3 — gold)
+    //  Reasoning Fluid (Tier 3, gold)
     // ══════════════════════════════════════════════════════════════
 
     public static final DeferredHolder<FluidType, FluidType> REASONING_FLUID_TYPE =
@@ -108,7 +108,7 @@ public class ModFluids {
     }
 
     // ══════════════════════════════════════════════════════════════
-    //  Imagination Fluid (Tier 4 — pink)
+    //  Imagination Fluid (Tier 4, pink)
     // ══════════════════════════════════════════════════════════════
 
     public static final DeferredHolder<FluidType, FluidType> IMAGINATION_FLUID_TYPE =

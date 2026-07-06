@@ -29,7 +29,7 @@ import java.util.Set;
  *   Slot 1: Cube (filtered to CubeItem)
  *   Slots 2-7: Item cost inputs (6 slots)
  *   Slot 8: Bucket input (accepts fluid buckets)
- *   Slot 9: Bucket output (output only — empty buckets)
+ *   Slot 9: Bucket output (output only: empty buckets)
  *   Slot 10: Idea chip (unrestricted)
  *   Player inventory: standard 27 + 9 hotbar
  *
@@ -264,7 +264,7 @@ public class ResearchTableMenu extends AbstractContainerMenu {
             }
         });
 
-        // Slot 9: Bucket output (output only — receives empty buckets)
+        // Slot 9: Bucket output (output only: receives empty buckets)
         addSlot(new SlotItemHandler(inv, ResearchTableBlockEntity.SLOT_BUCKET_OUT, BUCKET_OUT_X, BUCKET_OUT_Y) {
             @Override
             public boolean mayPlace(ItemStack stack) {
@@ -272,7 +272,7 @@ public class ResearchTableMenu extends AbstractContainerMenu {
             }
         });
 
-        // Slot 10: Idea chip (unrestricted — any item may be placed)
+        // Slot 10: Idea chip (unrestricted: any item may be placed)
         addSlot(new SlotItemHandler(inv, ResearchTableBlockEntity.SLOT_IDEA_CHIP, IDEA_CHIP_X, IDEA_CHIP_Y));
 
         // ── Player Inventory (27 slots) ──

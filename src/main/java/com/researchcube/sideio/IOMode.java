@@ -6,10 +6,10 @@ import java.util.List;
  * How a given channel behaves on a given side of a block.
  *
  * <ul>
- *   <li>{@link #NONE} — the side is closed for this channel; the capability reports nothing.</li>
- *   <li>{@link #INPUT} — external automation may insert only.</li>
- *   <li>{@link #OUTPUT} — external automation may extract only.</li>
- *   <li>{@link #BOTH} — external automation may insert and extract.</li>
+ *   <li>{@link #NONE}: the side is closed for this channel; the capability reports nothing.</li>
+ *   <li>{@link #INPUT}: external automation may insert only.</li>
+ *   <li>{@link #OUTPUT}: external automation may extract only.</li>
+ *   <li>{@link #BOTH}: external automation may insert and extract.</li>
  * </ul>
  */
 public enum IOMode {

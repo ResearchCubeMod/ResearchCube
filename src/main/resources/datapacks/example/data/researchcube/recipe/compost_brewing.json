@@ -1,0 +1,31 @@
+{
+  "type": "researchcube:processing",
+  "inputs": [
+    {
+      "item": "minecraft:dirt"
+    },
+    {
+      "item": "minecraft:wheat_seeds"
+    },
+    {
+      "item": "minecraft:kelp"
+    }
+  ],
+  "fluid_inputs": [
+    {
+      "fluid": "minecraft:water",
+      "amount": 500
+    }
+  ],
+  "outputs": [
+    {
+      "id": "minecraft:dirt",
+      "count": 1
+    },
+    {
+      "id": "minecraft:bone_meal",
+      "count": 3
+    }
+  ],
+  "duration": 120
+}

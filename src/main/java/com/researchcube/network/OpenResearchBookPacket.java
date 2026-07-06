@@ -47,7 +47,7 @@ public record OpenResearchBookPacket(Set<ResourceLocation> completedResearch) im
 
     /**
      * Client-side handler. Opens the Research Book screen.
-     * Goes through ClientHooks — referencing the screen class here directly would
+     * Goes through ClientHooks; referencing the screen class here directly would
      * make the JVM verifier load client classes on dedicated servers and crash them.
      */
     public static void handle(OpenResearchBookPacket packet, IPayloadContext context) {

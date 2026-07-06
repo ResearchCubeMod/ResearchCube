@@ -18,7 +18,7 @@ import net.neoforged.neoforge.items.SlotItemHandler;
  * Layout:
  *   - Slot 0: Drive input (dedicated, GUI-only)
  *   - Slots 1-9: 3x3 crafting grid
- *   - Slot 10: Output (extraction only — crafting is performed by the block entity)
+ *   - Slot 10: Output (extraction only: crafting is performed by the block entity)
  *   - Slots 11-46: Player inventory + hotbar
  *
  * Unlike the manual Drive Crafting Table, this menu does no recipe matching: the block
@@ -85,14 +85,14 @@ public class AutoDriveCraftingTableMenu extends AbstractContainerMenu {
         // Slot 10: Output (extraction only)
         addSlot(new OutputSlot(inv, AutoDriveCraftingTableBlockEntity.SLOT_OUTPUT, OUTPUT_X, OUTPUT_Y));
 
-        // Player Inventory (27 slots) — slots 11-37
+        // Player Inventory (27 slots): slots 11-37
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
                 addSlot(new Slot(playerInv, col + row * 9 + 9, INV_X + col * 18, INV_Y + row * 18));
             }
         }
 
-        // Player Hotbar (9 slots) — slots 38-46
+        // Player Hotbar (9 slots): slots 38-46
         for (int col = 0; col < 9; col++) {
             addSlot(new Slot(playerInv, col, INV_X + col * 18, INV_Y + 58));
         }

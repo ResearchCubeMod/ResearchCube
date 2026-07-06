@@ -15,7 +15,7 @@ import java.util.Set;
  * Packet sent server → client with the player's full set of completed research.
  *
  * Sent on join, after datapack reloads, whenever a research completes and after
- * admin commands change progress — so JEI/EMI tooltips, the research book and the
+ * admin commands change progress, so JEI/EMI tooltips, the research book and the
  * HUD always reflect the current state without having to open a menu first.
  */
 public record SyncCompletedResearchPacket(Set<ResourceLocation> completedResearch) implements CustomPacketPayload {

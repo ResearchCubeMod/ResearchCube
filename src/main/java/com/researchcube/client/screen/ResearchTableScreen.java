@@ -5,6 +5,7 @@ import com.researchcube.block.ResearchTableBlockEntity;
 import com.researchcube.item.CubeItem;
 import com.researchcube.menu.ResearchTableMenu;
 import com.researchcube.network.CancelResearchPacket;
+import com.researchcube.network.InteractTankPacket;
 import com.researchcube.network.StartResearchPacket;
 import com.researchcube.network.WipeTankPacket;
 import net.minecraft.client.gui.components.Tooltip;
@@ -13,6 +14,7 @@ import com.researchcube.research.ResearchDefinition;
 import com.researchcube.research.ResearchRegistry;
 import com.researchcube.research.ItemCost;
 import com.researchcube.research.FluidCost;
+import com.researchcube.research.WeightedRecipe;
 import com.researchcube.research.prerequisite.NonePrerequisite;
 import com.researchcube.util.RecipeOutputResolver;
 import net.minecraft.client.gui.GuiGraphics;
@@ -23,6 +25,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.network.PacketDistributor;
 import org.jetbrains.annotations.Nullable;
 
@@ -33,9 +36,9 @@ import java.util.*;
  *
  * <p>The upper panel hosts three views, switchable via the List/Tree tabs (top right):
  * <ul>
- *   <li><b>LIST</b> — search bar, categorised research list, detail pane</li>
- *   <li><b>TREE</b> — the dependency graph (delegated to {@link ResearchGraphView})</li>
- *   <li><b>PROGRESS</b> — active research info + progress bar (shown automatically
+ *   <li><b>LIST</b>: search bar, categorised research list, detail pane</li>
+ *   <li><b>TREE</b>: the dependency graph (delegated to {@link ResearchGraphView})</li>
+ *   <li><b>PROGRESS</b>: active research info + progress bar (shown automatically
  *       while researching)</li>
  * </ul>
  * The lower half holds the machine panel (drive/cube/idea/costs/fluid/buckets/buttons)
@@ -224,7 +227,7 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
 
         for (String cat : sortedKeys) {
             displayRows.add(ListRow.header(cat));
-            for (ResearchDefinition def : grouped.get(cat)) {
+            for (ResearchDefinition def : prioritize(grouped.get(cat))) {
                 availableResearch.add(def);
                 displayRows.add(ListRow.entry(def));
             }
@@ -234,11 +237,33 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
             if (!grouped.isEmpty()) {
                 displayRows.add(ListRow.header("other"));
             }
-            for (ResearchDefinition def : uncategorized) {
+            for (ResearchDefinition def : prioritize(uncategorized)) {
                 availableResearch.add(def);
                 displayRows.add(ListRow.entry(def));
             }
         }
+    }
+
+    /**
+     * Reorder a category's entries so actionable ones surface first, without disturbing the
+     * existing (alphabetical-by-registry) order within each group. Groups, in order:
+     * <ol>
+     *   <li><b>Unlockable now</b>: prerequisites met and not yet completed.</li>
+     *   <li><b>Locked</b>: prerequisites not yet met (and not completed).</li>
+     *   <li><b>Completed</b>: already researched by the player/team.</li>
+     * </ol>
+     * A stable sort preserves the incoming order within each group.
+     */
+    private List<ResearchDefinition> prioritize(List<ResearchDefinition> entries) {
+        List<ResearchDefinition> sorted = new ArrayList<>(entries);
+        sorted.sort(Comparator.comparingInt(this::sortRank));
+        return sorted;
+    }
+
+    /** Sort rank for {@link #prioritize}: 0 = unlockable now, 1 = locked, 2 = completed. */
+    private int sortRank(ResearchDefinition def) {
+        if (menu.getCompletedResearch().contains(def.getIdString())) return 2;
+        return ResearchRequirements.prereqMet(menu, def) ? 0 : 1;
     }
 
     // ══════════════════════════════════════════════════════════════
@@ -582,6 +607,8 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
 
     /**
      * Renders the detail pane below the research list showing info about the selected research.
+     * The left column holds name/description/costs text; the right column holds the "Unlocks:"
+     * recipe-output icons, so the narrow (38px) pane fits both without overlap.
      */
     private void renderDetailPane(GuiGraphics g) {
         int x = leftPos + ResearchTableMenu.DETAIL_X;
@@ -597,6 +624,11 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
             g.drawString(font, "Select a research entry", x + 2, y + 4, 0xFF666666, false);
             return;
         }
+
+        // Split the pane: text on the left, the Unlocks icon strip on the right. The right column
+        // is only reserved when there is actually a recipe pool to show.
+        int rightColW = def.hasRecipePool() ? 176 : 0;
+        int textMaxW = w - 12 - rightColW;
 
         int textY = y + 4;
         int lineHeight = 10;
@@ -617,8 +649,8 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         // Line 2: Description (if available)
         String description = def.getDescription();
         if (description != null && !description.isEmpty()) {
-            if (font.width(description) > w - 12) {
-                while (font.width(description + "…") > w - 12 && description.length() > 3) {
+            if (font.width(description) > textMaxW) {
+                while (font.width(description + "…") > textMaxW && description.length() > 3) {
                     description = description.substring(0, description.length() - 1);
                 }
                 description += "…";
@@ -641,13 +673,77 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         }
         if (costs.length() > 0) {
             String costStr = costs.toString();
-            if (font.width(costStr) > w - 12) {
-                while (font.width(costStr + "…") > w - 12 && costStr.length() > 3) {
+            if (font.width(costStr) > textMaxW) {
+                while (font.width(costStr + "…") > textMaxW && costStr.length() > 3) {
                     costStr = costStr.substring(0, costStr.length() - 1);
                 }
                 costStr += "…";
             }
             g.drawString(font, costStr, x + 4, textY, 0xFFAAB0C0, false);
+        }
+
+        // Right column: the recipes this research can imprint on a drive.
+        if (rightColW > 0) {
+            renderUnlocksSection(g, x + w - rightColW, y, rightColW, h, def);
+        }
+    }
+
+    /**
+     * Renders the "Unlocks:" section: the header on the first line, then a horizontal strip of the
+     * recipe-pool outputs as item icons on the line below. Each icon resolves via
+     * {@link RecipeOutputResolver} against the client level. When the pool's weights differ, each
+     * icon is annotated with its drop chance as a small percentage; equal weights are left plain.
+     * Recipe ids that cannot be resolved to an output render as a subdued "?" placeholder so the
+     * count still reads correctly.
+     */
+    private void renderUnlocksSection(GuiGraphics g, int colX, int colY, int colW, int colH,
+                                      ResearchDefinition def) {
+        int headerY = colY + 4;
+        String header = Component.translatable("gui.researchcube.research.unlocks").getString();
+        g.drawString(font, header, colX, headerY, 0xFF55FFFF, false);
+
+        List<WeightedRecipe> pool = def.getWeightedRecipePool();
+        int totalWeight = 0;
+        boolean weightsDiffer = false;
+        for (WeightedRecipe wr : pool) {
+            totalWeight += wr.weight();
+            if (wr.weight() != pool.get(0).weight()) weightsDiffer = true;
+        }
+
+        int iconY = colY + colH - 20;   // bottom-aligned icon strip
+        int iconX = colX;
+        int rightEdge = colX + colW - 2;
+        for (WeightedRecipe wr : pool) {
+            String recipeId = wr.id().toString();
+            ItemStack output = RecipeOutputResolver.resolveOutput(this.minecraft.level, recipeId);
+
+            // Percentage label (only when weights differ), drawn beneath the icon.
+            String pctLabel = null;
+            if (weightsDiffer && totalWeight > 0) {
+                pctLabel = Math.round(100f * wr.weight() / totalWeight) + "%";
+            }
+            int cellW = Math.max(18, pctLabel != null ? font.width(pctLabel) + 2 : 18);
+            if (iconX + cellW > rightEdge) {
+                // Out of room: show a subtle "+N" overflow marker and stop.
+                g.drawString(font, "…", iconX, iconY + 4, 0xFF888888, false);
+                break;
+            }
+
+            if (!output.isEmpty()) {
+                g.renderItem(output, iconX, iconY);
+                if (output.getCount() > 1) {
+                    g.renderItemDecorations(font, output, iconX, iconY);
+                }
+            } else {
+                // Unresolvable recipe id: subdued placeholder box + "?".
+                g.fill(iconX, iconY, iconX + 16, iconY + 16, 0x33FFFFFF);
+                g.drawString(font, "?", iconX + 5, iconY + 4, 0xFF888888, false);
+            }
+
+            if (pctLabel != null) {
+                g.drawString(font, pctLabel, iconX, iconY + 17, 0xFFAAB0C0, false);
+            }
+            iconX += cellW;
         }
     }
 
@@ -680,7 +776,8 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
                 graphics.drawString(font, headerLabel, x + 3, rowY + 3, 0xFFCCAA00, false);
             } else {
                 ResearchDefinition def = row.definition();
-                boolean locked = !ResearchRequirements.prereqMet(menu, def);
+                boolean completed = menu.getCompletedResearch().contains(def.getIdString());
+                boolean locked = !completed && !ResearchRequirements.prereqMet(menu, def);
 
                 if (def.getId().equals(selectedId)) {
                     graphics.fill(x, rowY, x + listW, rowY + rowH, locked ? 0xFF442222 : 0xFF334488);
@@ -688,7 +785,8 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
                     graphics.fill(x, rowY, x + listW, rowY + rowH, 0xFF2A2A3A);
                 }
 
-                String prefix = locked ? "🔒 " : "";
+                // Prefix marks status: check for completed, lock for gated, none for unlockable-now.
+                String prefix = completed ? "✔ " : (locked ? "🔒 " : "");
                 String name = def.getDisplayName();
                 String label = prefix + name;
 
@@ -699,7 +797,9 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
                     label += "…";
                 }
 
-                int textColor = locked ? 0xFF666666 : (def.getTier().getColor() | 0xFF000000);
+                // Completed rows dim to a muted green; locked stay grey; unlockable use the tier color.
+                int textColor = completed ? 0xFF4C7A4C
+                        : (locked ? 0xFF666666 : (def.getTier().getColor() | 0xFF000000));
                 graphics.drawString(font, label, x + 3, rowY + 3, textColor, false);
             }
         }
@@ -799,6 +899,21 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         graphics.renderTooltip(font, tooltip, Optional.empty(), mouseX, mouseY);
     }
 
+    /** Whether the cursor is over the fluid gauge (1px margin, matching its tooltip hit-rect). */
+    private boolean isOverFluidGauge(int mouseX, int mouseY) {
+        int gx = leftPos + ResearchTableMenu.FLUID_GAUGE_X;
+        int gy = topPos + ResearchTableMenu.FLUID_GAUGE_Y;
+        int gw = ResearchTableMenu.FLUID_GAUGE_W;
+        int gh = ResearchTableMenu.FLUID_GAUGE_H;
+        return mouseX >= gx - 1 && mouseX < gx + gw + 1 && mouseY >= gy - 1 && mouseY < gy + gh + 1;
+    }
+
+    /** Whether the cursor stack is a fluid container (fillable or drainable). */
+    private boolean carriedIsFluidContainer() {
+        ItemStack carried = menu.getCarried();
+        return !carried.isEmpty() && carried.getCapability(Capabilities.FluidHandler.ITEM) != null;
+    }
+
     private void renderFluidGaugeTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
         int gx = leftPos + ResearchTableMenu.FLUID_GAUGE_X;
         int gy = topPos + ResearchTableMenu.FLUID_GAUGE_Y;
@@ -827,6 +942,8 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         }
         tooltip.add(Component.literal("Insert fluid buckets below")
                 .withStyle(s -> s.withColor(0x666666).withItalic(true)));
+        tooltip.add(Component.translatable("gui.researchcube.processing.tank.click_hint")
+                .withStyle(s -> s.withColor(0x707070).withItalic(true)));
 
         graphics.renderTooltip(font, tooltip, Optional.empty(), mouseX, mouseY);
     }
@@ -870,6 +987,18 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
         // Side-config overlay gets first crack at clicks while open.
         if (sideConfigPanel != null && sideConfigPanel.isVisible()
                 && sideConfigPanel.mouseClicked(mouseX, mouseY, button)) {
+            return true;
+        }
+
+        // Click the fluid gauge with a fluid container on the cursor to fill/drain the research
+        // tank. The server does the authoritative validation (reach, container type, tank space);
+        // the client only gates on the cursor stack exposing an item fluid-handler capability so a
+        // plain click over the gauge doesn't spam packets. The tank has a single index (0). The
+        // machine panel (and its gauge) is visible in every view, so this runs before the view
+        // switch below.
+        if (button == 0 && isOverFluidGauge((int) mouseX, (int) mouseY) && carriedIsFluidContainer()) {
+            PacketDistributor.sendToServer(
+                    new InteractTankPacket(menu.getBlockEntity().getBlockPos(), 0));
             return true;
         }
 

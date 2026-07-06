@@ -123,7 +123,7 @@ public class EmiProcessingRecipe extends BasicEmiRecipe {
         // Processing arrow
         widgets.addFillingArrow(82, 36, recipe.getDuration() * 50);
 
-        // Drive requirement below the arrow — the recipe only runs with this drive inserted
+        // Drive requirement below the arrow; the recipe only runs with this drive inserted
         widgets.addSlot(driveIngredient, 84, 56).appendTooltip(buildDriveTooltip());
 
         // Item outputs: 2x4 grid

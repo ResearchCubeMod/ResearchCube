@@ -17,7 +17,7 @@ import net.minecraft.world.item.crafting.RecipeHolder;
 import java.util.List;
 
 /**
- * EMI plugin for ResearchCube — full parity with the JEI plugin.
+ * EMI plugin for ResearchCube: full parity with the JEI plugin.
  * Loaded by EMI's annotation-based discovery; never referenced from main mod code.
  */
 @EmiEntrypoint
@@ -40,7 +40,6 @@ public class ResearchCubeEMIPlugin implements EmiPlugin {
         registry.addCategory(PROCESSING);
 
         // Workstations (catalysts)
-        registry.addWorkstation(DRIVE_CRAFTING, EmiStack.of(ModItems.RESEARCH_STATION_ITEM.get()));
         registry.addWorkstation(DRIVE_CRAFTING, EmiStack.of(ModItems.DRIVE_CRAFTING_TABLE_ITEM.get()));
         registry.addWorkstation(DRIVE_CRAFTING, EmiStack.of(ModItems.AUTO_DRIVE_CRAFTING_TABLE_ITEM.get()));
         registry.addWorkstation(PROCESSING, EmiStack.of(ModItems.PROCESSING_STATION_ITEM.get()));
@@ -70,10 +69,10 @@ public class ResearchCubeEMIPlugin implements EmiPlugin {
                         Component.literal("5. Use the filled Drive in a Drive Crafting Table with ingredients."),
                         Component.literal(""),
                         Component.literal("Fluid Tiers:"),
-                        Component.literal("  Thinking (cyan) — Basic research"),
-                        Component.literal("  Pondering (purple) — Advanced research"),
-                        Component.literal("  Reasoning (gold) — Precise/Flawless research"),
-                        Component.literal("  Imagination (pink) — Self-Aware research"),
+                        Component.literal("  Thinking (cyan): Basic research"),
+                        Component.literal("  Pondering (purple): Advanced research"),
+                        Component.literal("  Reasoning (gold): Precise/Flawless research"),
+                        Component.literal("  Imagination (pink): Self-Aware research"),
                         Component.literal(""),
                         Component.literal("Drive Capacity:"),
                         Component.literal("  Unstable: 2, Reclaimed: 4, Enhanced: 8"),

@@ -21,14 +21,14 @@ import java.util.List;
  *
  * When "pattern" + "key" are present in JSON, the recipe is shaped (position-sensitive).
  * When "ingredients" is present, the recipe is shapeless (order-independent).
- * The Drive persists after crafting — it is returned intact.
+ * The Drive persists after crafting; it is returned intact.
  */
 public class DriveCraftingRecipe implements CraftingRecipe {
 
     /**
      * The recipe ID a drive must carry for this recipe to match.
      * Usually empty in JSON ("recipe_id" is optional) and bound to the recipe's own
-     * ID after datapack load via {@link #bindId} — declaring it explicitly is only
+     * ID after datapack load via {@link #bindId}; declaring it explicitly is only
      * needed when several recipe files should share one unlock ID.
      */
     private String recipeId;
@@ -63,7 +63,7 @@ public class DriveCraftingRecipe implements CraftingRecipe {
     /**
      * Bind this recipe to its own registry ID if the JSON omitted "recipe_id".
      * Called by ResearchManager after every datapack (re)load, before recipes are
-     * synced to clients — the network codec always transmits the resolved ID.
+     * synced to clients; the network codec always transmits the resolved ID.
      */
     public void bindId(net.minecraft.resources.ResourceLocation ownId) {
         if (this.recipeId.isEmpty()) {
@@ -83,7 +83,7 @@ public class DriveCraftingRecipe implements CraftingRecipe {
     @Override
     public boolean matches(CraftingInput input, Level level) {
         if (recipeId.isEmpty()) {
-            // Not bound yet (should not happen in practice) — never match rather than
+            // Not bound yet (should not happen in practice); never match rather than
             // matching drives with unrelated content.
             return false;
         }
@@ -120,7 +120,7 @@ public class DriveCraftingRecipe implements CraftingRecipe {
 
     /**
      * Match this recipe against a grid-only {@link CraftingInput} that does NOT contain the
-     * drive — used by the Auto Drive Crafting Table, which keeps the drive in a dedicated slot
+     * drive, used by the Auto Drive Crafting Table, which keeps the drive in a dedicated slot
      * outside the grid. The caller is responsible for verifying the drive separately (via
      * {@link #getRequiredRecipeId()} + {@code NbtUtil.hasRecipe}).
      *
@@ -236,7 +236,7 @@ public class DriveCraftingRecipe implements CraftingRecipe {
     }
 
     /**
-     * The drive is NOT consumed and its NBT is NOT modified — it is returned intact
+     * The drive is NOT consumed and its NBT is NOT modified; it is returned intact
      * so the same recipe can be crafted repeatedly without losing the stored recipe_id.
      * All other items are consumed normally.
      */
@@ -248,7 +248,7 @@ public class DriveCraftingRecipe implements CraftingRecipe {
         for (int i = 0; i < input.size(); i++) {
             ItemStack stack = input.getItem(i);
             if (!driveHandled && stack.getItem() instanceof DriveItem && NbtUtil.hasRecipe(stack, recipeId)) {
-                // Return the drive unchanged — recipe_id is kept for future uses
+                // Return the drive unchanged; recipe_id is kept for future uses
                 remaining.set(i, stack.copy());
                 driveHandled = true;
             }

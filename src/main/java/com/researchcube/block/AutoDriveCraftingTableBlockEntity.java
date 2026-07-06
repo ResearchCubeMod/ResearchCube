@@ -35,7 +35,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * BlockEntity for the Auto Drive Crafting Table — an automation-friendly variant of the
+ * BlockEntity for the Auto Drive Crafting Table, an automation-friendly variant of the
  * manual {@link DriveCraftingTableBlockEntity}.
  *
  * <p>Slot layout:
@@ -58,7 +58,7 @@ public class AutoDriveCraftingTableBlockEntity extends BlockEntity implements Si
     public static final int SLOT_OUTPUT = GRID_SLOT_START + GRID_SIZE; // 10
     public static final int TOTAL_SLOTS = SLOT_OUTPUT + 1; // 11
 
-    /** Minimum ticks between crafts — throttles automation to a sane rate. */
+    /** Minimum ticks between crafts; throttles automation to a sane rate. */
     private static final int CRAFT_COOLDOWN = 8;
 
     /**
@@ -93,7 +93,7 @@ public class AutoDriveCraftingTableBlockEntity extends BlockEntity implements Si
 
     /**
      * Set whenever inputs change (grid or drive slot) so the next server tick re-scans for a
-     * matching recipe. A plain server-side flag — never saved.
+     * matching recipe. A plain server-side flag, never saved.
      */
     private boolean recheckNeeded = true;
 
@@ -101,7 +101,7 @@ public class AutoDriveCraftingTableBlockEntity extends BlockEntity implements Si
      * Ticks remaining before the next craft is allowed; counts down each server tick and gates
      * {@link #CRAFT_COOLDOWN}. A plain countdown (rather than an absolute game-time stamp) is
      * immune to {@code getGameTime()} overflow arithmetic and behaves correctly across world
-     * reloads without needing to be persisted — it simply starts at 0 (ready) on load.
+     * reloads without needing to be persisted; it simply starts at 0 (ready) on load.
      */
     private int cooldownRemaining = 0;
 
@@ -159,7 +159,7 @@ public class AutoDriveCraftingTableBlockEntity extends BlockEntity implements Si
     @Override
     public ItemChannelSpec getItemChannelSpec() {
         // Pipe insertion is locked to the current drive's recipe layout (see canPipeInsert) so
-        // hoppers can only fill cells the recipe actually uses — preventing junk from jamming a
+        // hoppers can only fill cells the recipe actually uses, preventing junk from jamming a
         // shaped pattern or an empty machine with no bound drive.
         return new ItemChannelSpec(
                 CHANNEL_ITEMS,
@@ -175,11 +175,11 @@ public class AutoDriveCraftingTableBlockEntity extends BlockEntity implements Si
      *
      * <p>Rules, in order:
      * <ol>
-     *   <li>Topping up an existing matching stack is always allowed — that stack could only have
+     *   <li>Topping up an existing matching stack is always allowed; that stack could only have
      *       been placed by a valid recipe layout, so refilling it keeps automation flowing.</li>
      *   <li>Otherwise a drive with at least one bound, unlocked recipe must be present; with no
      *       (or only unbound) drive, all fresh insertion is rejected so junk cannot accumulate.</li>
-     *   <li>The item must be accepted at this position by at least one unlocked recipe — for a
+     *   <li>The item must be accepted at this position by at least one unlocked recipe; for a
      *       shaped recipe, some valid pattern placement (offset slide + mirror, matching
      *       {@code matchesGridOnly}) must map this cell to an ingredient that accepts the item;
      *       for a shapeless recipe, the item must satisfy some ingredient not already covered by
@@ -211,7 +211,7 @@ public class AutoDriveCraftingTableBlockEntity extends BlockEntity implements Si
         for (RecipeHolder<DriveCraftingRecipe> holder : recipeManager.getAllRecipesFor(ModRecipeTypes.DRIVE_CRAFTING.get())) {
             DriveCraftingRecipe recipe = holder.value();
             String requiredId = recipe.getRequiredRecipeId();
-            if (requiredId.isEmpty()) continue; // unbound — never governs a layout
+            if (requiredId.isEmpty()) continue; // unbound, never governs a layout
             if (!NbtUtil.hasRecipe(driveStack, requiredId)) continue;
 
             if (recipe.isShaped()) {
@@ -313,7 +313,7 @@ public class AutoDriveCraftingTableBlockEntity extends BlockEntity implements Si
         for (RecipeHolder<DriveCraftingRecipe> holder : recipeManager.getAllRecipesFor(ModRecipeTypes.DRIVE_CRAFTING.get())) {
             DriveCraftingRecipe recipe = holder.value();
             String requiredId = recipe.getRequiredRecipeId();
-            if (requiredId.isEmpty()) continue; // unbound — never match
+            if (requiredId.isEmpty()) continue; // unbound, never match
             if (!NbtUtil.hasRecipe(driveStack, requiredId)) continue;
             if (recipe.matchesGridOnly(gridInput)) {
                 return holder;
@@ -384,7 +384,7 @@ public class AutoDriveCraftingTableBlockEntity extends BlockEntity implements Si
             if (gridStack.isEmpty()) {
                 inventory.setStackInSlot(slot, remainder.isEmpty() ? ItemStack.EMPTY : remainder.copy());
             } else if (!remainder.isEmpty()) {
-                // Slot still holds items but the ingredient left a remainder — drop it into the
+                // Slot still holds items but the ingredient left a remainder; drop it into the
                 // world so it isn't silently lost (rare; only container items in a stacked slot).
                 Containers.dropItemStack(level, worldPosition.getX(), worldPosition.getY() + 1,
                         worldPosition.getZ(), remainder.copy());

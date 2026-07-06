@@ -151,7 +151,7 @@ public final class ScreenRenderHelper {
 
     /**
      * Blit a sprite with explicit UVs and a color tint (for clipped partial fluid tiles).
-     * Mirrors vanilla {@code GuiGraphics.innerBlit} — the color-tinted sprite blit only takes a
+     * Mirrors vanilla {@code GuiGraphics.innerBlit}; the color-tinted sprite blit only takes a
      * whole sprite, so we go one level lower to sub-sample the V range.
      */
     private static void blitSubSprite(GuiGraphics g, TextureAtlasSprite sprite,

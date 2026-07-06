@@ -55,7 +55,7 @@ import java.util.Set;
  * Slot layout:
  *   0-15: Item inputs (16 slots)
  *   16-23: Item outputs (8 slots)
- *   24: Drive (research unlock carrier — recipes only start when the inserted
+ *   24: Drive (research unlock carrier; recipes only start when the inserted
  *       drive carries the recipe's required recipe_id; never consumed)
  *
  * Fluid tanks:
@@ -63,7 +63,7 @@ import java.util.Set;
  *   fluidInput2: Second fluid input tank (8000 mB)
  *   fluidOutput: Fluid output tank (8000 mB)
  */
-public class ProcessingStationBlockEntity extends BlockEntity implements SideConfigurable {
+public class ProcessingStationBlockEntity extends BlockEntity implements SideConfigurable, TankInteractable {
 
     public static final int INPUT_SLOT_START = 0;
     public static final int INPUT_SLOT_COUNT = 16;
@@ -88,15 +88,25 @@ public class ProcessingStationBlockEntity extends BlockEntity implements SideCon
     public static final String CHANNEL_FLUID_IN_2 = "fluid_input_2";
     public static final String CHANNEL_FLUID_OUT = "fluid_output";
 
+    /**
+     * Group id shared by the three fluid channels so the side-config UI presents them as a
+     * single "Fluid" tab whose per-side cell cycles None / Input 1 / Input 2 / Output. Only a
+     * presentation concern: each tank keeps its own channel, per-side mode and handler.
+     */
+    public static final String GROUP_FLUID = "fluid";
+
     private static final List<IOChannel> IO_CHANNELS = List.of(
             new IOChannel(CHANNEL_ITEMS, "gui.researchcube.channel.items", IOChannel.Type.ITEM,
                     EnumSet.of(IOMode.NONE, IOMode.INPUT, IOMode.OUTPUT, IOMode.BOTH), IOMode.BOTH),
             new IOChannel(CHANNEL_FLUID_IN_1, "gui.researchcube.channel.fluid_input_1", IOChannel.Type.FLUID,
-                    EnumSet.of(IOMode.NONE, IOMode.INPUT, IOMode.OUTPUT, IOMode.BOTH), IOMode.INPUT),
+                    EnumSet.of(IOMode.NONE, IOMode.INPUT, IOMode.OUTPUT, IOMode.BOTH), IOMode.INPUT,
+                    GROUP_FLUID, "gui.researchcube.channel.fluid"),
             new IOChannel(CHANNEL_FLUID_IN_2, "gui.researchcube.channel.fluid_input_2", IOChannel.Type.FLUID,
-                    EnumSet.of(IOMode.NONE, IOMode.INPUT, IOMode.OUTPUT, IOMode.BOTH), IOMode.INPUT),
+                    EnumSet.of(IOMode.NONE, IOMode.INPUT, IOMode.OUTPUT, IOMode.BOTH), IOMode.INPUT,
+                    GROUP_FLUID, "gui.researchcube.channel.fluid"),
             new IOChannel(CHANNEL_FLUID_OUT, "gui.researchcube.channel.fluid_output", IOChannel.Type.FLUID,
-                    EnumSet.of(IOMode.NONE, IOMode.OUTPUT), IOMode.OUTPUT)
+                    EnumSet.of(IOMode.NONE, IOMode.OUTPUT), IOMode.OUTPUT,
+                    GROUP_FLUID, "gui.researchcube.channel.fluid")
     );
 
     /** Externally insertable item slots: the 16 input slots. */
@@ -121,7 +131,7 @@ public class ProcessingStationBlockEntity extends BlockEntity implements SideCon
 
     /**
      * Set whenever inputs change (item slots, drive slot, or fluid tanks) so the next server
-     * tick re-scans for a matching recipe while idle. A plain server-side flag — never saved.
+     * tick re-scans for a matching recipe while idle. A plain server-side flag, never saved.
      */
     private boolean recheckNeeded = true;
 
@@ -193,6 +203,26 @@ public class ProcessingStationBlockEntity extends BlockEntity implements SideCon
         return fluidOutput;
     }
 
+    // ── Tank Interaction (click-to-fill/drain) ──
+
+    /**
+     * Map a screen gauge index to its backing tank for click-to-fill/drain.
+     * 0 = fluid input 1, 1 = fluid input 2, 2 = fluid output; any other index is invalid.
+     */
+    @Override
+    @Nullable
+    public FluidTank getInteractableTank(int index) {
+        return switch (index) {
+            case 0 -> fluidInput1;
+            case 1 -> fluidInput2;
+            case 2 -> fluidOutput;
+            default -> null;
+        };
+    }
+
+    // onTankInteracted uses the default no-op: RecheckFluidTank already flags a recheck and
+    // marks the block entity dirty on every content change, so a fill/drain re-scans on its own.
+
     // ── Side IO Configuration ──
 
     @Override
@@ -242,7 +272,7 @@ public class ProcessingStationBlockEntity extends BlockEntity implements SideCon
     /**
      * Flag that inputs may have changed so the next server tick re-scans for a matching recipe.
      * Exposed for callers that mutate the backing inventory in a way that bypasses
-     * {@link ItemStackHandler#onContentsChanged} — notably a menu's in-place shift-click merge,
+     * {@link ItemStackHandler#onContentsChanged}, notably a menu's in-place shift-click merge,
      * which shrinks/grows the backing stack directly and only fires {@code Slot.setChanged()}
      * (a no-op for {@link net.neoforged.neoforge.items.SlotItemHandler}).
      */
@@ -296,7 +326,7 @@ public class ProcessingStationBlockEntity extends BlockEntity implements SideCon
     private boolean hasUnlockedDrive(ProcessingRecipe recipe) {
         String requiredId = recipe.getRequiredRecipeId();
         if (requiredId.isEmpty()) {
-            return false; // not bound yet — never match
+            return false; // not bound yet, never match
         }
         ItemStack driveStack = inventory.getStackInSlot(SLOT_DRIVE);
         return !driveStack.isEmpty()
@@ -306,14 +336,14 @@ public class ProcessingStationBlockEntity extends BlockEntity implements SideCon
 
     private boolean matchesRecipe(ProcessingRecipe recipe) {
         // Research lock: the inserted drive must carry this recipe's ID.
-        // Checked at start only — the drive is never consumed, and pulling it
+        // Checked at start only: the drive is never consumed, and pulling it
         // mid-process does not abort a running job.
         if (!hasUnlockedDrive(recipe)) {
             return false;
         }
 
         // Check item inputs (shapeless, count-based first-fit). Track remaining counts per
-        // slot so several ingredients can draw from the same stack — e.g. a recipe needing
+        // slot so several ingredients can draw from the same stack, e.g. a recipe needing
         // 2x iron matches a single slot holding a stack of 2+ iron ingots.
         List<Ingredient> ingredients = recipe.getIngredients();
         int[] remaining = new int[INPUT_SLOT_COUNT];
@@ -336,7 +366,7 @@ public class ProcessingStationBlockEntity extends BlockEntity implements SideCon
             if (!found) return false;
         }
 
-        // Check fluid inputs (order-tolerant — see matchFluidAssignment). A null assignment
+        // Check fluid inputs (order-tolerant; see matchFluidAssignment). A null assignment
         // means the recipe's fluids can't be satisfied by the current tanks in either order.
         if (matchFluidAssignment(recipe) == null) {
             return false;
@@ -452,7 +482,7 @@ public class ProcessingStationBlockEntity extends BlockEntity implements SideCon
     /**
      * Try to start processing with the current recipe.
      *
-     * @param quiet when true (automatic scans), failures are silent — no warn log — so idle
+     * @param quiet when true (automatic scans), failures are silent (no warn log) so idle
      *              machines re-scanning every content change do not spam the log.
      * @return true if processing started
      */
@@ -513,7 +543,7 @@ public class ProcessingStationBlockEntity extends BlockEntity implements SideCon
         }
 
         // Consume fluid inputs from the SAME tanks that matched. Recompute the assignment from
-        // the current tank state (still the matched state — no fluid has been drained yet); it
+        // the current tank state (still the matched state; no fluid has been drained yet); it
         // must resolve because consumeInputs only runs after findMatchingRecipe() matched. If it
         // somehow doesn't (e.g. tanks changed between the match and here), skip fluid draining
         // rather than drain the wrong tanks.
@@ -532,7 +562,7 @@ public class ProcessingStationBlockEntity extends BlockEntity implements SideCon
         if (!be.isProcessing()) {
             // Auto-scan: attempt to start a matching recipe when a content change flagged a
             // recheck, or periodically as a fallback for changes that bypass the flag (e.g.
-            // externally edited drive NBT). Attempts are quiet — no warn logs, no failure sfx.
+            // externally edited drive NBT). Attempts are quiet: no warn logs, no failure sfx.
             boolean fallbackDue = level.getGameTime() % FALLBACK_POLL_INTERVAL == 0;
             if (be.recheckNeeded || fallbackDue) {
                 be.recheckNeeded = false;
@@ -575,7 +605,7 @@ public class ProcessingStationBlockEntity extends BlockEntity implements SideCon
             return;
         }
 
-        // Produce item outputs. Re-validate every target slot at completion — canFitOutputs
+        // Produce item outputs. Re-validate every target slot at completion; canFitOutputs
         // only checked at start, and a /reload can swap the recipe mid-run. Without this recheck
         // a blind grow() could transmute a different item now sitting in the slot, or overflow
         // past maxStackSize. For each output: empty slot → drop a copy in; same item+components
@@ -585,7 +615,7 @@ public class ProcessingStationBlockEntity extends BlockEntity implements SideCon
         int outputSlotIndex = 0;
         for (ItemStack output : outputs) {
             if (outputSlotIndex >= OUTPUT_SLOT_COUNT) {
-                // No slot left for this output — drop it so it is neither voided nor lost.
+                // No slot left for this output: drop it so it is neither voided nor lost.
                 Containers.dropItemStack(level, worldPosition.getX(), worldPosition.getY(),
                         worldPosition.getZ(), output.copy());
                 outputSlotIndex++;
@@ -612,7 +642,7 @@ public class ProcessingStationBlockEntity extends BlockEntity implements SideCon
         // Produce fluid output. fill() already enforces tank capacity, and it no-ops when the
         // incoming fluid does not match a non-empty tank's current fluid (FluidTank.fill returns
         // 0 for a mismatched fluid). So a recipe swapped mid-run to a different output fluid is
-        // never silently voided into the tank — it just fails to fill. Guard it explicitly and
+        // never silently voided into the tank; it just fails to fill. Guard it explicitly and
         // warn so the mismatch is diagnosable rather than a silent no-op.
         if (recipe.hasFluidOutput()) {
             FluidStack fluidOut = recipe.getFluidOutput().toFluidStack();
@@ -698,7 +728,7 @@ public class ProcessingStationBlockEntity extends BlockEntity implements SideCon
         startTime = tag.getLong("StartTime");
         recipeDuration = tag.getInt("RecipeDuration");
 
-        // Side IO. (Old worlds may still carry an "AutoMode" tag from a removed feature —
+        // Side IO. (Old worlds may still carry an "AutoMode" tag from a removed feature,
         // it is simply ignored.)
         if (tag.contains("SideConfig")) {
             sideConfig.load(tag.getCompound("SideConfig"));

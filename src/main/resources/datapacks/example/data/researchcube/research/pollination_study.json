@@ -1,0 +1,32 @@
+{
+  "name": "Pollination Study",
+  "description": "Understand how flowers reproduce. Demonstrates an OR prerequisite: either Grafting Techniques OR Hydroponics unlocks it.",
+  "flavor_text": "The bees knew first. You are only catching up.",
+  "category": "botany",
+  "tier": "BASIC",
+  "duration": 2400,
+  "prerequisites": {
+    "type": "OR",
+    "values": [
+      "researchcube:grafting_techniques",
+      "researchcube:hydroponics"
+    ]
+  },
+  "item_costs": [
+    {
+      "item": "minecraft:honeycomb",
+      "count": 4
+    },
+    {
+      "item": "minecraft:dandelion",
+      "count": 6
+    }
+  ],
+  "fluid_cost": {
+    "fluid": "researchcube:pondering_fluid",
+    "amount": 1000
+  },
+  "recipe_pool": [
+    "researchcube:pollen_synthesis"
+  ]
+}

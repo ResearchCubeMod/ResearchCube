@@ -67,11 +67,11 @@ public enum ProcessingStationProvider implements IBlockComponentProvider, IServe
             tooltip.add(Component.literal("Idle").withStyle(ChatFormatting.GRAY));
         }
 
-        // Drive presence — processing recipes are research-locked behind the inserted drive
+        // Drive presence: processing recipes are research-locked behind the inserted drive
         if (data.getBoolean("hasDrive")) {
             tooltip.add(Component.literal("Drive inserted").withStyle(ChatFormatting.AQUA));
         } else {
-            tooltip.add(Component.literal("No drive — recipes locked").withStyle(ChatFormatting.RED));
+            tooltip.add(Component.literal("No drive: recipes locked").withStyle(ChatFormatting.RED));
         }
 
         int tankCapacity = ProcessingStationBlockEntity.TANK_CAPACITY;

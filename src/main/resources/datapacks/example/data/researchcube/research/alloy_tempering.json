@@ -1,6 +1,6 @@
 {
   "name": "Alloy Tempering",
-  "description": "Stretch metal further than any smith could. Discounted chains (crafted) or cast anvils — the anvil is a processing recipe demonstrating TWO fluid inputs at once (lava + pondering fluid).",
+  "description": "Stretch metal further than any smith could. Discounted chains (crafted) or cast anvils: the anvil is a processing recipe demonstrating TWO fluid inputs at once (lava + pondering fluid).",
   "flavor_text": "Bend it until it agrees with you.",
   "category": "engineering",
   "tier": "ADVANCED",

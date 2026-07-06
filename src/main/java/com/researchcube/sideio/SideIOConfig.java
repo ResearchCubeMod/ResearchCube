@@ -88,7 +88,7 @@ public class SideIOConfig {
         for (String channelId : tag.getAllKeys()) {
             Map<RelativeSide, IOMode> perSide = modes.get(channelId);
             IOChannel channel = channelsById.get(channelId);
-            if (perSide == null || channel == null) continue; // unknown channel — ignore
+            if (perSide == null || channel == null) continue; // unknown channel, ignore
 
             byte[] sideModes = tag.getByteArray(channelId);
             RelativeSide[] sides = RelativeSide.values();

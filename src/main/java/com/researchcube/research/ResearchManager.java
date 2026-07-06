@@ -44,7 +44,7 @@ import java.util.Set;
  *   data/researchcube/research/advanced_processor.json → "researchcube:advanced_processor"
  *
  * Any datapack (the built-in example pack, world datapacks, other mods) can add,
- * override or — via pack ordering — replace research files. Files whose name starts
+ * override or (via pack ordering) replace research files. Files whose name starts
  * with '_' are ignored (convention for shared metadata/comments), and NeoForge
  * "neoforge:conditions" are honored so packs can make entries conditional on loaded mods.
  *
@@ -100,7 +100,7 @@ public class ResearchManager extends SimpleJsonResourceReloadListener {
                 // NeoForge conditions: skip entries whose conditions are not met
                 if (!ICondition.conditionsMatched(ops, json)) {
                     skippedByCondition++;
-                    ResearchCubeMod.LOGGER.debug("Research '{}' skipped — conditions not met.", id);
+                    ResearchCubeMod.LOGGER.debug("Research '{}' skipped: conditions not met.", id);
                     continue;
                 }
                 loaded.put(id, parseDefinition(id, json, ops));
@@ -189,7 +189,7 @@ public class ResearchManager extends SimpleJsonResourceReloadListener {
             }
         }
 
-        // Recipe pool (optional but expected) — supports weighted entries
+        // Recipe pool (optional but expected); supports weighted entries
         List<WeightedRecipe> weightedRecipePool = new ArrayList<>();
         if (json.has("recipe_pool")) {
             JsonArray poolArray = json.getAsJsonArray("recipe_pool");
@@ -314,7 +314,7 @@ public class ResearchManager extends SimpleJsonResourceReloadListener {
 
     /**
      * Validate cross-references between research definitions, recipes and registries.
-     * Only logs warnings — a broken reference never prevents the rest from loading.
+     * Only logs warnings; a broken reference never prevents the rest from loading.
      * Returns the number of warnings emitted.
      */
     private int validate(Map<ResourceLocation, ResearchDefinition> definitions,
@@ -333,7 +333,7 @@ public class ResearchManager extends SimpleJsonResourceReloadListener {
                     ResearchCubeMod.LOGGER.warn("[ResearchCube] Research '{}': prerequisite '{}' is not a valid ID.", def.getId(), ref);
                     warnings++;
                 } else if (!definitions.containsKey(refId)) {
-                    ResearchCubeMod.LOGGER.warn("[ResearchCube] Research '{}': prerequisite '{}' does not exist — this research can never be started.", def.getId(), ref);
+                    ResearchCubeMod.LOGGER.warn("[ResearchCube] Research '{}': prerequisite '{}' does not exist; this research can never be started.", def.getId(), ref);
                     warnings++;
                 }
             }
@@ -361,18 +361,18 @@ public class ResearchManager extends SimpleJsonResourceReloadListener {
                         warnings++;
                     } else if (holder.get().value() instanceof DriveCraftingRecipe && !driveRecipeIds.contains(wr.id().toString())) {
                         // The drive would be imprinted with an ID no drive_crafting recipe answers to
-                        ResearchCubeMod.LOGGER.warn("[ResearchCube] Research '{}': recipe_pool entry '{}' is a drive_crafting recipe, but no drive_crafting recipe uses that recipe_id — the imprinted drive would be useless. Remove the explicit \"recipe_id\" from the recipe file or make it match.", def.getId(), wr.id());
+                        ResearchCubeMod.LOGGER.warn("[ResearchCube] Research '{}': recipe_pool entry '{}' is a drive_crafting recipe, but no drive_crafting recipe uses that recipe_id; the imprinted drive would be useless. Remove the explicit \"recipe_id\" from the recipe file or make it match.", def.getId(), wr.id());
                         warnings++;
                     } else if (holder.get().value() instanceof ProcessingRecipe && !processingRecipeIds.contains(wr.id().toString())) {
                         // Same dead-unlock check for processing recipes
-                        ResearchCubeMod.LOGGER.warn("[ResearchCube] Research '{}': recipe_pool entry '{}' is a processing recipe, but no processing recipe uses that recipe_id — the imprinted drive would be useless. Remove the explicit \"recipe_id\" from the recipe file or make it match.", def.getId(), wr.id());
+                        ResearchCubeMod.LOGGER.warn("[ResearchCube] Research '{}': recipe_pool entry '{}' is a processing recipe, but no processing recipe uses that recipe_id; the imprinted drive would be useless. Remove the explicit \"recipe_id\" from the recipe file or make it match.", def.getId(), wr.id());
                         warnings++;
                     }
                 }
             }
 
             if (!def.hasRecipePool()) {
-                ResearchCubeMod.LOGGER.warn("[ResearchCube] Research '{}' has an empty recipe_pool — completing it will imprint nothing.", def.getId());
+                ResearchCubeMod.LOGGER.warn("[ResearchCube] Research '{}' has an empty recipe_pool; completing it will imprint nothing.", def.getId());
                 warnings++;
             }
         }
@@ -422,7 +422,7 @@ public class ResearchManager extends SimpleJsonResourceReloadListener {
                         int cycleStart = path.indexOf(next);
                         List<ResourceLocation> cycle = new ArrayList<>(path.subList(Math.max(cycleStart, 0), path.size()));
                         cycle.add(next);
-                        ResearchCubeMod.LOGGER.warn("[ResearchCube] Prerequisite cycle detected — these research entries can never be started: {}", cycle);
+                        ResearchCubeMod.LOGGER.warn("[ResearchCube] Prerequisite cycle detected; these research entries can never be started: {}", cycle);
                         warnings++;
                     } else if (nextState == WHITE) {
                         state.put(next, GRAY);

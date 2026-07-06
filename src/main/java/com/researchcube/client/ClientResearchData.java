@@ -6,7 +6,7 @@ import java.util.Set;
  * Client-side cache for the player's completed research and active research HUD data.
  * Populated from network packets and menu buffers; read by JEI/EMI tooltips and the HUD overlay.
  *
- * All access is on the Minecraft render/main thread — no synchronization needed.
+ * All access is on the Minecraft render/main thread; no synchronization needed.
  */
 public final class ClientResearchData {
 

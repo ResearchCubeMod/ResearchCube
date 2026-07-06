@@ -1,6 +1,6 @@
 {
   "name": "Glassblowing",
-  "description": "Melt sand into glass without a furnace. Demonstrates a processing recipe inside a research pool: like drive crafting, processing recipes only run once the imprinted drive is inserted into the Processing Station. Early-tier machine recipes use vanilla fluids — this one melts with plain lava.",
+  "description": "Melt sand into glass without a furnace. Demonstrates a processing recipe inside a research pool: like drive crafting, processing recipes only run once the imprinted drive is inserted into the Processing Station. Early-tier machine recipes use vanilla fluids: this one melts with plain lava.",
   "flavor_text": "Sand remembers being liquid. Remind it.",
   "category": "foundations",
   "tier": "UNSTABLE",

@@ -78,7 +78,7 @@ import java.util.Set;
  *   StartTime: game tick when research started
  *   Inventory: item handler contents
  */
-public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEntity, SideConfigurable {
+public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEntity, SideConfigurable, TankInteractable {
 
     public static final int SLOT_DRIVE = 0;
     public static final int SLOT_CUBE = 1;
@@ -352,7 +352,7 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
             }
         }
 
-        // All checks passed — snapshot costs for potential refund, then consume
+        // All checks passed: snapshot costs for potential refund, then consume
         this.consumedCosts = definition.getItemCosts();
         this.consumedFluidCost = fluidCost;
         consumeItemCosts(definition.getItemCosts());
@@ -363,7 +363,7 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
             fluidTank.drain(toDrain, IFluidHandler.FluidAction.EXECUTE);
         }
 
-        // Consume idea chip (not refunded on cancel — it is the entry price)
+        // Consume idea chip (not refunded on cancel; it is the entry price)
         if (definition.getIdeaChip().isPresent()) {
             inventory.getStackInSlot(SLOT_IDEA_CHIP).shrink(1);
         }
@@ -399,7 +399,7 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
 
         ResearchDefinition definition = ResearchRegistry.get(be.activeResearchId);
         if (definition == null) {
-            // Definition was removed (datapack reload?) — cancel research
+            // Definition was removed (datapack reload?); cancel research
             ResearchCubeMod.LOGGER.warn("Active research '{}' no longer exists, cancelling.", be.activeResearchId);
             be.clearResearchAndNotify(level);
             return;
@@ -433,7 +433,7 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
 
         ItemStack driveStack = inventory.getStackInSlot(SLOT_DRIVE);
         if (driveStack.isEmpty() || !(driveStack.getItem() instanceof DriveItem drive)) {
-            ResearchCubeMod.LOGGER.error("Cannot complete research — drive missing!");
+            ResearchCubeMod.LOGGER.error("Cannot complete research: drive missing!");
             clearResearch();
             return;
         }
@@ -632,7 +632,7 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
     /**
      * Cancel active research and refund item costs back into cost slots.
      * Called from CancelResearchPacket handler.
-     * Note: the idea chip is NOT refunded — it was consumed as the entry price.
+     * Note: the idea chip is NOT refunded; it was consumed as the entry price.
      */
     public void cancelResearchWithRefund() {
         if (!isResearching()) return;
@@ -652,7 +652,7 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
                     BlockPos pos = getBlockPos();
                     Containers.dropItemStack(level, pos.getX(), pos.getY(), pos.getZ(), refundStack);
                 } else if (!refundStack.isEmpty()) {
-                    ResearchCubeMod.LOGGER.warn("Could not fully refund {} x{} during cancel — {} lost (no level)",
+                    ResearchCubeMod.LOGGER.warn("Could not fully refund {} x{} during cancel: {} lost (no level)",
                             cost.itemId(), cost.count(), refundStack.getCount());
                 }
             }
@@ -663,7 +663,7 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
             FluidStack refund = new FluidStack(consumedFluidCost.getFluid(), consumedFluidCost.amount());
             int refunded = fluidTank.fill(refund, IFluidHandler.FluidAction.EXECUTE);
             if (refunded < consumedFluidCost.amount()) {
-                ResearchCubeMod.LOGGER.warn("Could not fully refund fluid {} — {} mB lost",
+                ResearchCubeMod.LOGGER.warn("Could not fully refund fluid {}: {} mB lost",
                         consumedFluidCost.fluidId(), consumedFluidCost.amount() - refunded);
             }
         }
@@ -726,6 +726,23 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
     @Override
     public List<FluidChannelSpec> getFluidChannelSpecs() {
         return List.of(new FluidChannelSpec(CHANNEL_FLUID, fluidTank));
+    }
+
+    // ── Tank interaction (click-to-fill/drain from the screen gauge) ──
+
+    /**
+     * Map a screen gauge index to its backing tank for click-to-fill/drain.
+     * The Research Table has a single research fluid tank, so only index 0 is valid.
+     */
+    @Override
+    @Nullable
+    public FluidTank getInteractableTank(int index) {
+        return index == 0 ? fluidTank : null;
+    }
+
+    @Override
+    public void onTankInteracted() {
+        setChanged();
     }
 
     // ── NBT Persistence ──

@@ -3,13 +3,17 @@ package com.researchcube.client.screen;
 import com.researchcube.ResearchCubeMod;
 import com.researchcube.block.ProcessingStationBlockEntity;
 import com.researchcube.menu.ProcessingStationMenu;
+import com.researchcube.network.InteractTankPacket;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -67,6 +71,11 @@ public class ProcessingStationScreen extends AbstractContainerScreen<ProcessingS
 
     // Status text baseline
     private static final int STATUS_Y = 107;
+    // Max width the status text may occupy: the control column between the input and output
+    // grids (roughly x=108..176). Anything wider is wrapped to two lines (or trimmed) so a long
+    // datapack-translated string can never bleed onto the slot grids.
+    private static final int STATUS_MAX_W = 66;
+    private static final int STATUS_LINE_H = 9;
 
     // AMOLED palette baked into the background texture (verified by sampling the PNG).
     // Panel background fills the space behind the slots; the baked slot frames use a dark
@@ -77,7 +86,7 @@ public class ProcessingStationScreen extends AbstractContainerScreen<ProcessingS
     private static final int SLOT_BEVEL_LIGHT = 0xFF373737;  // baked slot bottom/right
 
     // The old drive-slot frame is still baked into the texture at pixel rect (179,79)-(196,96)
-    // (18x18) — left over from when the drive slot lived at (180,80). The slot moved to
+    // (18x18), left over from when the drive slot lived at (180,80). The slot moved to
     // (DRIVE_SLOT_X, DRIVE_SLOT_Y), so we paint over this dead frame with the panel bg below.
     private static final int GHOST_SLOT_X = 179;
     private static final int GHOST_SLOT_Y = 79;
@@ -197,17 +206,33 @@ public class ProcessingStationScreen extends AbstractContainerScreen<ProcessingS
         // Processing status under the progress bar / drive slot
         if (menu.isProcessing()) {
             int percent = (int) (menu.getProgress() * 100);
-            String status = "Processing " + percent + "%";
-            g.drawString(font, status, CONTROL_CENTER_X - font.width(status) / 2, STATUS_Y, 0xFF4ADE80, false);
+            drawStatusText(g, Component.literal("Processing " + percent + "%"), 0xFF4ADE80);
         } else if (menu.getBlockEntity().getInventory()
                 .getStackInSlot(ProcessingStationBlockEntity.SLOT_DRIVE).isEmpty()) {
             // Idle without a drive: recipes are research-locked, so hint at the requirement
-            String status = Component.translatable("gui.researchcube.processing.insert_drive").getString();
-            g.drawString(font, status, CONTROL_CENTER_X - font.width(status) / 2, STATUS_Y, 0xFFCCAA00, false);
+            drawStatusText(g, Component.translatable("gui.researchcube.processing.insert_drive"), 0xFFCCAA00);
         } else {
             // Idle with a drive: the machine auto-starts on valid inputs, so prompt for them.
-            String status = Component.translatable("gui.researchcube.processing.insert_inputs").getString();
-            g.drawString(font, status, CONTROL_CENTER_X - font.width(status) / 2, STATUS_Y, 0xFFB0B0B0, false);
+            drawStatusText(g, Component.translatable("gui.researchcube.processing.insert_inputs"), 0xFFB0B0B0);
+        }
+    }
+
+    /**
+     * Draw a status line centered on the control column. If it fits within
+     * {@link #STATUS_MAX_W} it renders as one centered line; otherwise it wraps to (up to) two
+     * centered lines via {@code font.split}. A third overflow line, if any, is dropped so the
+     * text can never grow into the slot grids below, so long datapack translations stay contained.
+     */
+    private void drawStatusText(GuiGraphics g, Component status, int color) {
+        List<net.minecraft.util.FormattedCharSequence> lines = font.split(status, STATUS_MAX_W);
+        // Vertically center the (1 or 2) drawn lines on STATUS_Y so a two-line status still sits
+        // in the same band as a one-line one.
+        int drawn = Math.min(lines.size(), 2);
+        int startY = STATUS_Y - (drawn - 1) * STATUS_LINE_H / 2;
+        for (int i = 0; i < drawn; i++) {
+            net.minecraft.util.FormattedCharSequence line = lines.get(i);
+            int lineX = CONTROL_CENTER_X - font.width(line) / 2;
+            g.drawString(font, line, lineX, startY + i * STATUS_LINE_H, color, false);
         }
     }
 
@@ -232,7 +257,37 @@ public class ProcessingStationScreen extends AbstractContainerScreen<ProcessingS
                 && sideConfigPanel.mouseClicked(mouseX, mouseY, button)) {
             return true;
         }
+
+        // Click a fluid gauge with a fluid container on the cursor to fill/drain the tank.
+        // The server does the authoritative validation (reach, container type, tank space); the
+        // client only gates on the cursor stack exposing an item fluid-handler capability so a
+        // plain click-drag over a gauge doesn't spam packets. Empty and filled buckets both
+        // expose it, covering fill and drain. The tank index matches the BE gauge mapping
+        // (0/1 = fluid inputs, 2 = fluid output).
+        if (button == 0) {
+            int tankIndex = tankIndexAt((int) mouseX, (int) mouseY);
+            if (tankIndex >= 0 && carriedIsFluidContainer()) {
+                PacketDistributor.sendToServer(
+                        new InteractTankPacket(menu.getBlockEntity().getBlockPos(), tankIndex));
+                return true;
+            }
+        }
+
         return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    /** Tank gauge index under the cursor (0/1 = inputs, 2 = output), or -1 if none. */
+    private int tankIndexAt(int mouseX, int mouseY) {
+        if (isInTank(mouseX, mouseY, TANK_IN1_X)) return 0;
+        if (isInTank(mouseX, mouseY, TANK_IN2_X)) return 1;
+        if (isInTank(mouseX, mouseY, TANK_OUT_X)) return 2;
+        return -1;
+    }
+
+    /** Whether the cursor stack is a fluid container (fillable or drainable). */
+    private boolean carriedIsFluidContainer() {
+        ItemStack carried = menu.getCarried();
+        return !carried.isEmpty() && carried.getCapability(Capabilities.FluidHandler.ITEM) != null;
     }
 
     private void renderProgressTooltip(GuiGraphics g, int mouseX, int mouseY) {
@@ -265,7 +320,7 @@ public class ProcessingStationScreen extends AbstractContainerScreen<ProcessingS
 
     private void renderFluidTooltips(GuiGraphics g, int mouseX, int mouseY) {
         // Read the synced client-side tank contents (kept live by SyncTankPacket) so the tooltip
-        // matches the gauge — including fluid piped in by external mods.
+        // matches the gauge, including fluid piped in by external mods.
         if (isInTank(mouseX, mouseY, TANK_IN1_X)) {
             renderFluidTooltip(g, "gui.researchcube.processing.tank.input1", menu.getFluidInput1Stack(), mouseX, mouseY);
             return;
@@ -293,19 +348,23 @@ public class ProcessingStationScreen extends AbstractContainerScreen<ProcessingS
         String capacityStr = String.format("%,d", capacity);
 
         if (stack.isEmpty()) {
-            // "Empty — 0 / 8,000 mB"
+            // "Empty: 0 / 8,000 mB"
             lines.add(Component.translatable("gui.researchcube.processing.tank.contents",
                             Component.translatable("gui.researchcube.processing.tank.empty"),
                             "0", capacityStr)
                     .withStyle(s -> s.withColor(0xAAAAAA)));
         } else {
-            // "Water — 3,000 / 8,000 mB", tinted toward the fluid's own color.
+            // "Water: 3,000 / 8,000 mB", tinted toward the fluid's own color.
             Component fluidName = stack.getHoverName();
             String amountStr = String.format("%,d", stack.getAmount());
             lines.add(Component.translatable("gui.researchcube.processing.tank.contents",
                             fluidName, amountStr, capacityStr)
                     .withStyle(s -> s.withColor(0xBBBBBB)));
         }
+
+        // Interaction hint: click with a fluid container to fill/drain this tank.
+        lines.add(Component.translatable("gui.researchcube.processing.tank.click_hint")
+                .withStyle(s -> s.withColor(0x707070).withItalic(true)));
 
         g.renderTooltip(font, lines, Optional.empty(), mouseX, mouseY);
     }

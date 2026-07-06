@@ -33,6 +33,13 @@ import java.util.List;
  * Shows item inputs (up to 16, 4×4 grid), fluid inputs (up to 2), the research-locked drive,
  * item outputs (up to 8, 2×4 grid), and the fluid output, along with the processing duration.
  *
+ * <p>The layout mirrors the real Processing Station GUI arrangement players see: the 4x4 item
+ * input grid on the left, a center control column holding the three fluid gauges (input 1,
+ * input 2, output) above the arrow, duration and research-locked drive, and the 2x4 item
+ * output grid on the right, matching
+ * {@link com.researchcube.client.screen.ProcessingStationScreen}. The exact GUI pixel spans are
+ * scaled down to a tight 18px slot pitch, keeping the arrangement recognizable within JEI bounds.
+ *
  * <p>Slot backgrounds, the arrow and fluid rendering use JEI's own drawables/helpers; only the
  * headers, duration label and the research-completion indicator are drawn manually.
  */
@@ -42,34 +49,43 @@ public class ProcessingCategory implements IRecipeCategory<ProcessingRecipe> {
     public static final RecipeType<ProcessingRecipe> RECIPE_TYPE =
             new RecipeType<>(UID, ProcessingRecipe.class);
 
-    private static final int WIDTH = 176;
+    private static final int WIDTH = 178;
     private static final int HEIGHT = 100;
 
     private static final int SLOT_STRIDE = 18;
     private static final int FLUID_SIZE = 16;
 
-    // Input item grid (4×4): ingredient top-left corners.
+    // Header label row baseline, above the slots/gauges.
+    private static final int LABEL_Y = 1;
+
+    // Item input grid (4×4) on the left: ingredient top-left corners.
     private static final int INPUT_GRID_X = 1;
-    private static final int INPUT_GRID_Y = 1;
+    private static final int INPUT_GRID_Y = 12;
     private static final int INPUT_COLS = 4;
     private static final int INPUT_ROWS = 4;
 
-    // Output item grid (2×4).
-    private static final int OUTPUT_GRID_X = 114;
-    private static final int OUTPUT_GRID_Y = 1;
+    // Item output grid (2×4) on the right.
+    private static final int OUTPUT_GRID_X = 138;
+    private static final int OUTPUT_GRID_Y = 12;
     private static final int OUTPUT_COLS = 2;
     private static final int OUTPUT_ROWS = 4;
 
-    // Fluid slots and the drive slot.
-    private static final int FLUID_IN_Y = 76;
-    private static final int FLUID_IN1_X = 1;
-    private static final int FLUID_IN2_X = 19;
-    private static final int FLUID_OUT_X = 156;
-    private static final int DRIVE_X = 84;
-    private static final int DRIVE_Y = 57;
+    // Center control column: three fluid gauges in a row (input 1, input 2, output) at the top,
+    // then the arrow, duration and drive slot stacked below, mirroring the machine's tank row
+    // above its progress bar and drive slot.
+    private static final int FLUID_Y = 12;
+    private static final int FLUID_IN1_X = 78;
+    private static final int FLUID_IN2_X = 96;
+    private static final int FLUID_OUT_X = 114;
 
-    private static final int ARROW_X = 82;
-    private static final int ARROW_Y = 36;
+    private static final int DRIVE_X = 96;
+    private static final int DRIVE_Y = 72;
+
+    // Arrow centered on the control column, below the fluid gauges.
+    private static final int ARROW_X = 92;
+    private static final int ARROW_Y = 40;
+    // Horizontal center of the control column (used to center the duration text and labels).
+    private static final int CONTROL_CENTER_X = 104;
 
     private final IDrawable icon;
     private final IDrawableStatic arrow;
@@ -110,24 +126,35 @@ public class ProcessingCategory implements IRecipeCategory<ProcessingRecipe> {
     public void draw(ProcessingRecipe recipe, IRecipeSlotsView recipeSlotsView, GuiGraphics g, double mouseX, double mouseY) {
         Font font = Minecraft.getInstance().font;
 
-        // Section headers.
-        g.drawString(font, Component.translatable("jei.researchcube.processing.header.inputs"),
-                INPUT_GRID_X, INPUT_GRID_Y - 11, 0xFFAAAAAA, false);
-        g.drawString(font, Component.translatable("jei.researchcube.processing.header.outputs"),
-                OUTPUT_GRID_X, OUTPUT_GRID_Y - 11, 0xFFAAAAAA, false);
+        // Section headers, centered over their sections (mirrors the machine GUI's labels).
+        int inputCenterX = INPUT_GRID_X + (INPUT_COLS * SLOT_STRIDE) / 2 - SLOT_STRIDE / 2;
+        int outputCenterX = OUTPUT_GRID_X + (OUTPUT_COLS * SLOT_STRIDE) / 2 - SLOT_STRIDE / 2;
+        drawCentered(g, font, Component.translatable("jei.researchcube.processing.header.inputs"),
+                inputCenterX, LABEL_Y, 0xFFAAAAAA);
+        drawCentered(g, font, Component.translatable("jei.researchcube.processing.header.outputs"),
+                outputCenterX, LABEL_Y, 0xFFAAAAAA);
 
-        // Arrow, vertically centred on the item rows.
+        // Fluid gauge labels (input 1 / input 2 / output), centered over each gauge.
+        drawCentered(g, font, Component.literal("I1"), FLUID_IN1_X + 8, LABEL_Y, 0xFF4F9BFF);
+        drawCentered(g, font, Component.literal("I2"), FLUID_IN2_X + 8, LABEL_Y, 0xFFB16CFF);
+        drawCentered(g, font, Component.literal("O"), FLUID_OUT_X + 8, LABEL_Y, 0xFFFFB547);
+
+        // Arrow, centered in the control column below the gauges.
         arrow.draw(g, ARROW_X, ARROW_Y + (SLOT_STRIDE - arrow.getHeight()) / 2);
 
-        // Duration below the arrow.
+        // Duration below the arrow, centered on the control column.
         String durationStr = Component.translatable("jei.researchcube.processing.duration",
                 String.format("%.1f", recipe.getDuration() / 20.0f)).getString();
-        int durationW = font.width(durationStr);
-        g.drawString(font, durationStr, ARROW_X + 10 - durationW / 2, ARROW_Y + 20, 0xFF888888, false);
+        g.drawString(font, durationStr, CONTROL_CENTER_X - font.width(durationStr) / 2,
+                ARROW_Y + 20, 0xFF888888, false);
 
         // Research-completion indicator under the drive slot.
         JeiRenderHelper.drawCompletionIndicator(g, font, recipe.getRequiredRecipeId(),
-                DRIVE_X + 5, DRIVE_Y + 21);
+                DRIVE_X + 5, DRIVE_Y + SLOT_STRIDE + 1);
+    }
+
+    private void drawCentered(GuiGraphics g, Font font, Component text, int centerX, int y, int color) {
+        g.drawString(font, text, centerX - font.width(text) / 2, y, color, false);
     }
 
     @Override
@@ -165,10 +192,10 @@ public class ProcessingCategory implements IRecipeCategory<ProcessingRecipe> {
         // Fluid inputs (up to 2), rendered against the real tank capacity so the bar fills sensibly.
         List<ProcessingFluidStack> fluidInputs = recipe.getFluidInputs();
         if (!fluidInputs.isEmpty()) {
-            addFluidSlot(builder, RecipeIngredientRole.INPUT, FLUID_IN1_X, FLUID_IN_Y, fluidInputs.get(0).toFluidStack());
+            addFluidSlot(builder, RecipeIngredientRole.INPUT, FLUID_IN1_X, FLUID_Y, fluidInputs.get(0).toFluidStack());
         }
         if (fluidInputs.size() > 1) {
-            addFluidSlot(builder, RecipeIngredientRole.INPUT, FLUID_IN2_X, FLUID_IN_Y, fluidInputs.get(1).toFluidStack());
+            addFluidSlot(builder, RecipeIngredientRole.INPUT, FLUID_IN2_X, FLUID_Y, fluidInputs.get(1).toFluidStack());
         }
 
         // Item outputs (2×4).
@@ -187,7 +214,7 @@ public class ProcessingCategory implements IRecipeCategory<ProcessingRecipe> {
 
         // Fluid output.
         if (recipe.hasFluidOutput()) {
-            addFluidSlot(builder, RecipeIngredientRole.OUTPUT, FLUID_OUT_X, FLUID_IN_Y, recipe.getFluidOutput().toFluidStack());
+            addFluidSlot(builder, RecipeIngredientRole.OUTPUT, FLUID_OUT_X, FLUID_Y, recipe.getFluidOutput().toFluidStack());
         }
     }
 

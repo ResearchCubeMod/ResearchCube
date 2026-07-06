@@ -1,6 +1,6 @@
 {
   "name": "Attrition Milling",
-  "description": "Grind stone down with nothing but water pressure. Demonstrates processing recipes that run on plain vanilla fluids (minecraft:water) — remember: every processing recipe is drive-locked, so the imprinted drive must sit in the Processing Station.",
+  "description": "Grind stone down with nothing but water pressure. Demonstrates processing recipes that run on plain vanilla fluids (minecraft:water). Remember: every processing recipe is drive-locked, so the imprinted drive must sit in the Processing Station.",
   "flavor_text": "Rivers carve canyons. Yours just does it faster.",
   "category": "foundations",
   "tier": "BASIC",

@@ -29,10 +29,15 @@ import java.util.List;
 /**
  * JEI recipe category for Drive Crafting recipes.
  * Shows the drive requirement, ingredients, and the recipe output.
- * Supports both shaped (matching the pattern grid) and shapeless (flat 4-wide) layouts.
+ * Supports both shaped (matching the pattern grid) and shapeless (sequential fill) layouts.
+ *
+ * <p>The layout mirrors the real Drive Crafting Table GUI arrangement players see:
+ * drive slot on the left, the 3x3 craft matrix in the center, an arrow, then the result
+ * slot on the right, with the drive and result vertically centered on the grid's middle
+ * row, exactly as in {@link com.researchcube.client.screen.DriveCraftingTableScreen}.
  *
  * <p>Slot backgrounds and the arrow are drawn with JEI's own drawables so the layout
- * matches vanilla recipe categories; only the panel, labels and the research-completion
+ * matches vanilla recipe categories; only the labels and the research-completion
  * indicator are drawn manually.
  */
 public class DriveCraftingCategory implements IRecipeCategory<DriveCraftingRecipe> {
@@ -41,20 +46,31 @@ public class DriveCraftingCategory implements IRecipeCategory<DriveCraftingRecip
     public static final RecipeType<DriveCraftingRecipe> RECIPE_TYPE =
             new RecipeType<>(UID, DriveCraftingRecipe.class);
 
-    private static final int WIDTH = 150;
-    private static final int HEIGHT = 72;
-
-    // Fixed slot anchors (top-left of the ingredient, matching setStandardSlotBackground's -1,-1 offset).
-    private static final int DRIVE_X = 1;
-    private static final int DRIVE_Y = 1;
-    private static final int GRID_X = 22;
-    private static final int GRID_Y = 1;
     private static final int SLOT_STRIDE = 18;
-    private static final int SHAPELESS_COLUMNS = 4;
-    private static final int OUTPUT_X = 128;
-    private static final int OUTPUT_Y = 18;
-    private static final int ARROW_X = 100;
-    private static final int ARROW_Y = 24;
+
+    private static final int WIDTH = 140;
+    private static final int HEIGHT = 80;
+
+    // Slot anchors are the ingredient top-left (setStandardSlotBackground draws the 18x18
+    // frame at offset -1,-1). The 3x3 grid is centered; the drive (left) and result (right)
+    // sit on the grid's middle row so the whole row reads "drive | grid | arrow | result",
+    // matching the machine GUI.
+    private static final int GRID_COLUMNS = 3;
+    private static final int GRID_X = 30;
+    private static final int GRID_Y = 12;
+    private static final int GRID_MID_Y = GRID_Y + SLOT_STRIDE; // middle row of the 3x3 grid
+
+    private static final int DRIVE_X = 6;
+    private static final int DRIVE_Y = GRID_MID_Y;
+
+    private static final int OUTPUT_X = 118;
+    private static final int OUTPUT_Y = GRID_MID_Y;
+
+    private static final int ARROW_X = 90;
+    private static final int ARROW_Y = GRID_MID_Y;
+
+    // Label row baseline, above the slots.
+    private static final int LABEL_Y = 1;
 
     private final IDrawable icon;
     private final IDrawableStatic arrow;
@@ -95,16 +111,24 @@ public class DriveCraftingCategory implements IRecipeCategory<DriveCraftingRecip
     public void draw(DriveCraftingRecipe recipe, IRecipeSlotsView recipeSlotsView, GuiGraphics g, double mouseX, double mouseY) {
         Font font = Minecraft.getInstance().font;
 
-        // "Drive" label above the drive slot.
-        g.drawString(font, Component.translatable("jei.researchcube.drive_crafting.slot.drive"),
-                DRIVE_X, DRIVE_Y - 11, 0xFFAAAAAA, false);
+        // Section labels, centered over their sections (mirrors the machine GUI's labels).
+        drawCentered(g, font, Component.translatable("jei.researchcube.drive_crafting.slot.drive"),
+                DRIVE_X + 8, LABEL_Y, 0xFFAAAAAA);
+        drawCentered(g, font, Component.translatable("jei.researchcube.drive_crafting.grid"),
+                GRID_X + SLOT_STRIDE + 8, LABEL_Y, 0xFFAAAAAA);
+        drawCentered(g, font, Component.translatable("jei.researchcube.drive_crafting.result"),
+                OUTPUT_X + 8, LABEL_Y, 0xFFAAAAAA);
 
-        // Arrow from ingredients to output (JEI's own drawable, vertically centred on the row).
+        // Arrow from grid to result (JEI's own drawable, vertically centred on the middle row).
         arrow.draw(g, ARROW_X, ARROW_Y + (SLOT_STRIDE - arrow.getHeight()) / 2);
 
-        // Research-completion indicator in the bottom-right corner.
+        // Research-completion indicator under the result slot.
         JeiRenderHelper.drawCompletionIndicator(g, font, recipe.getRequiredRecipeId(),
-                WIDTH - 11, HEIGHT - 12);
+                OUTPUT_X + 5, OUTPUT_Y + SLOT_STRIDE + 3);
+    }
+
+    private void drawCentered(GuiGraphics g, Font font, Component text, int centerX, int y, int color) {
+        g.drawString(font, text, centerX - font.width(text) / 2, y, color, false);
     }
 
     @Override
@@ -154,15 +178,15 @@ public class DriveCraftingCategory implements IRecipeCategory<DriveCraftingRecip
         }
     }
 
-    /** Lay out shapeless ingredients left-to-right, wrapping every {@link #SHAPELESS_COLUMNS}. */
+    /** Lay out shapeless ingredients left-to-right within the 3x3 grid, wrapping every 3. */
     private void addShapelessSlots(IRecipeLayoutBuilder builder, List<Ingredient> ingredients) {
         int placed = 0;
         for (Ingredient ingredient : ingredients) {
-            if (ingredient == null || ingredient.isEmpty()) {
+            if (ingredient == null || ingredient.isEmpty() || placed >= GRID_COLUMNS * GRID_COLUMNS) {
                 continue;
             }
-            int col = placed % SHAPELESS_COLUMNS;
-            int row = placed / SHAPELESS_COLUMNS;
+            int col = placed % GRID_COLUMNS;
+            int row = placed / GRID_COLUMNS;
             builder.addSlot(RecipeIngredientRole.INPUT,
                             GRID_X + col * SLOT_STRIDE, GRID_Y + row * SLOT_STRIDE)
                     .setStandardSlotBackground()

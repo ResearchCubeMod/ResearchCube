@@ -13,7 +13,7 @@ import net.neoforged.neoforge.event.AddPackFindersEvent;
  * Registers the built-in example datapack that ships inside the mod jar
  * (resources/datapacks/example).
  *
- * The pack contains the complete default content — the example research tree,
+ * The pack contains the complete default content: the example research tree,
  * its recipes, advancements and the fluid bucket crafting recipes. Because it is
  * registered with {@link PackSource#BUILT_IN} and NOT marked always-active:
  *

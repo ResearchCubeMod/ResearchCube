@@ -17,7 +17,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 /**
  * Block entity for the Drive Crafting Table.
  * Persists a drive slot (0) and a 3x3 crafting grid (slots 1-9) between interactions.
- * No ticking required — recipe matching is handled in the menu.
+ * No ticking required; recipe matching is handled in the menu.
  */
 public class DriveCraftingTableBlockEntity extends BlockEntity {
 
@@ -29,7 +29,7 @@ public class DriveCraftingTableBlockEntity extends BlockEntity {
     /**
      * Listeners notified whenever the shared inventory changes. Every open menu registers
      * itself here (and unregisters on close) so that all viewers re-evaluate the recipe when
-     * the grid is mutated — the grid is shared BE state but each menu keeps its own result slot,
+     * the grid is mutated; the grid is shared BE state but each menu keeps its own result slot,
      * so a single-menu notification would leave other viewers looking at a stale result.
      * CopyOnWriteArrayList keeps iteration safe if a listener mutates the list during dispatch.
      */

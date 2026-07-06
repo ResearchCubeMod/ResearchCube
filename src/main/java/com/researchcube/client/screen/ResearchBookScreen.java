@@ -27,7 +27,7 @@ public class ResearchBookScreen extends Screen {
     private static final ResourceLocation TEXTURE =
             ResourceLocation.fromNamespaceAndPath(ResearchCubeMod.MOD_ID, "textures/gui/research_book.png");
 
-    // Layout — vertical zones: title, stats, search, column header, list, footer.
+    // Layout, vertical zones: title, stats, search, column header, list, footer.
     // The texture bakes the window frame, search field and list area.
     private static final int PANEL_WIDTH = 340;
     private static final int PANEL_HEIGHT = 240;
@@ -50,7 +50,7 @@ public class ResearchBookScreen extends Screen {
     private EditBox searchBox;
     private String searchFilter = "";
 
-    /** A row in the display list — either a tier header or a research entry. */
+    /** A row in the display list: either a tier header or a research entry. */
     private record DisplayEntry(boolean isHeader, String headerText, int headerColor,
                                 ResearchDefinition definition, boolean completed) {
         static DisplayEntry header(String text, int color) {
@@ -145,7 +145,7 @@ public class ResearchBookScreen extends Screen {
      */
     @Override
     public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        // Semi-transparent dark overlay (50% opacity) — lets world show through without blur shader
+        // Semi-transparent dark overlay (50% opacity); lets world show through without blur shader
         graphics.fill(0, 0, this.width, this.height, 0x80101010);
     }
 
@@ -310,7 +310,7 @@ public class ResearchBookScreen extends Screen {
                     .withStyle(s -> s.withColor(prereqColor)));
         }
 
-        // Recipe pool — resolve to output item names
+        // Recipe pool: resolve to output item names
         if (def.hasRecipePool()) {
             tooltip.add(Component.literal("Possible Rewards:").withStyle(s -> s.withColor(0x55FFFF)));
             for (ResourceLocation recipeRl : def.getRecipePool()) {

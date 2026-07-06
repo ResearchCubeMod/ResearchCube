@@ -26,6 +26,8 @@ public class AutoDriveCraftingTableScreen extends AbstractContainerScreen<AutoDr
     private static final int LABEL_COLOR = 0xFFE6EAF5;
     private static final int SUBLABEL_COLOR = 0xFFA3AAC0;
     private static final int FLOW_COLOR = 0xFF848AA0;
+    // Subdued hint drawn under an empty drive slot so players know a drive goes there.
+    private static final int HINT_COLOR = 0xFF6B7080;
 
     // Machine + inventory panel bounds (relative to leftPos/topPos)
     private static final int MACHINE_PANEL_X = 8;
@@ -131,6 +133,15 @@ public class AutoDriveCraftingTableScreen extends AbstractContainerScreen<AutoDr
         drawCentered(g, "Drive", x + AutoDriveCraftingTableMenu.DRIVE_X + 8, labelY, SUBLABEL_COLOR);
         drawCentered(g, "Craft Matrix", x + AutoDriveCraftingTableMenu.GRID_X + 27, labelY, SUBLABEL_COLOR);
         drawCentered(g, "Result", x + AutoDriveCraftingTableMenu.OUTPUT_X + 8, labelY, SUBLABEL_COLOR);
+
+        // Subdued "Insert Drive" hint under an empty drive slot. Centered on the drive column
+        // but clamped to the machine panel so the wider text never clips the left border.
+        if (menu.getSlot(AutoDriveCraftingTableBlockEntity.SLOT_DRIVE).getItem().isEmpty()) {
+            String hint = Component.translatable("gui.researchcube.processing.insert_drive").getString();
+            int centerX = x + AutoDriveCraftingTableMenu.DRIVE_X + 8;
+            int textX = Math.max(x + MACHINE_PANEL_X + 2, centerX - font.width(hint) / 2);
+            g.drawString(font, hint, textX, y + AutoDriveCraftingTableMenu.DRIVE_Y + 20, HINT_COLOR, false);
+        }
     }
 
     private void drawCentered(GuiGraphics g, String text, int centerX, int y, int color) {

@@ -16,7 +16,7 @@
     {
       "type": "patchouli:text",
       "title": "Researching",
-      "text": "Click $(thing)Start$() to begin. The progress bar fills over time. When complete, a random recipe from the research's pool is imprinted onto the drive.$(br2)You can $(thing)cancel$() at any time — item and fluid costs are fully refunded.$(br2)The Research Station emits a redstone signal proportional to research progress (0 when idle, 1–14 during, 15 on completion)."
+      "text": "Click $(thing)Start$() to begin. The progress bar fills over time. When complete, a random recipe from the research's pool is imprinted onto the drive.$(br2)You can $(thing)cancel$() at any time: item and fluid costs are fully refunded.$(br2)The Research Station emits a redstone signal proportional to research progress (0 when idle, 1–14 during, 15 on completion)."
     }
   ]
 }

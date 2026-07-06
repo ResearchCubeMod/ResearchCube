@@ -1,0 +1,22 @@
+{
+  "name": "Composting Basics",
+  "description": "Turn scraps into rich soil. A single-string prerequisite and a processing recipe that stews plant matter in plain water.",
+  "flavor_text": "Rot, given direction, becomes growth.",
+  "category": "botany",
+  "tier": "UNSTABLE",
+  "duration": 1200,
+  "prerequisites": "researchcube:seed_sorting",
+  "item_costs": [
+    {
+      "item": "minecraft:dirt",
+      "count": 8
+    }
+  ],
+  "fluid_cost": {
+    "fluid": "researchcube:thinking_fluid",
+    "amount": 500
+  },
+  "recipe_pool": [
+    "researchcube:compost_brewing"
+  ]
+}

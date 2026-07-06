@@ -45,7 +45,7 @@ public class DriveCraftingTableMenu extends AbstractContainerMenu {
 
     /**
      * Listener registered on the shared BE inventory so this menu re-evaluates its result
-     * whenever the grid changes — including changes made by other viewers' menus. Kept as a
+     * whenever the grid changes, including changes made by other viewers' menus. Kept as a
      * field so it can be unregistered in {@link #removed(Player)}.
      */
     private final Runnable inventoryListener = this::updateResult;
@@ -110,14 +110,14 @@ public class DriveCraftingTableMenu extends AbstractContainerMenu {
         // Slot 10: Result (virtual output)
         addSlot(new DriveCraftingResultSlot(this, resultContainer, 0, RESULT_X, RESULT_Y));
 
-        // Player Inventory (27 slots) — slots 11-37
+        // Player Inventory (27 slots): slots 11-37
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
                 addSlot(new Slot(playerInv, col + row * 9 + 9, INV_X + col * 18, INV_Y + row * 18));
             }
         }
 
-        // Player Hotbar (9 slots) — slots 38-46
+        // Player Hotbar (9 slots): slots 38-46
         for (int col = 0; col < 9; col++) {
             addSlot(new Slot(playerInv, col, INV_X + col * 18, INV_Y + 58));
         }
@@ -227,7 +227,7 @@ public class DriveCraftingTableMenu extends AbstractContainerMenu {
             return;
         }
 
-        // Drive stays in the slot unchanged — recipe_id is deliberately kept
+        // Drive stays in the slot unchanged; recipe_id is deliberately kept
 
         // Consume ingredients from the grid
         if (recipe.isShaped()) {
@@ -245,7 +245,7 @@ public class DriveCraftingTableMenu extends AbstractContainerMenu {
 
     /**
      * Hand a crafting remainder (e.g. an empty bucket) to the player when its grid slot still
-     * holds items and cannot take it back — insert into the player inventory, or drop it at the
+     * holds items and cannot take it back: insert into the player inventory, or drop it at the
      * player's feet if full, mirroring vanilla ResultSlot's remainder handling.
      */
     private void giveRemainderToPlayer(ItemStack remainder) {
@@ -276,7 +276,7 @@ public class DriveCraftingTableMenu extends AbstractContainerMenu {
                     return;
                 }
                 if (checkPatternMatch(inv, pattern, offsetX, offsetY, true)) {
-                    // Mirrored placement — consume with the same orientation that matched,
+                    // Mirrored placement: consume with the same orientation that matched,
                     // otherwise the wrong slots would be drained.
                     consumeAtOffset(inv, pattern, offsetX, offsetY, true);
                     return;
@@ -323,7 +323,7 @@ public class DriveCraftingTableMenu extends AbstractContainerMenu {
                     if (gridStack.isEmpty()) {
                         inv.setStackInSlot(slotIndex, remainder);
                     } else if (!remainder.isEmpty()) {
-                        // Slot still holds items — hand the remainder to the player instead
+                        // Slot still holds items; hand the remainder to the player instead
                         // of voiding it (see AutoDriveCraftingTableBlockEntity for the
                         // equivalent automation-side handling).
                         giveRemainderToPlayer(remainder);
@@ -354,7 +354,7 @@ public class DriveCraftingTableMenu extends AbstractContainerMenu {
                         if (gridStack.isEmpty()) {
                             inv.setStackInSlot(slotIndex, remainder);
                         } else if (!remainder.isEmpty()) {
-                            // Slot still holds items — hand the remainder to the player
+                            // Slot still holds items; hand the remainder to the player
                             // instead of voiding it.
                             giveRemainderToPlayer(remainder);
                         }
@@ -422,7 +422,7 @@ public class DriveCraftingTableMenu extends AbstractContainerMenu {
             // is the ONLY path that consumes grid ingredients (DriveCraftingResultSlot.onTake ->
             // onResultTaken), which also re-evaluates the recipe; doClick's QUICK_MOVE loop then
             // re-invokes quickMoveStack while the refreshed result still matches, so shift-click
-            // crafts repeatedly like vanilla — consuming exactly once per craft.
+            // crafts repeatedly like vanilla, consuming exactly once per craft.
             slot.onTake(player, slotStack);
             if (index == resultSlotIndex) {
                 // Drop any result items that no longer fit in the player inventory.

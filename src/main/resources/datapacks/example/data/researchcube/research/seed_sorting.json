@@ -1,0 +1,17 @@
+{
+  "name": "Seed Sorting",
+  "description": "Sort seeds by species so nothing goes to waste. The root of the botany tree: no prerequisites, and a branch point that unlocks two follow-up researches.",
+  "flavor_text": "Every forest begins in a jar of sorted seeds.",
+  "category": "botany",
+  "tier": "UNSTABLE",
+  "duration": 600,
+  "item_costs": [
+    {
+      "item": "minecraft:wheat_seeds",
+      "count": 8
+    }
+  ],
+  "recipe_pool": [
+    "researchcube:seed_pouch_weaving"
+  ]
+}

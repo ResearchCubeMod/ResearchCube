@@ -1,0 +1,32 @@
+{
+  "name": "Botanical Mastery",
+  "description": "The capstone of the botany tree. Requires BOTH Greenhouse Engineering AND Pollination Study, joining the two branches back together.",
+  "flavor_text": "You do not command the garden. You finally understand it.",
+  "category": "botany",
+  "tier": "ADVANCED",
+  "duration": 9600,
+  "prerequisites": {
+    "type": "AND",
+    "values": [
+      "researchcube:greenhouse_engineering",
+      "researchcube:pollination_study"
+    ]
+  },
+  "item_costs": [
+    {
+      "item": "minecraft:cake",
+      "count": 1
+    },
+    {
+      "item": "minecraft:bone_meal",
+      "count": 16
+    }
+  ],
+  "fluid_cost": {
+    "fluid": "researchcube:reasoning_fluid",
+    "amount": 2000
+  },
+  "recipe_pool": [
+    "researchcube:enchanted_bloom"
+  ]
+}

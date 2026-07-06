@@ -11,7 +11,7 @@
     {
       "type": "patchouli:text",
       "title": "Using Drives",
-      "text": "When research completes, a recipe ID is $(thing)imprinted$() onto the drive. The drive gains an enchantment glint to show it has recipes.$(br2)Drives $(thing)persist$() after crafting — the recipe stays on the drive so you can craft the same item multiple times.$(br2)Right-click a filled drive in hand to open the $(thing)Drive Inspector$() and see all stored recipes."
+      "text": "When research completes, a recipe ID is $(thing)imprinted$() onto the drive. The drive gains an enchantment glint to show it has recipes.$(br2)Drives $(thing)persist$() after crafting: the recipe stays on the drive so you can craft the same item multiple times.$(br2)Right-click a filled drive in hand to open the $(thing)Drive Inspector$() and see all stored recipes."
     }
   ]
 }

@@ -32,7 +32,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Research Export Chip — a single-use item that transfers research progress.
+ * Research Export Chip: a single-use item that transfers research progress.
  *
  * Workflow:
  * 1. Right-click a Research Station while holding an empty chip
@@ -75,10 +75,10 @@ public class ResearchChipItem extends Item {
         String storedId = getStoredResearchId(stack);
 
         if (storedId == null || storedId.isEmpty()) {
-            // Empty chip — encode from player's completed research
+            // Empty chip: encode from player's completed research
             return encodeChip(serverPlayer, stack);
         } else {
-            // Loaded chip — transfer to player
+            // Loaded chip: transfer to player
             return transferResearch(serverPlayer, stack, storedId);
         }
     }

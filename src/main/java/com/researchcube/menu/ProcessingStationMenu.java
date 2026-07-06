@@ -231,7 +231,7 @@ public class ProcessingStationMenu extends AbstractContainerMenu {
     /**
      * Push fluid tanks to the viewing player alongside the usual slot/data sync. Runs every
      * tick the menu is open; a per-tank cache keeps this to one packet only when a tank
-     * actually changes — however the fluid got there (GUI, recipe, or external pipe).
+     * actually changes, however the fluid got there (GUI, recipe, or external pipe).
      */
     @Override
     public void broadcastChanges() {
@@ -304,8 +304,8 @@ public class ProcessingStationMenu extends AbstractContainerMenu {
             }
 
             // Every branch above moves items into or out of a BE-backed slot. moveItemStackTo's
-            // in-place partial-merge path only calls Slot.setChanged() — a no-op for
-            // SlotItemHandler — so the handler's onContentsChanged never fires and the merge is
+            // in-place partial-merge path only calls Slot.setChanged() (a no-op for
+            // SlotItemHandler) so the handler's onContentsChanged never fires and the merge is
             // neither persisted (rollback on crash) nor picked up by the auto-scan. Mark the BE
             // dirty and flag a recheck here so partial shift-click merges behave like any other
             // input change.

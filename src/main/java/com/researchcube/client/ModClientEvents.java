@@ -67,19 +67,19 @@ public class ModClientEvents {
         ResourceLocation waterStill = ResourceLocation.withDefaultNamespace("block/water_still");
         ResourceLocation waterFlow = ResourceLocation.withDefaultNamespace("block/water_flow");
 
-        // Thinking Fluid — cyan
+        // Thinking Fluid, cyan
         event.registerFluidType(createFluidExtensions(waterStill, waterFlow, ModFluids.COLOR_THINKING),
                 ModFluids.THINKING_FLUID_TYPE.get());
 
-        // Pondering Fluid — purple
+        // Pondering Fluid, purple
         event.registerFluidType(createFluidExtensions(waterStill, waterFlow, ModFluids.COLOR_PONDERING),
                 ModFluids.PONDERING_FLUID_TYPE.get());
 
-        // Reasoning Fluid — gold
+        // Reasoning Fluid, gold
         event.registerFluidType(createFluidExtensions(waterStill, waterFlow, ModFluids.COLOR_REASONING),
                 ModFluids.REASONING_FLUID_TYPE.get());
 
-        // Imagination Fluid — pink
+        // Imagination Fluid, pink
         event.registerFluidType(createFluidExtensions(waterStill, waterFlow, ModFluids.COLOR_IMAGINATION),
                 ModFluids.IMAGINATION_FLUID_TYPE.get());
 

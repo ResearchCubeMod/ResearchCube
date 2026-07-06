@@ -1,0 +1,27 @@
+{
+  "type": "researchcube:processing",
+  "inputs": [
+    {
+      "item": "minecraft:dandelion"
+    },
+    {
+      "item": "minecraft:poppy"
+    },
+    {
+      "item": "minecraft:honeycomb"
+    }
+  ],
+  "fluid_inputs": [
+    {
+      "fluid": "researchcube:pondering_fluid",
+      "amount": 250
+    }
+  ],
+  "outputs": [
+    {
+      "id": "minecraft:honey_bottle",
+      "count": 2
+    }
+  ],
+  "duration": 160
+}

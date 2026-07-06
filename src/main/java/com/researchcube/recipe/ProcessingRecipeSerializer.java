@@ -60,7 +60,7 @@ public class ProcessingRecipeSerializer implements RecipeSerializer<ProcessingRe
 
     // Load-time validation: reject recipes the Processing Station physically cannot run,
     // so datapack authors get a clear error at /reload instead of a machine that silently
-    // never starts. Kept as a separate step from RAW_CODEC — chaining directly onto
+    // never starts. Kept as a separate step from RAW_CODEC; chaining directly onto
     // RecordCodecBuilder.mapCodec(...) breaks javac's generic inference for the builder.
     public static final MapCodec<ProcessingRecipe> CODEC = RAW_CODEC.validate(ProcessingRecipeSerializer::validate);
 
@@ -138,7 +138,7 @@ public class ProcessingRecipeSerializer implements RecipeSerializer<ProcessingRe
 
     private static ProcessingRecipe fromNetwork(RegistryFriendlyByteBuf buf) {
         String group = buf.readUtf();
-        // Always the RESOLVED id — bindId ran server-side before recipe sync.
+        // Always the RESOLVED id; bindId ran server-side before recipe sync.
         String recipeId = buf.readUtf();
         int duration = buf.readVarInt();
 
