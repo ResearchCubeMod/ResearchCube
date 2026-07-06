@@ -45,7 +45,14 @@ public record SetSideConfigPacket(BlockPos pos, String channelId, byte side, byt
     public static void handle(SetSideConfigPacket packet, IPayloadContext context) {
         context.enqueueWork(() -> {
             if (!(context.player() instanceof ServerPlayer player)) return;
-            if (player.distanceToSqr(packet.pos().getX() + 0.5, packet.pos().getY() + 0.5, packet.pos().getZ() + 0.5) > 64 * 64) {
+
+            // Validate before touching the world: reject if too far away (vanilla
+            // 8-block container reach) or if the chunk isn't loaded (a getBlockEntity
+            // lookup would otherwise force-load it).
+            if (player.distanceToSqr(packet.pos().getX() + 0.5, packet.pos().getY() + 0.5, packet.pos().getZ() + 0.5) > 64.0) {
+                return;
+            }
+            if (!player.level().isLoaded(packet.pos())) {
                 return;
             }
 

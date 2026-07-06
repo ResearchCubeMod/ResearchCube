@@ -35,21 +35,9 @@ public class ModNetworking {
         );
 
         registrar.playToServer(
-                StartProcessingPacket.TYPE,
-                StartProcessingPacket.STREAM_CODEC,
-                StartProcessingPacket::handle
-        );
-
-        registrar.playToServer(
                 EncodeChipPacket.TYPE,
                 EncodeChipPacket.STREAM_CODEC,
                 EncodeChipPacket::handle
-        );
-
-        registrar.playToServer(
-                ToggleAutoModePacket.TYPE,
-                ToggleAutoModePacket.STREAM_CODEC,
-                ToggleAutoModePacket::handle
         );
 
         registrar.playToServer(
@@ -86,6 +74,12 @@ public class ModNetworking {
                 SyncCompletedResearchPacket.TYPE,
                 SyncCompletedResearchPacket.STREAM_CODEC,
                 SyncCompletedResearchPacket::handle
+        );
+
+        registrar.playToClient(
+                SyncTankPacket.TYPE,
+                SyncTankPacket.STREAM_CODEC,
+                SyncTankPacket::handle
         );
     }
 }

@@ -106,7 +106,7 @@ public class DriveItem extends Item {
             tooltipComponents.add(Component.literal("Stored Recipes: " + capacityStr)
                     .withStyle(ChatFormatting.AQUA));
             for (String recipe : recipes) {
-                String resolved = RecipeOutputResolver.formatOutput(recipe);
+                String resolved = RecipeOutputResolver.formatOutput(context.level(), recipe);
                 if (!resolved.equals(recipe)) {
                     // Resolved to an output item name
                     tooltipComponents.add(Component.literal("  \u2022 " + resolved)

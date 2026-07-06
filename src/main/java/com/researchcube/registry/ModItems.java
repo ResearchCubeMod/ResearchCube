@@ -59,6 +59,10 @@ public class ModItems {
     public static final DeferredItem<BlockItem> DRIVE_CRAFTING_TABLE_ITEM = ITEMS.register("drive_crafting_table",
             () -> new BlockItem(ModBlocks.DRIVE_CRAFTING_TABLE.get(), new Item.Properties()));
 
+    // ── Auto Drive Crafting Table block item ──
+    public static final DeferredItem<BlockItem> AUTO_DRIVE_CRAFTING_TABLE_ITEM = ITEMS.register("auto_drive_crafting_table",
+            () -> new BlockItem(ModBlocks.AUTO_DRIVE_CRAFTING_TABLE.get(), new Item.Properties()));
+
     // ── Processing Station block item ──
     public static final DeferredItem<BlockItem> PROCESSING_STATION_ITEM = ITEMS.register("processing_station",
             () -> new BlockItem(ModBlocks.PROCESSING_STATION.get(), new Item.Properties()));

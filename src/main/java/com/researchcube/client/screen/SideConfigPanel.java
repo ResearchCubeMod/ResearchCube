@@ -20,11 +20,11 @@ import java.util.Optional;
  * {@link #mouseClicked(double, double, int)} and draw with {@link #render}.
  *
  * <p>Layout: a row of channel tabs across the top, then an unfolded-cross of the six relative
- * sides for the selected channel:
+ * sides for the selected channel (Mekanism/Thermal-style, with BACK below LEFT):
  * <pre>
  *          [TOP]
- *   [LEFT][FRONT][RIGHT][BACK]
- *          [BOTTOM]
+ *   [LEFT] [FRONT][RIGHT]
+ *   [BACK] [BOTTOM]
  * </pre>
  * Left-click cycles a side's mode forward through the channel's allowed set, right-click backward.
  * Each change is sent to the server immediately and applied optimistically on the client.
@@ -47,13 +47,15 @@ public class SideConfigPanel {
     private static final int MODE_OUTPUT = 0xFFCC7A22;  // orange
     private static final int MODE_BOTH = 0xFFCCA300;    // gold
 
-    private static final int CELL = 18;
+    private static final int CELL_W = 36;   // wide enough for the full side name ("Bottom") at GUI font scale
+    private static final int CELL_H = 18;
     private static final int CELL_GAP = 2;
     private static final int TAB_H = 16;
     private static final int PADDING = 6;
 
-    public static final int PANEL_W = 4 * CELL + 3 * CELL_GAP + 2 * PADDING; // fits the widest (middle) row
-    public static final int PANEL_H = TAB_H + PADDING + 3 * CELL + 2 * CELL_GAP + PADDING + 12;
+    // Layout is a 3-column cross: TOP at col1, LEFT/FRONT/RIGHT across, BACK at col0 / BOTTOM at col1.
+    public static final int PANEL_W = 3 * CELL_W + 2 * CELL_GAP + 2 * PADDING;
+    public static final int PANEL_H = TAB_H + PADDING + 3 * CELL_H + 2 * CELL_GAP + PADDING + 12;
 
     private final Font font;
     private final SideConfigurable configurable;
@@ -189,22 +191,22 @@ public class SideConfigPanel {
 
     private void drawSideCell(GuiGraphics g, int cx, int cy, RelativeSide side, IOMode mode, int mouseX, int mouseY) {
         int fill = colorForMode(mode);
-        g.fill(cx, cy, cx + CELL, cy + CELL, fill);
+        g.fill(cx, cy, cx + CELL_W, cy + CELL_H, fill);
         // Bevel: dark top/left, light bottom/right
-        g.fill(cx, cy, cx + CELL, cy + 1, SLOT_BEVEL_DARK);
-        g.fill(cx, cy, cx + 1, cy + CELL, SLOT_BEVEL_DARK);
-        g.fill(cx + CELL - 1, cy, cx + CELL, cy + CELL, SLOT_BEVEL_LIGHT);
-        g.fill(cx, cy + CELL - 1, cx + CELL, cy + CELL, SLOT_BEVEL_LIGHT);
+        g.fill(cx, cy, cx + CELL_W, cy + 1, SLOT_BEVEL_DARK);
+        g.fill(cx, cy, cx + 1, cy + CELL_H, SLOT_BEVEL_DARK);
+        g.fill(cx + CELL_W - 1, cy, cx + CELL_W, cy + CELL_H, SLOT_BEVEL_LIGHT);
+        g.fill(cx, cy + CELL_H - 1, cx + CELL_W, cy + CELL_H, SLOT_BEVEL_LIGHT);
 
         // Hover highlight
         if (isInCell(mouseX, mouseY, cx, cy)) {
-            g.fill(cx + 1, cy + 1, cx + CELL - 1, cy + CELL - 1, 0x33FFFFFF);
+            g.fill(cx + 1, cy + 1, cx + CELL_W - 1, cy + CELL_H - 1, 0x33FFFFFF);
         }
 
-        // Side initial letter
-        String letter = sideLetter(side);
+        // Full side name, ellipsis-trimmed if a localized string still overruns the cell.
+        String label = trim(Component.translatable(side.getTranslationKey()).getString(), CELL_W - 4);
         int textColor = (mode == IOMode.NONE) ? TEXT_SECONDARY : 0xFF000000;
-        g.drawString(font, letter, cx + (CELL - font.width(letter)) / 2, cy + (CELL - 8) / 2, textColor, false);
+        g.drawString(font, label, cx + (CELL_W - font.width(label)) / 2, cy + (CELL_H - 8) / 2, textColor, false);
     }
 
     private void renderTooltip(GuiGraphics g, int mouseX, int mouseY) {
@@ -290,23 +292,32 @@ public class SideConfigPanel {
     //  Layout helpers
     // ══════════════════════════════════════════════════════════════
 
-    /** Relative (x,y) of a side's cell within the panel body. */
+    /**
+     * Relative (x,y) of a side's cell within the panel body. Three-column cross with BACK
+     * tucked below LEFT (Mekanism/Thermal convention):
+     * <pre>
+     *          [TOP]      (row0, col1)
+     *   [LEFT] [FRONT][RIGHT]   (row1: col0/col1/col2)
+     *   [BACK] [BOTTOM]         (row2: col0/col1)
+     * </pre>
+     */
     private int[] cellPos(RelativeSide side) {
-        int step = CELL + CELL_GAP;
+        int stepX = CELL_W + CELL_GAP;
+        int stepY = CELL_H + CELL_GAP;
         int bodyY = 1 + TAB_H + PADDING;
         int col0 = PADDING;
         return switch (side) {
-            case TOP ->    new int[]{col0 + step, bodyY};
-            case LEFT ->   new int[]{col0, bodyY + step};
-            case FRONT ->  new int[]{col0 + step, bodyY + step};
-            case RIGHT ->  new int[]{col0 + 2 * step, bodyY + step};
-            case BACK ->   new int[]{col0 + 3 * step, bodyY + step};
-            case BOTTOM -> new int[]{col0 + step, bodyY + 2 * step};
+            case TOP ->    new int[]{col0 + stepX, bodyY};
+            case LEFT ->   new int[]{col0, bodyY + stepY};
+            case FRONT ->  new int[]{col0 + stepX, bodyY + stepY};
+            case RIGHT ->  new int[]{col0 + 2 * stepX, bodyY + stepY};
+            case BACK ->   new int[]{col0, bodyY + 2 * stepY};
+            case BOTTOM -> new int[]{col0 + stepX, bodyY + 2 * stepY};
         };
     }
 
     private boolean isInCell(int mouseX, int mouseY, int cx, int cy) {
-        return mouseX >= cx && mouseX < cx + CELL && mouseY >= cy && mouseY < cy + CELL;
+        return mouseX >= cx && mouseX < cx + CELL_W && mouseY >= cy && mouseY < cy + CELL_H;
     }
 
     private static int colorForMode(IOMode mode) {
@@ -315,17 +326,6 @@ public class SideConfigPanel {
             case INPUT -> MODE_INPUT;
             case OUTPUT -> MODE_OUTPUT;
             case BOTH -> MODE_BOTH;
-        };
-    }
-
-    private static String sideLetter(RelativeSide side) {
-        return switch (side) {
-            case FRONT -> "F";
-            case BACK -> "B";
-            case LEFT -> "L";
-            case RIGHT -> "R";
-            case TOP -> "U";
-            case BOTTOM -> "D";
         };
     }
 

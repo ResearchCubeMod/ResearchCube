@@ -1,6 +1,7 @@
 package com.researchcube.registry;
 
 import com.researchcube.ResearchCubeMod;
+import com.researchcube.block.AutoDriveCraftingTableBlockEntity;
 import com.researchcube.block.DriveCraftingTableBlockEntity;
 import com.researchcube.block.ProcessingStationBlockEntity;
 import com.researchcube.block.ResearchTableBlockEntity;
@@ -33,5 +34,12 @@ public class ModBlockEntities {
                     () -> BlockEntityType.Builder.of(
                             ProcessingStationBlockEntity::new,
                             ModBlocks.PROCESSING_STATION.get()
+                    ).build(null));
+
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<AutoDriveCraftingTableBlockEntity>> AUTO_DRIVE_CRAFTING_TABLE =
+            BLOCK_ENTITIES.register("auto_drive_crafting_table",
+                    () -> BlockEntityType.Builder.of(
+                            AutoDriveCraftingTableBlockEntity::new,
+                            ModBlocks.AUTO_DRIVE_CRAFTING_TABLE.get()
                     ).build(null));
 }

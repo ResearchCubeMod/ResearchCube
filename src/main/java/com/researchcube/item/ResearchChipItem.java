@@ -104,7 +104,9 @@ public class ResearchChipItem extends Item {
         }
 
         boolean mainHand = player.getMainHandItem() == stack;
-        PacketDistributor.sendToPlayer(player, new OpenChipEncoderPacket(completed, mainHand));
+        // Snapshot: on integrated servers the payload is handed to the client
+        // without re-encoding, so we must not share the live mutable set.
+        PacketDistributor.sendToPlayer(player, new OpenChipEncoderPacket(Set.copyOf(completed), mainHand));
         return InteractionResult.CONSUME;
     }
 

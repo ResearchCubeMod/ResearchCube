@@ -43,6 +43,13 @@ public class DriveCraftingTableMenu extends AbstractContainerMenu {
     private final ResultContainer resultContainer = new ResultContainer();
     private final Player player;
 
+    /**
+     * Listener registered on the shared BE inventory so this menu re-evaluates its result
+     * whenever the grid changes — including changes made by other viewers' menus. Kept as a
+     * field so it can be unregistered in {@link #removed(Player)}.
+     */
+    private final Runnable inventoryListener = this::updateResult;
+
     @Nullable
     private RecipeHolder<DriveCraftingRecipe> currentRecipe = null;
 
@@ -115,6 +122,11 @@ public class DriveCraftingTableMenu extends AbstractContainerMenu {
             addSlot(new Slot(playerInv, col, INV_X + col * 18, INV_Y + 58));
         }
 
+        // Keep every open menu's result slot in sync with the shared grid: register a listener
+        // on the BE inventory so this menu re-evaluates whenever the grid changes (from this menu
+        // or any other viewer's menu). Unregistered in removed().
+        blockEntity.addInventoryListener(inventoryListener);
+
         // Initial recipe check
         updateResult();
     }
@@ -146,14 +158,33 @@ public class DriveCraftingTableMenu extends AbstractContainerMenu {
         Level level = player.level();
         if (level == null) return;
 
+        CraftingInput craftingInput = buildCraftingInput();
+
+        // Search for matching recipe
+        Optional<RecipeHolder<DriveCraftingRecipe>> match = level.getRecipeManager()
+                .getRecipeFor(ModRecipeTypes.DRIVE_CRAFTING.get(), craftingInput, level);
+
+        if (match.isPresent()) {
+            currentRecipe = match.get();
+            resultContainer.setItem(0, currentRecipe.value().assemble(craftingInput, level.registryAccess()));
+        } else {
+            currentRecipe = null;
+            resultContainer.setItem(0, ItemStack.EMPTY);
+        }
+        broadcastChanges();
+    }
+
+    /**
+     * Build a CraftingInput that includes the drive:
+     * Layout: 4×3 grid where columns 0-2 are the crafting grid, column 3 is the drive.
+     * This preserves the 3×3 positions for shaped matching while including the drive for detection.
+     *   Row 0: [grid0, grid1, grid2, drive]
+     *   Row 1: [grid3, grid4, grid5, EMPTY]
+     *   Row 2: [grid6, grid7, grid8, EMPTY]
+     */
+    private CraftingInput buildCraftingInput() {
         ItemStackHandler inv = blockEntity.getInventory();
 
-        // Build a CraftingInput that includes the drive:
-        // Layout: 4×3 grid where columns 0-2 are the crafting grid, column 3 is the drive
-        // This preserves the 3×3 positions for shaped matching while including the drive for detection.
-        // Row 0: [grid0, grid1, grid2, drive]
-        // Row 1: [grid3, grid4, grid5, EMPTY]
-        // Row 2: [grid6, grid7, grid8, EMPTY]
         List<ItemStack> combined = new ArrayList<>(12);
         // Row 0
         combined.add(inv.getStackInSlot(DriveCraftingTableBlockEntity.GRID_SLOT_START + 0));
@@ -171,20 +202,7 @@ public class DriveCraftingTableMenu extends AbstractContainerMenu {
         combined.add(inv.getStackInSlot(DriveCraftingTableBlockEntity.GRID_SLOT_START + 8));
         combined.add(ItemStack.EMPTY);
 
-        CraftingInput craftingInput = CraftingInput.of(4, 3, combined);
-
-        // Search for matching recipe
-        Optional<RecipeHolder<DriveCraftingRecipe>> match = level.getRecipeManager()
-                .getRecipeFor(ModRecipeTypes.DRIVE_CRAFTING.get(), craftingInput, level);
-
-        if (match.isPresent()) {
-            currentRecipe = match.get();
-            resultContainer.setItem(0, currentRecipe.value().assemble(craftingInput, level.registryAccess()));
-        } else {
-            currentRecipe = null;
-            resultContainer.setItem(0, ItemStack.EMPTY);
-        }
-        broadcastChanges();
+        return CraftingInput.of(4, 3, combined);
     }
 
     /**
@@ -197,6 +215,18 @@ public class DriveCraftingTableMenu extends AbstractContainerMenu {
 
         DriveCraftingRecipe recipe = currentRecipe.value();
 
+        // Re-verify the recipe still matches the CURRENT grid before consuming anything. Because
+        // the grid is shared BE state across multiple viewers, another player may have already
+        // crafted (mutating the grid) since this menu's result was computed. Without this guard a
+        // stale result could be taken for free. If it no longer matches, clear the result and bail.
+        Level level = player.level();
+        if (level == null || !recipe.matches(buildCraftingInput(), level)) {
+            currentRecipe = null;
+            resultContainer.setItem(0, ItemStack.EMPTY);
+            updateResult();
+            return;
+        }
+
         // Drive stays in the slot unchanged — recipe_id is deliberately kept
 
         // Consume ingredients from the grid
@@ -206,8 +236,22 @@ public class DriveCraftingTableMenu extends AbstractContainerMenu {
             consumeGridIngredientsShapeless(recipe);
         }
 
-        // Re-check recipe after consumption
-        updateResult();
+        // Persist the consumption and re-check the recipe for EVERY open menu: consumption
+        // shrinks backing stacks in place, which fires no onContentsChanged of its own, so mark
+        // the BE dirty and fan out through its listeners (this menu's updateResult included).
+        blockEntity.setChanged();
+        blockEntity.notifyInventoryListeners();
+    }
+
+    /**
+     * Hand a crafting remainder (e.g. an empty bucket) to the player when its grid slot still
+     * holds items and cannot take it back — insert into the player inventory, or drop it at the
+     * player's feet if full, mirroring vanilla ResultSlot's remainder handling.
+     */
+    private void giveRemainderToPlayer(ItemStack remainder) {
+        if (!player.getInventory().add(remainder)) {
+            player.drop(remainder, false);
+        }
     }
 
     /**
@@ -226,10 +270,15 @@ public class DriveCraftingTableMenu extends AbstractContainerMenu {
 
         for (int offsetX = 0; offsetX <= 3 - patternW; offsetX++) {
             for (int offsetY = 0; offsetY <= 3 - patternH; offsetY++) {
-                if (checkPatternMatch(inv, pattern, offsetX, offsetY, false) ||
-                    checkPatternMatch(inv, pattern, offsetX, offsetY, true)) {
+                if (checkPatternMatch(inv, pattern, offsetX, offsetY, false)) {
                     // Found the match, consume at this offset
                     consumeAtOffset(inv, pattern, offsetX, offsetY, false);
+                    return;
+                }
+                if (checkPatternMatch(inv, pattern, offsetX, offsetY, true)) {
+                    // Mirrored placement — consume with the same orientation that matched,
+                    // otherwise the wrong slots would be drained.
+                    consumeAtOffset(inv, pattern, offsetX, offsetY, true);
                     return;
                 }
             }
@@ -271,8 +320,13 @@ public class DriveCraftingTableMenu extends AbstractContainerMenu {
                     ItemStack gridStack = inv.getStackInSlot(slotIndex);
                     ItemStack remainder = gridStack.getCraftingRemainingItem();
                     gridStack.shrink(1);
-                    if (gridStack.isEmpty() && !remainder.isEmpty()) {
+                    if (gridStack.isEmpty()) {
                         inv.setStackInSlot(slotIndex, remainder);
+                    } else if (!remainder.isEmpty()) {
+                        // Slot still holds items — hand the remainder to the player instead
+                        // of voiding it (see AutoDriveCraftingTableBlockEntity for the
+                        // equivalent automation-side handling).
+                        giveRemainderToPlayer(remainder);
                     }
                 }
             }
@@ -297,8 +351,12 @@ public class DriveCraftingTableMenu extends AbstractContainerMenu {
                         // Check for container items (e.g., buckets)
                         ItemStack remainder = gridStack.getCraftingRemainingItem();
                         gridStack.shrink(1);
-                        if (gridStack.isEmpty() && !remainder.isEmpty()) {
+                        if (gridStack.isEmpty()) {
                             inv.setStackInSlot(slotIndex, remainder);
+                        } else if (!remainder.isEmpty()) {
+                            // Slot still holds items — hand the remainder to the player
+                            // instead of voiding it.
+                            giveRemainderToPlayer(remainder);
                         }
                         consumed[i] = true;
                         break;
@@ -355,9 +413,31 @@ public class DriveCraftingTableMenu extends AbstractContainerMenu {
             } else {
                 slot.setChanged();
             }
+
+            if (slotStack.getCount() == result.getCount()) {
+                return ItemStack.EMPTY;
+            }
+
+            // Vanilla CraftingMenu pattern: onTake runs AFTER the move. For the result slot this
+            // is the ONLY path that consumes grid ingredients (DriveCraftingResultSlot.onTake ->
+            // onResultTaken), which also re-evaluates the recipe; doClick's QUICK_MOVE loop then
+            // re-invokes quickMoveStack while the refreshed result still matches, so shift-click
+            // crafts repeatedly like vanilla — consuming exactly once per craft.
+            slot.onTake(player, slotStack);
+            if (index == resultSlotIndex) {
+                // Drop any result items that no longer fit in the player inventory.
+                player.drop(slotStack, false);
+            }
         }
 
         return result;
+    }
+
+    @Override
+    public void removed(Player player) {
+        super.removed(player);
+        // Stop receiving grid-change notifications once this menu closes.
+        blockEntity.removeInventoryListener(inventoryListener);
     }
 
     @Override
@@ -387,7 +467,12 @@ public class DriveCraftingTableMenu extends AbstractContainerMenu {
         @Override
         public void setChanged() {
             super.setChanged();
-            menu.updateResult();
+            // SlotItemHandler.setChanged() is a no-op, and moveItemStackTo mutates the backing
+            // stack in place for partial merges (only calling slot.setChanged()), so the handler's
+            // onContentsChanged never fires. Mark the BE dirty and re-notify all viewers here so
+            // those in-place merges persist and every open menu re-evaluates its result.
+            menu.blockEntity.setChanged();
+            menu.blockEntity.notifyInventoryListeners();
         }
     }
 

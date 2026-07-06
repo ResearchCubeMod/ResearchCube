@@ -388,6 +388,12 @@ public class ResearchTableMenu extends AbstractContainerMenu {
             } else {
                 slot.setChanged();
             }
+
+            // Persist BE-backed changes: moveItemStackTo's in-place partial-merge path only calls
+            // Slot.setChanged(), a no-op for SlotItemHandler, so the merge never fires the
+            // handler's onContentsChanged and would be lost on a crash. Every branch above touches
+            // a BE-backed slot, so mark the BE dirty after any successful move.
+            blockEntity.setChanged();
         }
 
         return result;

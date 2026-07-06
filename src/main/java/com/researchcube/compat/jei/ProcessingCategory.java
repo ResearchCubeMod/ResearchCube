@@ -1,16 +1,16 @@
 package com.researchcube.compat.jei;
 
 import com.researchcube.ResearchCubeMod;
-import com.researchcube.client.ClientResearchData;
+import com.researchcube.block.ProcessingStationBlockEntity;
 import com.researchcube.recipe.ProcessingFluidStack;
 import com.researchcube.recipe.ProcessingRecipe;
 import com.researchcube.registry.ModItems;
 import com.researchcube.research.ResearchDefinition;
 import com.researchcube.util.NbtUtil;
 import com.researchcube.util.RecipeOutputResolver;
-import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.drawable.IDrawable;
+import mezz.jei.api.gui.drawable.IDrawableStatic;
 import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
 import mezz.jei.api.helpers.IGuiHelper;
 import mezz.jei.api.recipe.IFocusGroup;
@@ -30,8 +30,11 @@ import java.util.List;
 
 /**
  * JEI recipe category for Processing Station recipes.
- * Shows item inputs (up to 16), fluid inputs (up to 2), item outputs (up to 8), 
- * and fluid output (1), along with processing duration.
+ * Shows item inputs (up to 16, 4×4 grid), fluid inputs (up to 2), the research-locked drive,
+ * item outputs (up to 8, 2×4 grid), and the fluid output, along with the processing duration.
+ *
+ * <p>Slot backgrounds, the arrow and fluid rendering use JEI's own drawables/helpers; only the
+ * headers, duration label and the research-completion indicator are drawn manually.
  */
 public class ProcessingCategory implements IRecipeCategory<ProcessingRecipe> {
 
@@ -39,15 +42,43 @@ public class ProcessingCategory implements IRecipeCategory<ProcessingRecipe> {
     public static final RecipeType<ProcessingRecipe> RECIPE_TYPE =
             new RecipeType<>(UID, ProcessingRecipe.class);
 
+    private static final int WIDTH = 176;
+    private static final int HEIGHT = 100;
+
+    private static final int SLOT_STRIDE = 18;
+    private static final int FLUID_SIZE = 16;
+
+    // Input item grid (4×4): ingredient top-left corners.
+    private static final int INPUT_GRID_X = 1;
+    private static final int INPUT_GRID_Y = 1;
+    private static final int INPUT_COLS = 4;
+    private static final int INPUT_ROWS = 4;
+
+    // Output item grid (2×4).
+    private static final int OUTPUT_GRID_X = 114;
+    private static final int OUTPUT_GRID_Y = 1;
+    private static final int OUTPUT_COLS = 2;
+    private static final int OUTPUT_ROWS = 4;
+
+    // Fluid slots and the drive slot.
+    private static final int FLUID_IN_Y = 76;
+    private static final int FLUID_IN1_X = 1;
+    private static final int FLUID_IN2_X = 19;
+    private static final int FLUID_OUT_X = 156;
+    private static final int DRIVE_X = 84;
+    private static final int DRIVE_Y = 57;
+
+    private static final int ARROW_X = 82;
+    private static final int ARROW_Y = 36;
+
     private final IDrawable icon;
+    private final IDrawableStatic arrow;
     private final Component title;
 
     public ProcessingCategory(IGuiHelper guiHelper) {
-        // Layout: inputs on left (4x4 grid = 72px), arrow, outputs on right (2x4 grid = 36px)
-        // Plus fluids underneath
-        this.icon = guiHelper.createDrawableIngredient(VanillaTypes.ITEM_STACK,
-                new ItemStack(ModItems.PROCESSING_STATION_ITEM.get()));
-        this.title = Component.literal("Processing Station");
+        this.icon = guiHelper.createDrawableItemStack(new ItemStack(ModItems.PROCESSING_STATION_ITEM.get()));
+        this.arrow = guiHelper.getRecipeArrow();
+        this.title = Component.translatable("jei.researchcube.category.processing");
     }
 
     @Override
@@ -62,12 +93,12 @@ public class ProcessingCategory implements IRecipeCategory<ProcessingRecipe> {
 
     @Override
     public int getWidth() {
-        return 176;
+        return WIDTH;
     }
 
     @Override
     public int getHeight() {
-        return 100;
+        return HEIGHT;
     }
 
     @Override
@@ -77,175 +108,100 @@ public class ProcessingCategory implements IRecipeCategory<ProcessingRecipe> {
 
     @Override
     public void draw(ProcessingRecipe recipe, IRecipeSlotsView recipeSlotsView, GuiGraphics g, double mouseX, double mouseY) {
-        // Background panel
-        g.fill(0, 0, 176, 100, 0xFF1A1A2E);
-        // Top/bottom border
-        g.fill(0, 0, 176, 1, 0xFF3A3A5E);
-        g.fill(0, 99, 176, 100, 0xFF111122);
-        // Left/right border
-        g.fill(0, 0, 1, 100, 0xFF3A3A5E);
-        g.fill(175, 0, 176, 100, 0xFF111122);
-
         Font font = Minecraft.getInstance().font;
 
-        // "Inputs" header
-        g.drawString(font, "Inputs", 1, -10, 0xFFAAAAAA, false);
+        // Section headers.
+        g.drawString(font, Component.translatable("jei.researchcube.processing.header.inputs"),
+                INPUT_GRID_X, INPUT_GRID_Y - 11, 0xFFAAAAAA, false);
+        g.drawString(font, Component.translatable("jei.researchcube.processing.header.outputs"),
+                OUTPUT_GRID_X, OUTPUT_GRID_Y - 11, 0xFFAAAAAA, false);
 
-        // "Outputs" header
-        g.drawString(font, "Outputs", 114, -10, 0xFFAAAAAA, false);
+        // Arrow, vertically centred on the item rows.
+        arrow.draw(g, ARROW_X, ARROW_Y + (SLOT_STRIDE - arrow.getHeight()) / 2);
 
-        // Input grid slot outlines (4x4)
-        for (int row = 0; row < 4; row++) {
-            for (int col = 0; col < 4; col++) {
-                drawSlotOutline(g, col * 18, row * 18, 18, 18);
-            }
-        }
-
-        // Fluid input slot outlines
-        drawSlotOutline(g, 0, 75, 18, 18);
-        drawSlotOutline(g, 18, 75, 18, 18);
-
-        // Arrow with duration
-        int arrowX = 82;
-        int arrowY = 36;
-        g.fill(arrowX, arrowY + 3, arrowX + 16, arrowY + 5, 0xFF555577);
-        g.fill(arrowX + 14, arrowY + 1, arrowX + 16, arrowY + 7, 0xFF555577);
-        g.fill(arrowX + 16, arrowY + 2, arrowX + 18, arrowY + 6, 0xFF555577);
-        g.fill(arrowX + 18, arrowY + 3, arrowX + 20, arrowY + 5, 0xFF555577);
-
-        // Duration text below arrow
-        float seconds = recipe.getDuration() / 20.0f;
-        String durationStr = String.format("%.1fs", seconds);
+        // Duration below the arrow.
+        String durationStr = Component.translatable("jei.researchcube.processing.duration",
+                String.format("%.1f", recipe.getDuration() / 20.0f)).getString();
         int durationW = font.width(durationStr);
-        g.drawString(font, durationStr, arrowX + 10 - durationW / 2, arrowY + 10, 0xFF888888, false);
+        g.drawString(font, durationStr, ARROW_X + 10 - durationW / 2, ARROW_Y + 20, 0xFF888888, false);
 
-        // Drive slot outline (below the arrow) — recipes are research-locked
-        drawSlotOutline(g, 83, 56, 18, 18);
-
-        // Completion indicator under the drive slot (mirrors DriveCraftingCategory)
-        String requiredRecipeId = recipe.getRequiredRecipeId();
-        List<ResearchDefinition> unlocking = RecipeOutputResolver.findResearchForRecipe(requiredRecipeId);
-        if (!unlocking.isEmpty()) {
-            boolean completed = unlocking.stream()
-                    .anyMatch(def -> ClientResearchData.isCompleted(def.getId().toString()));
-            String indicator = completed ? "✔" : "✘";
-            int color = completed ? 0xFF22CC55 : 0xFFCC3333;
-            g.drawString(font, indicator, 89, 78, color, false);
-        }
-
-        // Output grid slot outlines (2x4)
-        for (int row = 0; row < 4; row++) {
-            for (int col = 0; col < 2; col++) {
-                drawSlotOutline(g, 113 + col * 18, row * 18, 18, 18);
-            }
-        }
-
-        // Fluid output slot outline
-        drawSlotOutline(g, 155, 75, 18, 18);
-    }
-
-    private static void drawSlotOutline(GuiGraphics g, int x, int y, int w, int h) {
-        g.fill(x, y, x + w, y + 1, 0xFF333355);
-        g.fill(x, y + h - 1, x + w, y + h, 0xFF222244);
-        g.fill(x, y, x + 1, y + h, 0xFF333355);
-        g.fill(x + w - 1, y, x + w, y + h, 0xFF222244);
+        // Research-completion indicator under the drive slot.
+        JeiRenderHelper.drawCompletionIndicator(g, font, recipe.getRequiredRecipeId(),
+                DRIVE_X + 5, DRIVE_Y + 21);
     }
 
     @Override
     public void setRecipe(IRecipeLayoutBuilder builder, ProcessingRecipe recipe, IFocusGroup focuses) {
-        // Drive requirement (mirrors DriveCraftingCategory): a pre-loaded drive with the
-        // recipe_id imprinted, so "show uses" on a filled drive finds this recipe.
+        // Research-locked drive (mirrors DriveCraftingCategory): a drive pre-loaded with this
+        // recipe_id so "show uses" on an imprinted drive finds this recipe.
         String requiredRecipeId = recipe.getRequiredRecipeId();
         List<ResearchDefinition> unlockingResearch = RecipeOutputResolver.findResearchForRecipe(requiredRecipeId);
 
-        ItemStack preloadedDrive;
-        if (!unlockingResearch.isEmpty()) {
-            preloadedDrive = RecipeOutputResolver.getDriveForTier(unlockingResearch.getFirst().getTier());
-        } else {
-            preloadedDrive = new ItemStack(ModItems.METADATA_RECLAIMED.get());
-        }
+        ItemStack preloadedDrive = unlockingResearch.isEmpty()
+                ? new ItemStack(ModItems.METADATA_RECLAIMED.get())
+                : RecipeOutputResolver.getDriveForTier(unlockingResearch.getFirst().getTier());
         NbtUtil.addRecipe(preloadedDrive, requiredRecipeId);
 
-        builder.addSlot(RecipeIngredientRole.INPUT, 84, 57)
+        builder.addSlot(RecipeIngredientRole.INPUT, DRIVE_X, DRIVE_Y)
+                .setStandardSlotBackground()
                 .addItemStack(preloadedDrive)
-                .addRichTooltipCallback((recipeSlotView, tooltip) -> {
-                    tooltip.add(Component.literal("§7Requires recipe: §e" + requiredRecipeId));
-                    if (!unlockingResearch.isEmpty()) {
-                        for (ResearchDefinition def : unlockingResearch) {
-                            boolean completed = ClientResearchData.isCompleted(def.getId().toString());
-                            String status = completed ? "§a✔ " : "§c✘ ";
-                            tooltip.add(Component.literal(status + "§aUnlocked by: §f" + def.getDisplayName()
-                                    + " §7(" + def.getTier().getDisplayName() + ")"));
-                        }
-                    }
-                });
+                .addRichTooltipCallback((slotView, tooltip) ->
+                        JeiRenderHelper.addDriveTooltip(tooltip, requiredRecipeId, unlockingResearch));
 
-        // Item inputs in a 4x4 grid (slots 0-15)
+        // Item inputs (4×4).
         List<Ingredient> ingredients = recipe.getIngredients();
-        int ingredientIndex = 0;
-        for (int row = 0; row < 4; row++) {
-            for (int col = 0; col < 4; col++) {
-                int x = 1 + col * 18;
-                int y = 1 + row * 18;
-                if (ingredientIndex < ingredients.size()) {
-                    Ingredient ingredient = ingredients.get(ingredientIndex);
-                    if (!ingredient.isEmpty()) {
-                        builder.addSlot(RecipeIngredientRole.INPUT, x, y)
-                                .addIngredients(ingredient);
-                    }
-                }
-                ingredientIndex++;
+        for (int i = 0; i < INPUT_COLS * INPUT_ROWS && i < ingredients.size(); i++) {
+            Ingredient ingredient = ingredients.get(i);
+            if (ingredient.isEmpty()) {
+                continue;
             }
+            int x = INPUT_GRID_X + (i % INPUT_COLS) * SLOT_STRIDE;
+            int y = INPUT_GRID_Y + (i / INPUT_COLS) * SLOT_STRIDE;
+            builder.addSlot(RecipeIngredientRole.INPUT, x, y)
+                    .setStandardSlotBackground()
+                    .addIngredients(ingredient);
         }
 
-        // Fluid inputs underneath the item input grid (up to 2)
+        // Fluid inputs (up to 2), rendered against the real tank capacity so the bar fills sensibly.
         List<ProcessingFluidStack> fluidInputs = recipe.getFluidInputs();
-        if (fluidInputs.size() > 0) {
-            FluidStack fluid1 = fluidInputs.get(0).toFluidStack();
-            builder.addSlot(RecipeIngredientRole.INPUT, 1, 76)
-                    .setFluidRenderer(8000, false, 16, 16)
-                    .addFluidStack(fluid1.getFluid(), fluid1.getAmount())
-                    .addRichTooltipCallback((view, tooltip) -> {
-                        tooltip.add(Component.literal(fluid1.getAmount() + " mB"));
-                    });
+        if (!fluidInputs.isEmpty()) {
+            addFluidSlot(builder, RecipeIngredientRole.INPUT, FLUID_IN1_X, FLUID_IN_Y, fluidInputs.get(0).toFluidStack());
         }
         if (fluidInputs.size() > 1) {
-            FluidStack fluid2 = fluidInputs.get(1).toFluidStack();
-            builder.addSlot(RecipeIngredientRole.INPUT, 19, 76)
-                    .setFluidRenderer(8000, false, 16, 16)
-                    .addFluidStack(fluid2.getFluid(), fluid2.getAmount())
-                    .addRichTooltipCallback((view, tooltip) -> {
-                        tooltip.add(Component.literal(fluid2.getAmount() + " mB"));
-                    });
+            addFluidSlot(builder, RecipeIngredientRole.INPUT, FLUID_IN2_X, FLUID_IN_Y, fluidInputs.get(1).toFluidStack());
         }
 
-        // Item outputs in a 2x4 grid (slots 16-23)
+        // Item outputs (2×4).
         List<ItemStack> results = recipe.getResults();
-        int resultIndex = 0;
-        for (int row = 0; row < 4; row++) {
-            for (int col = 0; col < 2; col++) {
-                int x = 114 + col * 18;
-                int y = 1 + row * 18;
-                if (resultIndex < results.size()) {
-                    ItemStack result = results.get(resultIndex);
-                    if (!result.isEmpty()) {
-                        builder.addSlot(RecipeIngredientRole.OUTPUT, x, y)
-                                .addItemStack(result);
-                    }
-                }
-                resultIndex++;
+        for (int i = 0; i < OUTPUT_COLS * OUTPUT_ROWS && i < results.size(); i++) {
+            ItemStack result = results.get(i);
+            if (result.isEmpty()) {
+                continue;
             }
+            int x = OUTPUT_GRID_X + (i % OUTPUT_COLS) * SLOT_STRIDE;
+            int y = OUTPUT_GRID_Y + (i / OUTPUT_COLS) * SLOT_STRIDE;
+            builder.addSlot(RecipeIngredientRole.OUTPUT, x, y)
+                    .setStandardSlotBackground()
+                    .addItemStack(result);
         }
 
-        // Fluid output
+        // Fluid output.
         if (recipe.hasFluidOutput()) {
-            FluidStack fluidOut = recipe.getFluidOutput().toFluidStack();
-            builder.addSlot(RecipeIngredientRole.OUTPUT, 156, 76)
-                    .setFluidRenderer(8000, false, 16, 16)
-                    .addFluidStack(fluidOut.getFluid(), fluidOut.getAmount())
-                    .addRichTooltipCallback((view, tooltip) -> {
-                        tooltip.add(Component.literal(fluidOut.getAmount() + " mB"));
-                    });
+            addFluidSlot(builder, RecipeIngredientRole.OUTPUT, FLUID_OUT_X, FLUID_IN_Y, recipe.getFluidOutput().toFluidStack());
         }
+    }
+
+    /**
+     * Add a fluid slot rendered against the station's tank capacity (so the fill level is
+     * meaningful) with the capacity shown in JEI's own fluid tooltip. Skips empty fluids.
+     */
+    private void addFluidSlot(IRecipeLayoutBuilder builder, RecipeIngredientRole role, int x, int y, FluidStack fluid) {
+        if (fluid.isEmpty()) {
+            return;
+        }
+        builder.addSlot(role, x, y)
+                .setStandardSlotBackground()
+                .setFluidRenderer(ProcessingStationBlockEntity.TANK_CAPACITY, true, FLUID_SIZE, FLUID_SIZE)
+                .addFluidStack(fluid.getFluid(), fluid.getAmount());
     }
 }

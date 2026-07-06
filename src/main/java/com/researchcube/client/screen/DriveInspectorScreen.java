@@ -45,7 +45,7 @@ public class DriveInspectorScreen extends Screen {
         recipes.clear();
 
         for (String recipeId : NbtUtil.readRecipes(driveStack)) {
-            ItemStack output = RecipeOutputResolver.resolveOutput(recipeId);
+            ItemStack output = RecipeOutputResolver.resolveOutput(this.minecraft.level, recipeId);
             String name = output.isEmpty() ? recipeId : output.getHoverName().getString();
             if (output.getCount() > 1) {
                 name += " \u00d7" + output.getCount();

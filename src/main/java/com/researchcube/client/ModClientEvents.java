@@ -4,6 +4,7 @@ import com.researchcube.ResearchCubeMod;
 import com.researchcube.client.renderer.CubeItemRenderer;
 import com.researchcube.client.renderer.ResearchStationItemRenderer;
 import com.researchcube.client.renderer.ResearchStationRenderer;
+import com.researchcube.client.screen.AutoDriveCraftingTableScreen;
 import com.researchcube.client.screen.DriveCraftingTableScreen;
 import com.researchcube.client.screen.ProcessingStationScreen;
 import com.researchcube.client.screen.ResearchTableScreen;
@@ -16,6 +17,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
@@ -35,6 +37,7 @@ public class ModClientEvents {
         event.register(ModMenus.RESEARCH_TABLE.get(), ResearchTableScreen::new);
         event.register(ModMenus.DRIVE_CRAFTING_TABLE.get(), DriveCraftingTableScreen::new);
         event.register(ModMenus.PROCESSING_STATION.get(), ProcessingStationScreen::new);
+        event.register(ModMenus.AUTO_DRIVE_CRAFTING_TABLE.get(), AutoDriveCraftingTableScreen::new);
     }
 
     @SubscribeEvent
@@ -46,6 +49,16 @@ public class ModClientEvents {
     @SubscribeEvent
     public static void onRegisterGuiLayers(RegisterGuiLayersEvent event) {
         ResearchHudOverlay.register(event);
+    }
+
+    /**
+     * Clear cached client-side state on disconnect so research/HUD/sound state from one
+     * world or server does not bleed into the next one the player joins.
+     */
+    @SubscribeEvent
+    public static void onLoggingOut(ClientPlayerNetworkEvent.LoggingOut event) {
+        ClientResearchData.clearAll();
+        ClientSoundHandler.stopAll();
     }
 
     @SubscribeEvent

@@ -7,11 +7,11 @@ import com.researchcube.research.ResearchRegistry;
 import com.researchcube.research.ResearchTier;
 import com.researchcube.research.WeightedRecipe;
 import com.researchcube.registry.ModItems;
-import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.RecipeManager;
+import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -19,11 +19,13 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Client-side utility for resolving recipe IDs to their output ItemStacks
- * and finding which research definitions unlock a given recipe.
+ * Utility for resolving recipe IDs to their output ItemStacks and finding which
+ * research definitions unlock a given recipe.
  *
- * All methods in this class reference Minecraft.getInstance() and must only
- * be called from the client side (screens, tooltips, JEI, etc.).
+ * Recipe resolution needs a {@link RecipeManager}, which only exists on a connected
+ * level. Callers pass the relevant {@link Level} (nullable); a null level yields no
+ * output resolution. This keeps the class free of client-only references so it stays
+ * safe to reference from common code (e.g. item tooltips).
  */
 public final class RecipeOutputResolver {
 
@@ -33,10 +35,10 @@ public final class RecipeOutputResolver {
      * Resolve a recipe ID string to its output ItemStack.
      * Handles both drive_crafting and processing recipes (both are research-locked
      * unlock targets); other recipe types fall back to EMPTY.
-     * Returns ItemStack.EMPTY if the recipe cannot be found or the client is not connected.
+     * Returns ItemStack.EMPTY if the level is null or the recipe cannot be found.
      */
-    public static ItemStack resolveOutput(String recipeId) {
-        RecipeManager rm = getRecipeManager();
+    public static ItemStack resolveOutput(@Nullable Level level, String recipeId) {
+        RecipeManager rm = getRecipeManager(level);
         if (rm == null) return ItemStack.EMPTY;
 
         try {
@@ -61,8 +63,8 @@ public final class RecipeOutputResolver {
      * Format a recipe output as a human-readable string.
      * Returns e.g. "Repeater ×4" or falls back to the raw recipe ID.
      */
-    public static String formatOutput(String recipeId) {
-        ItemStack output = resolveOutput(recipeId);
+    public static String formatOutput(@Nullable Level level, String recipeId) {
+        ItemStack output = resolveOutput(level, recipeId);
         if (!output.isEmpty()) {
             String name = output.getHoverName().getString();
             return output.getCount() > 1 ? name + " \u00d7" + output.getCount() : name;
@@ -110,11 +112,7 @@ public final class RecipeOutputResolver {
     }
 
     @Nullable
-    private static RecipeManager getRecipeManager() {
-        Minecraft mc = Minecraft.getInstance();
-        if (mc != null && mc.level != null) {
-            return mc.level.getRecipeManager();
-        }
-        return null;
+    private static RecipeManager getRecipeManager(@Nullable Level level) {
+        return level != null ? level.getRecipeManager() : null;
     }
 }

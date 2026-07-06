@@ -1,6 +1,7 @@
 package com.researchcube.recipe;
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.DataResult;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -20,6 +21,17 @@ import java.util.Optional;
  */
 public class ProcessingRecipeSerializer implements RecipeSerializer<ProcessingRecipe> {
 
+    // ── Physical Machine Limits ──
+    // These MUST stay in sync with ProcessingStationBlockEntity. They are duplicated
+    // here (rather than referenced) to avoid a recipe -> block package dependency
+    // (block already depends on recipe, so importing it back would be circular).
+    // Source of truth: ProcessingStationBlockEntity.INPUT_SLOT_COUNT (16),
+    // OUTPUT_SLOT_COUNT (8), TANK_CAPACITY (8000), and the station's 2 input tanks.
+    private static final int MAX_INGREDIENTS = 16;   // INPUT_SLOT_COUNT
+    private static final int MAX_ITEM_RESULTS = 8;   // OUTPUT_SLOT_COUNT
+    private static final int MAX_FLUID_INPUTS = 2;   // two input tanks
+    private static final int TANK_CAPACITY = 8000;   // TANK_CAPACITY (mB)
+
     // ── Fluid Stack Codec ──
 
     private static final Codec<ProcessingFluidStack> FLUID_STACK_CODEC = RecordCodecBuilder.create(instance ->
@@ -31,7 +43,7 @@ public class ProcessingRecipeSerializer implements RecipeSerializer<ProcessingRe
 
     // ── Main MapCodec ──
 
-    public static final MapCodec<ProcessingRecipe> CODEC = RecordCodecBuilder.mapCodec(instance ->
+    private static final MapCodec<ProcessingRecipe> RAW_CODEC = RecordCodecBuilder.mapCodec(instance ->
             instance.group(
                     // "recipe_id" is optional: empty means "bind to my own recipe ID after load"
                     // (resolved by ResearchManager); explicit values are only for aliasing.
@@ -45,6 +57,76 @@ public class ProcessingRecipeSerializer implements RecipeSerializer<ProcessingRe
             ).apply(instance, (recipeId, group, inputs, fluidInputs, outputs, fluidOutput, duration) ->
                     new ProcessingRecipe(recipeId, group, inputs, fluidInputs, outputs, fluidOutput.orElse(null), duration))
     );
+
+    // Load-time validation: reject recipes the Processing Station physically cannot run,
+    // so datapack authors get a clear error at /reload instead of a machine that silently
+    // never starts. Kept as a separate step from RAW_CODEC — chaining directly onto
+    // RecordCodecBuilder.mapCodec(...) breaks javac's generic inference for the builder.
+    public static final MapCodec<ProcessingRecipe> CODEC = RAW_CODEC.validate(ProcessingRecipeSerializer::validate);
+
+    /**
+     * Validates a decoded recipe against the Processing Station's physical limits.
+     * Returns a {@link DataResult} error (naming the offending field and its limit) that
+     * surfaces in the log at datapack load / {@code /reload}.
+     */
+    private static DataResult<ProcessingRecipe> validate(ProcessingRecipe recipe) {
+        int ingredientCount = recipe.getIngredients().size();
+        if (ingredientCount > MAX_INGREDIENTS) {
+            return DataResult.error(() -> "Processing recipe has " + ingredientCount
+                    + " item inputs but the Processing Station allows at most "
+                    + MAX_INGREDIENTS + " (field: inputs).");
+        }
+
+        int resultCount = recipe.getResults().size();
+        if (resultCount > MAX_ITEM_RESULTS) {
+            return DataResult.error(() -> "Processing recipe has " + resultCount
+                    + " item outputs but the Processing Station allows at most "
+                    + MAX_ITEM_RESULTS + " (field: outputs).");
+        }
+
+        List<ProcessingFluidStack> fluidInputs = recipe.getFluidInputs();
+        if (fluidInputs.size() > MAX_FLUID_INPUTS) {
+            return DataResult.error(() -> "Processing recipe has " + fluidInputs.size()
+                    + " fluid inputs but the Processing Station allows at most "
+                    + MAX_FLUID_INPUTS + " (field: fluid_inputs).");
+        }
+
+        // Fluid amounts: each input and the output must be within a tank's capacity and positive.
+        for (ProcessingFluidStack fluid : fluidInputs) {
+            DataResult<ProcessingRecipe> err = validateFluidAmount(recipe, fluid.amount(), "fluid_inputs");
+            if (err != null) {
+                return err;
+            }
+        }
+        ProcessingFluidStack fluidOutput = recipe.getFluidOutput();
+        if (fluidOutput != null) {
+            DataResult<ProcessingRecipe> err = validateFluidAmount(recipe, fluidOutput.amount(), "fluid_output");
+            if (err != null) {
+                return err;
+            }
+        }
+
+        int duration = recipe.getDuration();
+        if (duration <= 0) {
+            return DataResult.error(() -> "Processing recipe has duration " + duration
+                    + " but it must be greater than 0 (field: duration).");
+        }
+
+        return DataResult.success(recipe);
+    }
+
+    /** Shared bounds check for a single fluid amount; returns null when valid. */
+    private static DataResult<ProcessingRecipe> validateFluidAmount(ProcessingRecipe recipe, int amount, String field) {
+        if (amount <= 0) {
+            return DataResult.error(() -> "Processing recipe has a fluid amount of " + amount
+                    + " but it must be greater than 0 (field: " + field + ").");
+        }
+        if (amount > TANK_CAPACITY) {
+            return DataResult.error(() -> "Processing recipe has a fluid amount of " + amount
+                    + " mB but a tank holds at most " + TANK_CAPACITY + " mB (field: " + field + ").");
+        }
+        return null;
+    }
 
     // ── StreamCodec for Network ──
 

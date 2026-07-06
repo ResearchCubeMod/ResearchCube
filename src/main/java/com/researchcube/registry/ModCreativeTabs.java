@@ -37,6 +37,8 @@ public class ModCreativeTabs {
                         output.accept(ModItems.RESEARCH_STATION_ITEM.get());
                         // Drive Crafting Table
                         output.accept(ModItems.DRIVE_CRAFTING_TABLE_ITEM.get());
+                        // Auto Drive Crafting Table
+                        output.accept(ModItems.AUTO_DRIVE_CRAFTING_TABLE_ITEM.get());
                         // Processing Station
                         output.accept(ModItems.PROCESSING_STATION_ITEM.get());
                         // Research Book

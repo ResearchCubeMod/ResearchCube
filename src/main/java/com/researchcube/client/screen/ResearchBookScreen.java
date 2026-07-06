@@ -314,8 +314,8 @@ public class ResearchBookScreen extends Screen {
         if (def.hasRecipePool()) {
             tooltip.add(Component.literal("Possible Rewards:").withStyle(s -> s.withColor(0x55FFFF)));
             for (ResourceLocation recipeRl : def.getRecipePool()) {
-                String resolved = RecipeOutputResolver.formatOutput(recipeRl.toString());
-                ItemStack output = RecipeOutputResolver.resolveOutput(recipeRl.toString());
+                String resolved = RecipeOutputResolver.formatOutput(this.minecraft.level, recipeRl.toString());
+                ItemStack output = RecipeOutputResolver.resolveOutput(this.minecraft.level, recipeRl.toString());
                 int rewardColor = !output.isEmpty() ? 0x88FF88 : 0xBBBBBB;
                 tooltip.add(Component.literal("  \u2192 " + resolved)
                         .withStyle(s -> s.withColor(rewardColor)));

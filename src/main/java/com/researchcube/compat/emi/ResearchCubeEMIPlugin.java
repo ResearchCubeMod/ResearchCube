@@ -42,6 +42,7 @@ public class ResearchCubeEMIPlugin implements EmiPlugin {
         // Workstations (catalysts)
         registry.addWorkstation(DRIVE_CRAFTING, EmiStack.of(ModItems.RESEARCH_STATION_ITEM.get()));
         registry.addWorkstation(DRIVE_CRAFTING, EmiStack.of(ModItems.DRIVE_CRAFTING_TABLE_ITEM.get()));
+        registry.addWorkstation(DRIVE_CRAFTING, EmiStack.of(ModItems.AUTO_DRIVE_CRAFTING_TABLE_ITEM.get()));
         registry.addWorkstation(PROCESSING, EmiStack.of(ModItems.PROCESSING_STATION_ITEM.get()));
 
         // Drive Crafting recipes

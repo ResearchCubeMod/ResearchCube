@@ -36,11 +36,17 @@ public record WipeTankPacket(BlockPos pos) implements CustomPacketPayload {
         context.enqueueWork(() -> {
             if (!(context.player() instanceof ServerPlayer player)) return;
 
+            // Validate before touching the world: reject if too far away (vanilla
+            // 8-block container reach) or if the chunk isn't loaded (a getBlockEntity
+            // lookup would otherwise force-load it).
+            if (player.distanceToSqr(packet.pos().getX() + 0.5, packet.pos().getY() + 0.5, packet.pos().getZ() + 0.5) > 64.0) {
+                return;
+            }
+            if (!player.level().isLoaded(packet.pos())) {
+                return;
+            }
+
             if (player.level().getBlockEntity(packet.pos()) instanceof ResearchTableBlockEntity be) {
-                // Only allow wipe if the player is close enough
-                if (player.distanceToSqr(packet.pos().getX() + 0.5, packet.pos().getY() + 0.5, packet.pos().getZ() + 0.5) > 64) {
-                    return;
-                }
                 be.wipeTank();
                 ResearchCubeMod.LOGGER.debug("Player {} wiped fluid tank at {}",
                         player.getName().getString(), packet.pos());

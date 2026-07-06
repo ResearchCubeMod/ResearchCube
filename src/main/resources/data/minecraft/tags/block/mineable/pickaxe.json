@@ -3,6 +3,7 @@
   "values": [
     "researchcube:research_station",
     "researchcube:drive_crafting_table",
+    "researchcube:auto_drive_crafting_table",
     "researchcube:processing_station"
   ]
 }

@@ -1,6 +1,7 @@
 package com.researchcube.registry;
 
 import com.researchcube.ResearchCubeMod;
+import com.researchcube.block.AutoDriveCraftingTableBlock;
 import com.researchcube.block.DriveCraftingTableBlock;
 import com.researchcube.block.ProcessingStationBlock;
 import com.researchcube.block.ResearchTableBlock;
@@ -30,6 +31,12 @@ public class ModBlocks {
     public static final DeferredBlock<ProcessingStationBlock> PROCESSING_STATION = BLOCKS.register("processing_station",
             () -> new ProcessingStationBlock(BlockBehaviour.Properties.of()
                     .strength(4.0f, 6.0f)
+                    .sound(SoundType.METAL)
+                    .requiresCorrectToolForDrops()));
+
+    public static final DeferredBlock<AutoDriveCraftingTableBlock> AUTO_DRIVE_CRAFTING_TABLE = BLOCKS.register("auto_drive_crafting_table",
+            () -> new AutoDriveCraftingTableBlock(BlockBehaviour.Properties.of()
+                    .strength(3.5f, 5.0f)
                     .sound(SoundType.METAL)
                     .requiresCorrectToolForDrops()));
 }

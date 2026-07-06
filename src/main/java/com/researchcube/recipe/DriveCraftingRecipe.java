@@ -119,6 +119,31 @@ public class DriveCraftingRecipe implements CraftingRecipe {
     }
 
     /**
+     * Match this recipe against a grid-only {@link CraftingInput} that does NOT contain the
+     * drive — used by the Auto Drive Crafting Table, which keeps the drive in a dedicated slot
+     * outside the grid. The caller is responsible for verifying the drive separately (via
+     * {@link #getRequiredRecipeId()} + {@code NbtUtil.hasRecipe}).
+     *
+     * <p>Shaped: delegates to {@link ShapedRecipePattern#matches} (offset sliding + mirroring).
+     * Shapeless: matches the grid's non-empty items against the ingredient list.
+     *
+     * @param gridInput the crafting grid contents, drive-free
+     */
+    public boolean matchesGridOnly(CraftingInput gridInput) {
+        if (isShaped()) {
+            return shapedPattern.matches(gridInput);
+        }
+        List<ItemStack> nonEmpty = new ArrayList<>();
+        for (int i = 0; i < gridInput.size(); i++) {
+            ItemStack stack = gridInput.getItem(i);
+            if (!stack.isEmpty()) {
+                nonEmpty.add(stack);
+            }
+        }
+        return matchesShapeless(nonEmpty, ingredients);
+    }
+
+    /**
      * Shapeless matching: find the drive, then match remaining items against ingredients.
      */
     private boolean matchesShapelessMode(CraftingInput input) {

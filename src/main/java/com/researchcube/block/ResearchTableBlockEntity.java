@@ -610,7 +610,7 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
                 true
         );
 
-        for (ServerPlayer player : serverLevel.players()) {
+        for (ServerPlayer player : serverLevel.getServer().getPlayerList().getPlayers()) {
             if (researchKey.equals(ResearchSavedData.getResearchKey(player))) {
                 PacketDistributor.sendToPlayer(player, packet);
             }
@@ -622,7 +622,7 @@ public class ResearchTableBlockEntity extends BlockEntity implements GeoBlockEnt
      */
     private void sendClearPacket(ServerLevel serverLevel, String key) {
         SyncResearchProgressPacket packet = new SyncResearchProgressPacket("", 0f, 0, 0xFFFFFF, false);
-        for (ServerPlayer player : serverLevel.players()) {
+        for (ServerPlayer player : serverLevel.getServer().getPlayerList().getPlayers()) {
             if (key.equals(ResearchSavedData.getResearchKey(player))) {
                 PacketDistributor.sendToPlayer(player, packet);
             }

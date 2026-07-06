@@ -18,6 +18,7 @@
   "item.researchcube.research_book": "Research Encyclopedia",
   "item.researchcube.research_chip": "Research Export Chip",
   "item.researchcube.drive_crafting_table": "Drive Crafting Table",
+  "item.researchcube.auto_drive_crafting_table": "Auto Drive Crafting Table",
 
   "item.researchcube.thinking_fluid_bucket": "§bThinking Fluid Bucket",
   "item.researchcube.pondering_fluid_bucket": "§5Pondering Fluid Bucket",
@@ -32,6 +33,7 @@
   "itemGroup.researchcubetab": "Research Cube",
   "block.researchcube.research_station": "Research Station",
   "block.researchcube.drive_crafting_table": "Drive Crafting Table",
+  "block.researchcube.auto_drive_crafting_table": "Auto Drive Crafting Table",
   "block.researchcube.processing_station": "Processing Station",
   "item.researchcube.processing_station": "Processing Station",
 
@@ -53,11 +55,61 @@
   "gui.researchcube.channel.fluid_input_2": "Fluid 2",
   "gui.researchcube.channel.fluid_output": "Fluid Out",
 
-  "gui.researchcube.auto_mode.on": "Auto: On",
-  "gui.researchcube.auto_mode.off": "Auto: Off",
-  "gui.researchcube.auto_mode.tooltip": "Automatically start processing when valid inputs are present.",
   "gui.researchcube.io_config.tooltip": "Configure item/fluid sides for automation.",
 
   "gui.researchcube.processing.insert_drive": "Insert Drive",
-  "gui.researchcube.processing.insert_drive.tooltip": "Insert a drive to unlock recipes."
+  "gui.researchcube.processing.insert_drive.tooltip": "Insert a drive to unlock recipes.",
+  "gui.researchcube.processing.insert_inputs": "Insert valid inputs to begin",
+
+  "gui.researchcube.processing.tank.input1": "Input Tank 1",
+  "gui.researchcube.processing.tank.input2": "Input Tank 2",
+  "gui.researchcube.processing.tank.output": "Output Tank",
+  "gui.researchcube.processing.tank.empty": "Empty",
+  "gui.researchcube.processing.tank.contents": "%s — %s / %s mB",
+
+  "jei.researchcube.category.drive_crafting": "Drive Crafting",
+  "jei.researchcube.category.processing": "Processing Station",
+
+  "emi.category.researchcube.drive_crafting": "Drive Crafting",
+  "emi.category.researchcube.processing": "Processing Station",
+
+  "config.jade.plugin_researchcube.research_station": "Research Station",
+  "config.jade.plugin_researchcube.processing_station": "Processing Station",
+
+  "jei.researchcube.drive_crafting.slot.drive": "Drive",
+  "jei.researchcube.processing.header.inputs": "Inputs",
+  "jei.researchcube.processing.header.outputs": "Outputs",
+  "jei.researchcube.processing.duration": "%ss",
+
+  "jei.researchcube.tooltip.requires_recipe": "Requires recipe: %s",
+  "jei.researchcube.tooltip.unlocked_by": "Unlocked by: %s (%s)",
+
+  "jei.researchcube.research_station.title": "Research Workflow",
+  "jei.researchcube.research_station.step1": "1. Place a Cube and Drive of matching tier.",
+  "jei.researchcube.research_station.step2": "2. Add item costs to the cost slots.",
+  "jei.researchcube.research_station.step3": "3. Fill the tank with the required research fluid.",
+  "jei.researchcube.research_station.step4": "4. Click Start — research progresses over time.",
+  "jei.researchcube.research_station.step5": "5. On completion, a recipe is imprinted onto the Drive.",
+  "jei.researchcube.research_station.step6": "6. Use the Drive in a Drive Crafting Table.",
+  "jei.researchcube.research_station.fluids_header": "Fluid Tiers:",
+  "jei.researchcube.research_station.fluid_thinking": "  Thinking (cyan) — Unstable/Basic tier",
+  "jei.researchcube.research_station.fluid_pondering": "  Pondering (purple) — Advanced tier",
+  "jei.researchcube.research_station.fluid_reasoning": "  Reasoning (gold) — Precise/Flawless tier",
+  "jei.researchcube.research_station.fluid_imagination": "  Imagination (pink) — Self-Aware tier",
+  "jei.researchcube.research_station.capacity_header": "Drive Capacity (max recipes):",
+  "jei.researchcube.research_station.capacity_line1": "  Unstable: 2, Reclaimed: 4, Enhanced: 8",
+  "jei.researchcube.research_station.capacity_line2": "  Elaborate: 12, Cybernetic: 16",
+  "jei.researchcube.research_station.capacity_line3": "  Self-Aware: unlimited",
+
+  "jei.researchcube.processing_station.title": "Processing Station",
+  "jei.researchcube.processing_station.summary": "A general-purpose machine for complex recipes.",
+  "jei.researchcube.processing_station.capacity_header": "Capacity:",
+  "jei.researchcube.processing_station.capacity_item_in": "  Up to 16 item inputs",
+  "jei.researchcube.processing_station.capacity_fluid_in": "  Up to 2 fluid inputs (8000 mB each)",
+  "jei.researchcube.processing_station.capacity_item_out": "  Up to 8 item outputs",
+  "jei.researchcube.processing_station.capacity_fluid_out": "  Up to 1 fluid output (8000 mB)",
+  "jei.researchcube.processing_station.datapack": "Recipes are defined via datapack.",
+  "jei.researchcube.processing_station.drive": "Insert a Drive carrying the recipe to unlock it.",
+  "jei.researchcube.processing_station.auto_start": "Runs automatically once valid inputs and the drive are present.",
+  "jei.researchcube.processing_station.side_io": "Item and fluid I/O are configurable per side (see the side-config panel)."
 }

@@ -1,8 +1,8 @@
 {
   "variants": {
     "facing=north": {"model": "researchcube:block/processing_station" },
-    "facing=south": {"model": "researchcube:block/processing_station" },
-    "facing=east":  {"model": "researchcube:block/processing_station" },
-    "facing=west":  {"model": "researchcube:block/processing_station" }
+    "facing=east":  {"model": "researchcube:block/processing_station", "y": 90 },
+    "facing=south": {"model": "researchcube:block/processing_station", "y": 180 },
+    "facing=west":  {"model": "researchcube:block/processing_station", "y": 270 }
   }
 }

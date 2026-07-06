@@ -38,7 +38,9 @@ public class ResearchBookItem extends Item {
             if (level instanceof ServerLevel sl) {
                 ResearchSavedData savedData = ResearchSavedData.get(sl);
                 String researchKey = ResearchSavedData.getResearchKey(serverPlayer);
-                Set<ResourceLocation> completed = savedData.getCompletedResearch(researchKey);
+                // Snapshot: on integrated servers the payload is handed to the client
+                // without re-encoding, so we must not share the live mutable set.
+                Set<ResourceLocation> completed = Set.copyOf(savedData.getCompletedResearch(researchKey));
                 PacketDistributor.sendToPlayer(serverPlayer, new OpenResearchBookPacket(completed));
             }
         }

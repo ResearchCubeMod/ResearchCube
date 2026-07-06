@@ -3,17 +3,13 @@ package com.researchcube.client.screen;
 import com.researchcube.ResearchCubeMod;
 import com.researchcube.block.ProcessingStationBlockEntity;
 import com.researchcube.menu.ProcessingStationMenu;
-import com.researchcube.network.StartProcessingPacket;
-import com.researchcube.network.ToggleAutoModePacket;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.neoforged.neoforge.fluids.FluidStack;
-import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,7 +21,7 @@ import java.util.Optional;
  * fill, labels and tooltips are drawn dynamically on top.
  *
  * Layout (see ProcessingStationMenu constants):
- *   Machine panel: 4x4 inputs | tanks + progress + Start | 2x4 outputs
+ *   Machine panel: 4x4 inputs | tanks + progress + drive slot | 2x4 outputs
  *   Inventory panel: player inventory + hotbar
  */
 public class ProcessingStationScreen extends AbstractContainerScreen<ProcessingStationMenu> {
@@ -64,18 +60,6 @@ public class ProcessingStationScreen extends AbstractContainerScreen<ProcessingS
     private static final int PROGRESS_W = 68;
     private static final int PROGRESS_H = 8;
 
-    // Start button (shares its row with the Auto toggle)
-    private static final int BUTTON_X = 108;
-    private static final int BUTTON_Y = 88;
-    private static final int BUTTON_W = 40;
-    private static final int BUTTON_H = 16;
-
-    // Auto-mode toggle (right of Start, same row)
-    private static final int AUTO_BTN_X = 150;
-    private static final int AUTO_BTN_Y = 88;
-    private static final int AUTO_BTN_W = 26;
-    private static final int AUTO_BTN_H = 16;
-
     // IO config toggle button (small square, top-right of the machine panel)
     private static final int IO_BTN_X = 232;
     private static final int IO_BTN_Y = 4;
@@ -84,8 +68,21 @@ public class ProcessingStationScreen extends AbstractContainerScreen<ProcessingS
     // Status text baseline
     private static final int STATUS_Y = 107;
 
-    private Button startButton;
-    private Button autoButton;
+    // AMOLED palette baked into the background texture (verified by sampling the PNG).
+    // Panel background fills the space behind the slots; the baked slot frames use a dark
+    // top/left bevel, a mid interior, and a light bottom/right bevel.
+    private static final int PANEL_BG = 0xFF0C0C0C;
+    private static final int SLOT_BEVEL_DARK = 0xFF141414;   // baked slot top/left + border
+    private static final int SLOT_INTERIOR = 0xFF1E1E1E;     // baked slot 16x16 fill
+    private static final int SLOT_BEVEL_LIGHT = 0xFF373737;  // baked slot bottom/right
+
+    // The old drive-slot frame is still baked into the texture at pixel rect (179,79)-(196,96)
+    // (18x18) — left over from when the drive slot lived at (180,80). The slot moved to
+    // (DRIVE_SLOT_X, DRIVE_SLOT_Y), so we paint over this dead frame with the panel bg below.
+    private static final int GHOST_SLOT_X = 179;
+    private static final int GHOST_SLOT_Y = 79;
+    private static final int GHOST_SLOT_SIZE = 18;
+
     private Button ioButton;
     private SideConfigPanel sideConfigPanel;
 
@@ -102,18 +99,6 @@ public class ProcessingStationScreen extends AbstractContainerScreen<ProcessingS
         super.init();
         this.titleLabelX = (this.imageWidth - this.font.width(this.title)) / 2;
 
-        startButton = Button.builder(Component.literal("Start"), btn -> onStartProcessing())
-                .bounds(leftPos + BUTTON_X, topPos + BUTTON_Y, BUTTON_W, BUTTON_H)
-                .build();
-        addRenderableWidget(startButton);
-
-        autoButton = Button.builder(autoLabel(), btn -> onToggleAuto())
-                .bounds(leftPos + AUTO_BTN_X, topPos + AUTO_BTN_Y, AUTO_BTN_W, AUTO_BTN_H)
-                .tooltip(net.minecraft.client.gui.components.Tooltip.create(
-                        Component.translatable("gui.researchcube.auto_mode.tooltip")))
-                .build();
-        addRenderableWidget(autoButton);
-
         ioButton = Button.builder(Component.literal("IO"), btn -> onToggleSideConfig())
                 .bounds(leftPos + IO_BTN_X, topPos + IO_BTN_Y, IO_BTN_SIZE, IO_BTN_SIZE)
                 .tooltip(net.minecraft.client.gui.components.Tooltip.create(
@@ -124,22 +109,6 @@ public class ProcessingStationScreen extends AbstractContainerScreen<ProcessingS
         if (sideConfigPanel == null) {
             sideConfigPanel = new SideConfigPanel(font, menu.getBlockEntity(), menu.getBlockEntity().getBlockPos());
         }
-    }
-
-    private Component autoLabel() {
-        return Component.translatable(menu.getBlockEntity().isAutoMode()
-                ? "gui.researchcube.auto_mode.on" : "gui.researchcube.auto_mode.off");
-    }
-
-    private void onStartProcessing() {
-        if (menu.isProcessing()) return;
-        ProcessingStationBlockEntity be = menu.getBlockEntity();
-        PacketDistributor.sendToServer(new StartProcessingPacket(be.getBlockPos()));
-    }
-
-    private void onToggleAuto() {
-        ProcessingStationBlockEntity be = menu.getBlockEntity();
-        PacketDistributor.sendToServer(new ToggleAutoModePacket(be.getBlockPos()));
     }
 
     private void onToggleSideConfig() {
@@ -162,18 +131,16 @@ public class ProcessingStationScreen extends AbstractContainerScreen<ProcessingS
     }
 
     @Override
-    protected void containerTick() {
-        super.containerTick();
-        startButton.active = !menu.isProcessing();
-        autoButton.setMessage(autoLabel());
-    }
-
-    @Override
     protected void renderBg(GuiGraphics g, float partialTick, int mouseX, int mouseY) {
         int x = leftPos;
         int y = topPos;
 
         g.blit(TEXTURE, x, y, 0, 0, imageWidth, imageHeight, TEX_W, TEX_H);
+
+        // Paint over the ghost drive-slot frame still baked into the texture at its old
+        // position, using the surrounding panel background so it reads as empty panel.
+        g.fill(x + GHOST_SLOT_X, y + GHOST_SLOT_Y,
+                x + GHOST_SLOT_X + GHOST_SLOT_SIZE, y + GHOST_SLOT_Y + GHOST_SLOT_SIZE, PANEL_BG);
 
         // Header labels, centered over their sections
         int labelY = y + LABEL_Y;
@@ -187,14 +154,16 @@ public class ProcessingStationScreen extends AbstractContainerScreen<ProcessingS
         drawCentered(g, ">>", x + 99, y + 66, FLOW_COLOR);
         drawCentered(g, ">>", x + 190, y + 66, FLOW_COLOR);
 
-        // Fluid gauges (dynamic fill over the baked gauge background)
+        // Fluid gauges: draw each tank's real fluid texture (tinted, tiled), falling back to a
+        // flat color if the sprite is missing. Contents are kept live by SyncTankPacket, so
+        // externally piped-in fluid shows its true type and amount here too.
         int capacity = ProcessingStationBlockEntity.TANK_CAPACITY;
         ScreenRenderHelper.drawFluidGauge(g, x + TANK_IN1_X, y + TANK_Y, TANK_W, TANK_H,
-                menu.getFluidInput1Amount(), capacity, FLUID_IN1_COLOR);
+                menu.getFluidInput1Stack(), capacity, FLUID_IN1_COLOR);
         ScreenRenderHelper.drawFluidGauge(g, x + TANK_IN2_X, y + TANK_Y, TANK_W, TANK_H,
-                menu.getFluidInput2Amount(), capacity, FLUID_IN2_COLOR);
+                menu.getFluidInput2Stack(), capacity, FLUID_IN2_COLOR);
         ScreenRenderHelper.drawFluidGauge(g, x + TANK_OUT_X, y + TANK_Y, TANK_W, TANK_H,
-                menu.getFluidOutputAmount(), capacity, FLUID_OUT_COLOR);
+                menu.getFluidOutputStack(), capacity, FLUID_OUT_COLOR);
 
         // Progress bar fill (background is baked into the texture)
         if (menu.isProcessing()) {
@@ -206,6 +175,14 @@ public class ProcessingStationScreen extends AbstractContainerScreen<ProcessingS
                 g.fill(px, py, px + fillWidth, py + 1, 0x55FFFFFF);
             }
         }
+
+        // Drive slot frame: drawn in code because the slot moved off its baked-in texture
+        // position. The slot's item area is 16x16 at (DRIVE_SLOT_X, DRIVE_SLOT_Y); the 18x18
+        // bevel frame sits 1px outside it. Uses the baked slot palette (dark bevel / mid
+        // interior / light bevel) so it is indistinguishable from the texture's own slots.
+        ScreenRenderHelper.drawSlotBg(g, x + ProcessingStationMenu.DRIVE_SLOT_X - 1,
+                y + ProcessingStationMenu.DRIVE_SLOT_Y - 1,
+                SLOT_BEVEL_DARK, SLOT_INTERIOR, SLOT_BEVEL_DARK, SLOT_BEVEL_LIGHT);
     }
 
     private void drawCentered(GuiGraphics g, String text, int centerX, int y, int color) {
@@ -217,7 +194,7 @@ public class ProcessingStationScreen extends AbstractContainerScreen<ProcessingS
         g.drawString(font, this.title, this.titleLabelX, 6, LABEL_COLOR, false);
         g.drawString(font, this.playerInventoryTitle, this.inventoryLabelX, this.inventoryLabelY, LABEL_COLOR, false);
 
-        // Processing status under the Start button
+        // Processing status under the progress bar / drive slot
         if (menu.isProcessing()) {
             int percent = (int) (menu.getProgress() * 100);
             String status = "Processing " + percent + "%";
@@ -228,7 +205,8 @@ public class ProcessingStationScreen extends AbstractContainerScreen<ProcessingS
             String status = Component.translatable("gui.researchcube.processing.insert_drive").getString();
             g.drawString(font, status, CONTROL_CENTER_X - font.width(status) / 2, STATUS_Y, 0xFFCCAA00, false);
         } else {
-            String status = "Idle";
+            // Idle with a drive: the machine auto-starts on valid inputs, so prompt for them.
+            String status = Component.translatable("gui.researchcube.processing.insert_inputs").getString();
             g.drawString(font, status, CONTROL_CENTER_X - font.width(status) / 2, STATUS_Y, 0xFFB0B0B0, false);
         }
     }
@@ -278,7 +256,7 @@ public class ProcessingStationScreen extends AbstractContainerScreen<ProcessingS
                 lines.add(Component.translatable("gui.researchcube.processing.insert_drive.tooltip")
                         .withStyle(s -> s.withColor(0xCCAA00).withItalic(true)));
             }
-            lines.add(Component.literal("Insert valid inputs and press Start")
+            lines.add(Component.translatable("gui.researchcube.processing.insert_inputs")
                     .withStyle(s -> s.withColor(0x888888).withItalic(true)));
         }
 
@@ -286,16 +264,18 @@ public class ProcessingStationScreen extends AbstractContainerScreen<ProcessingS
     }
 
     private void renderFluidTooltips(GuiGraphics g, int mouseX, int mouseY) {
+        // Read the synced client-side tank contents (kept live by SyncTankPacket) so the tooltip
+        // matches the gauge — including fluid piped in by external mods.
         if (isInTank(mouseX, mouseY, TANK_IN1_X)) {
-            renderFluidTooltip(g, "Input Tank 1", menu.getBlockEntity().getFluidInput1().getFluid(), mouseX, mouseY);
+            renderFluidTooltip(g, "gui.researchcube.processing.tank.input1", menu.getFluidInput1Stack(), mouseX, mouseY);
             return;
         }
         if (isInTank(mouseX, mouseY, TANK_IN2_X)) {
-            renderFluidTooltip(g, "Input Tank 2", menu.getBlockEntity().getFluidInput2().getFluid(), mouseX, mouseY);
+            renderFluidTooltip(g, "gui.researchcube.processing.tank.input2", menu.getFluidInput2Stack(), mouseX, mouseY);
             return;
         }
         if (isInTank(mouseX, mouseY, TANK_OUT_X)) {
-            renderFluidTooltip(g, "Output Tank", menu.getBlockEntity().getFluidOutput().getFluid(), mouseX, mouseY);
+            renderFluidTooltip(g, "gui.researchcube.processing.tank.output", menu.getFluidOutputStack(), mouseX, mouseY);
         }
     }
 
@@ -305,21 +285,25 @@ public class ProcessingStationScreen extends AbstractContainerScreen<ProcessingS
         return mouseX >= x - 1 && mouseX < x + TANK_W + 1 && mouseY >= y - 1 && mouseY < y + TANK_H + 1;
     }
 
-    private void renderFluidTooltip(GuiGraphics g, String tankName, FluidStack stack, int mouseX, int mouseY) {
+    private void renderFluidTooltip(GuiGraphics g, String tankNameKey, FluidStack stack, int mouseX, int mouseY) {
         List<Component> lines = new ArrayList<>();
-        lines.add(Component.literal(tankName));
+        lines.add(Component.translatable(tankNameKey).withStyle(s -> s.withColor(LABEL_COLOR & 0x00FFFFFF)));
+
+        int capacity = ProcessingStationBlockEntity.TANK_CAPACITY;
+        String capacityStr = String.format("%,d", capacity);
 
         if (stack.isEmpty()) {
-            lines.add(Component.literal("Empty")
+            // "Empty — 0 / 8,000 mB"
+            lines.add(Component.translatable("gui.researchcube.processing.tank.contents",
+                            Component.translatable("gui.researchcube.processing.tank.empty"),
+                            "0", capacityStr)
                     .withStyle(s -> s.withColor(0xAAAAAA)));
-            lines.add(Component.literal("0 / " + ProcessingStationBlockEntity.TANK_CAPACITY + " mB")
-                    .withStyle(s -> s.withColor(0xBBBBBB)));
         } else {
-            ResourceLocation id = BuiltInRegistries.FLUID.getKey(stack.getFluid());
-            String fluidName = id != null ? id.toString() : "unknown";
-            lines.add(Component.literal(fluidName)
-                    .withStyle(s -> s.withColor(0x66CCFF)));
-            lines.add(Component.literal(stack.getAmount() + " / " + ProcessingStationBlockEntity.TANK_CAPACITY + " mB")
+            // "Water — 3,000 / 8,000 mB", tinted toward the fluid's own color.
+            Component fluidName = stack.getHoverName();
+            String amountStr = String.format("%,d", stack.getAmount());
+            lines.add(Component.translatable("gui.researchcube.processing.tank.contents",
+                            fluidName, amountStr, capacityStr)
                     .withStyle(s -> s.withColor(0xBBBBBB)));
         }
 

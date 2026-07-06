@@ -70,5 +70,13 @@ public class ResearchCubeMod {
                 ModBlockEntities.PROCESSING_STATION.get(),
                 SideIOCapabilities::fluidHandler
         );
+
+        // The Auto Drive Crafting Table exposes only a side-configurable item handler
+        // (grid inputs + output slot); it has no fluid channels.
+        event.registerBlockEntity(
+                Capabilities.ItemHandler.BLOCK,
+                ModBlockEntities.AUTO_DRIVE_CRAFTING_TABLE.get(),
+                SideIOCapabilities::itemHandler
+        );
     }
 }

@@ -41,6 +41,16 @@ public record StartResearchPacket(BlockPos pos, String researchId) implements Cu
         context.enqueueWork(() -> {
             if (!(context.player() instanceof ServerPlayer player)) return;
 
+            // Validate before touching the world: reject if too far away (vanilla
+            // 8-block container reach) or if the chunk isn't loaded (a getBlockEntity
+            // lookup would otherwise force-load it).
+            if (player.distanceToSqr(packet.pos().getX() + 0.5, packet.pos().getY() + 0.5, packet.pos().getZ() + 0.5) > 64.0) {
+                return;
+            }
+            if (!player.level().isLoaded(packet.pos())) {
+                return;
+            }
+
             if (player.level().getBlockEntity(packet.pos()) instanceof ResearchTableBlockEntity be) {
                 // Look up completed research using team-aware key from SavedData
                 ResearchSavedData savedData = ResearchSavedData.get(player.serverLevel());

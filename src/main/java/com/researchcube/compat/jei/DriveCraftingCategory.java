@@ -1,15 +1,14 @@
 package com.researchcube.compat.jei;
 
 import com.researchcube.ResearchCubeMod;
-import com.researchcube.client.ClientResearchData;
 import com.researchcube.recipe.DriveCraftingRecipe;
 import com.researchcube.registry.ModItems;
 import com.researchcube.research.ResearchDefinition;
 import com.researchcube.util.NbtUtil;
 import com.researchcube.util.RecipeOutputResolver;
-import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.drawable.IDrawable;
+import mezz.jei.api.gui.drawable.IDrawableStatic;
 import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
 import mezz.jei.api.helpers.IGuiHelper;
 import mezz.jei.api.recipe.IFocusGroup;
@@ -30,7 +29,11 @@ import java.util.List;
 /**
  * JEI recipe category for Drive Crafting recipes.
  * Shows the drive requirement, ingredients, and the recipe output.
- * Supports both shaped (3×3 grid) and shapeless (4×2 flat) layouts.
+ * Supports both shaped (matching the pattern grid) and shapeless (flat 4-wide) layouts.
+ *
+ * <p>Slot backgrounds and the arrow are drawn with JEI's own drawables so the layout
+ * matches vanilla recipe categories; only the panel, labels and the research-completion
+ * indicator are drawn manually.
  */
 public class DriveCraftingCategory implements IRecipeCategory<DriveCraftingRecipe> {
 
@@ -38,13 +41,29 @@ public class DriveCraftingCategory implements IRecipeCategory<DriveCraftingRecip
     public static final RecipeType<DriveCraftingRecipe> RECIPE_TYPE =
             new RecipeType<>(UID, DriveCraftingRecipe.class);
 
+    private static final int WIDTH = 150;
+    private static final int HEIGHT = 72;
+
+    // Fixed slot anchors (top-left of the ingredient, matching setStandardSlotBackground's -1,-1 offset).
+    private static final int DRIVE_X = 1;
+    private static final int DRIVE_Y = 1;
+    private static final int GRID_X = 22;
+    private static final int GRID_Y = 1;
+    private static final int SLOT_STRIDE = 18;
+    private static final int SHAPELESS_COLUMNS = 4;
+    private static final int OUTPUT_X = 128;
+    private static final int OUTPUT_Y = 18;
+    private static final int ARROW_X = 100;
+    private static final int ARROW_Y = 24;
+
     private final IDrawable icon;
+    private final IDrawableStatic arrow;
     private final Component title;
 
     public DriveCraftingCategory(IGuiHelper guiHelper) {
-        this.icon = guiHelper.createDrawableIngredient(VanillaTypes.ITEM_STACK,
-                new ItemStack(ModItems.METADATA_RECLAIMED.get()));
-        this.title = Component.literal("Drive Crafting");
+        this.icon = guiHelper.createDrawableItemStack(new ItemStack(ModItems.METADATA_RECLAIMED.get()));
+        this.arrow = guiHelper.getRecipeArrow();
+        this.title = Component.translatable("jei.researchcube.category.drive_crafting");
     }
 
     @Override
@@ -59,12 +78,12 @@ public class DriveCraftingCategory implements IRecipeCategory<DriveCraftingRecip
 
     @Override
     public int getWidth() {
-        return 150;
+        return WIDTH;
     }
 
     @Override
     public int getHeight() {
-        return 72;
+        return HEIGHT;
     }
 
     @Override
@@ -74,166 +93,81 @@ public class DriveCraftingCategory implements IRecipeCategory<DriveCraftingRecip
 
     @Override
     public void draw(DriveCraftingRecipe recipe, IRecipeSlotsView recipeSlotsView, GuiGraphics g, double mouseX, double mouseY) {
-        // Background panel
-        g.fill(0, 0, 150, 72, 0xFF1A1A2E);
-        // Top/bottom border
-        g.fill(0, 0, 150, 1, 0xFF3A3A5E);
-        g.fill(0, 71, 150, 72, 0xFF111122);
-        // Left/right border
-        g.fill(0, 0, 1, 72, 0xFF3A3A5E);
-        g.fill(149, 0, 150, 72, 0xFF111122);
-
         Font font = Minecraft.getInstance().font;
 
-        // "Drive" label above drive slot
-        g.drawString(font, "Drive", 1, -10, 0xFFAAAAAA, false);
+        // "Drive" label above the drive slot.
+        g.drawString(font, Component.translatable("jei.researchcube.drive_crafting.slot.drive"),
+                DRIVE_X, DRIVE_Y - 11, 0xFFAAAAAA, false);
 
-        // Slot outline for drive slot (at 1,1, size 16x16)
-        drawSlotOutline(g, 0, 0, 18, 18);
+        // Arrow from ingredients to output (JEI's own drawable, vertically centred on the row).
+        arrow.draw(g, ARROW_X, ARROW_Y + (SLOT_STRIDE - arrow.getHeight()) / 2);
 
-        // Ingredient area slot outlines (at 22,1 — either 3x3 or 4x2)
-        if (recipe.isShaped() && recipe.getShapedPattern() != null) {
-            int w = recipe.getShapedPattern().width();
-            int h = recipe.getShapedPattern().height();
-            for (int row = 0; row < h; row++) {
-                for (int col = 0; col < w; col++) {
-                    drawSlotOutline(g, 21 + col * 18, row * 18, 18, 18);
-                }
-            }
-        } else {
-            int count = (int) recipe.getIngredients().stream().filter(i -> i != null && !i.isEmpty()).count();
-            for (int i = 0; i < count; i++) {
-                int col = i % 4;
-                int row = i / 4;
-                drawSlotOutline(g, 21 + col * 18, row * 18, 18, 18);
-            }
-        }
-
-        // Arrow (from ingredients to output)
-        int arrowX = 100;
-        int arrowY = 24;
-        g.fill(arrowX, arrowY + 3, arrowX + 16, arrowY + 5, 0xFF555577);
-        // Arrowhead
-        g.fill(arrowX + 14, arrowY + 1, arrowX + 16, arrowY + 7, 0xFF555577);
-        g.fill(arrowX + 16, arrowY + 2, arrowX + 18, arrowY + 6, 0xFF555577);
-        g.fill(arrowX + 18, arrowY + 3, arrowX + 20, arrowY + 5, 0xFF555577);
-
-        // Output slot outline
-        drawSlotOutline(g, 127, 17, 18, 18);
-
-        // Completion indicator
-        String requiredRecipeId = recipe.getRequiredRecipeId();
-        List<ResearchDefinition> unlocking = RecipeOutputResolver.findResearchForRecipe(requiredRecipeId);
-        if (!unlocking.isEmpty()) {
-            boolean completed = unlocking.stream()
-                    .anyMatch(def -> ClientResearchData.isCompleted(def.getId().toString()));
-            String indicator = completed ? "\u2714" : "\u2718";
-            int color = completed ? 0xFF22CC55 : 0xFFCC3333;
-            g.drawString(font, indicator, 139, 60, color, false);
-        }
-    }
-
-    private static void drawSlotOutline(GuiGraphics g, int x, int y, int w, int h) {
-        g.fill(x, y, x + w, y + 1, 0xFF333355);
-        g.fill(x, y + h - 1, x + w, y + h, 0xFF222244);
-        g.fill(x, y, x + 1, y + h, 0xFF333355);
-        g.fill(x + w - 1, y, x + w, y + h, 0xFF222244);
+        // Research-completion indicator in the bottom-right corner.
+        JeiRenderHelper.drawCompletionIndicator(g, font, recipe.getRequiredRecipeId(),
+                WIDTH - 11, HEIGHT - 12);
     }
 
     @Override
     public void setRecipe(IRecipeLayoutBuilder builder, DriveCraftingRecipe recipe, IFocusGroup focuses) {
-        // Resolve which research unlocks this recipe and determine the correct drive tier
+        // Resolve which research unlocks this recipe and pick the matching drive tier.
         String requiredRecipeId = recipe.getRequiredRecipeId();
         List<ResearchDefinition> unlockingResearch = RecipeOutputResolver.findResearchForRecipe(requiredRecipeId);
 
-        // Create a pre-loaded drive with the recipe_id already imprinted.
-        // This lets players use JEI's "show uses" on a filled drive to find matching recipes.
-        ItemStack preloadedDrive;
-        if (!unlockingResearch.isEmpty()) {
-            // Use the tier of the first research that unlocks this recipe
-            preloadedDrive = RecipeOutputResolver.getDriveForTier(unlockingResearch.getFirst().getTier());
-        } else {
-            // Fallback: use a Basic (reclaimed) drive
-            preloadedDrive = new ItemStack(ModItems.METADATA_RECLAIMED.get());
-        }
+        // A drive pre-loaded with this recipe_id, so "show uses" on an imprinted drive finds it.
+        ItemStack preloadedDrive = unlockingResearch.isEmpty()
+                ? new ItemStack(ModItems.METADATA_RECLAIMED.get())
+                : RecipeOutputResolver.getDriveForTier(unlockingResearch.getFirst().getTier());
         NbtUtil.addRecipe(preloadedDrive, requiredRecipeId);
 
-        builder.addSlot(RecipeIngredientRole.INPUT, 1, 1)
+        builder.addSlot(RecipeIngredientRole.INPUT, DRIVE_X, DRIVE_Y)
+                .setStandardSlotBackground()
                 .addItemStack(preloadedDrive)
-                .addRichTooltipCallback((recipeSlotView, tooltip) -> {
-                    tooltip.add(Component.literal("\u00A77Requires recipe: \u00A7e" + requiredRecipeId));
-                    // Show which research unlocks this recipe with completion status
-                    if (!unlockingResearch.isEmpty()) {
-                        for (ResearchDefinition def : unlockingResearch) {
-                            boolean completed = ClientResearchData.isCompleted(def.getId().toString());
-                            String status = completed ? "\u00A7a\u2714 " : "\u00A7c\u2718 ";
-                            tooltip.add(Component.literal(status + "\u00A7aUnlocked by: \u00A7f" + def.getDisplayName()
-                                    + " \u00A77(" + def.getTier().getDisplayName() + ")"));
-                        }
-                    }
-                });
+                .addRichTooltipCallback((slotView, tooltip) ->
+                        JeiRenderHelper.addDriveTooltip(tooltip, requiredRecipeId, unlockingResearch));
 
-        if (recipe.isShaped()) {
-            // Shaped layout: render ingredients in a 3×3 grid matching the pattern
-            renderShapedLayout(builder, recipe);
+        if (recipe.isShaped() && recipe.getShapedPattern() != null) {
+            addShapedSlots(builder, recipe.getShapedPattern());
         } else {
-            // Shapeless layout: render ingredients in a 4×2 flat arrangement
-            renderShapelessLayout(builder, recipe);
+            addShapelessSlots(builder, recipe.getIngredients());
         }
 
-        // Output slot (positioned to the right)
-        builder.addSlot(RecipeIngredientRole.OUTPUT, 128, 18)
+        builder.addSlot(RecipeIngredientRole.OUTPUT, OUTPUT_X, OUTPUT_Y)
+                .setOutputSlotBackground()
                 .addItemStack(recipe.getResultItem(null));
     }
 
-    /**
-     * Render shaped recipe ingredients in a 3×3 grid layout.
-     */
-    private void renderShapedLayout(IRecipeLayoutBuilder builder, DriveCraftingRecipe recipe) {
-        ShapedRecipePattern pattern = recipe.getShapedPattern();
-        if (pattern == null) {
-            renderShapelessLayout(builder, recipe);
-            return;
-        }
-
-        int patternW = pattern.width();
-        int patternH = pattern.height();
-
-        // Grid starts at (22, 1) with 18px spacing
-        for (int row = 0; row < patternH; row++) {
-            for (int col = 0; col < patternW; col++) {
-                int patternIdx = row * patternW + col;
-                Ingredient ingredient = pattern.ingredients().get(patternIdx);
-
-                // Skip empty ingredients (air slots in the pattern)
+    /** Lay out shaped ingredients in the pattern's own grid, skipping empty (air) cells. */
+    private void addShapedSlots(IRecipeLayoutBuilder builder, ShapedRecipePattern pattern) {
+        int width = pattern.width();
+        int height = pattern.height();
+        for (int row = 0; row < height; row++) {
+            for (int col = 0; col < width; col++) {
+                Ingredient ingredient = pattern.ingredients().get(row * width + col);
                 if (ingredient == null || ingredient.isEmpty()) {
                     continue;
                 }
-
-                int x = 22 + col * 18;
-                int y = 1 + row * 18;
-                builder.addSlot(RecipeIngredientRole.INPUT, x, y)
+                builder.addSlot(RecipeIngredientRole.INPUT,
+                                GRID_X + col * SLOT_STRIDE, GRID_Y + row * SLOT_STRIDE)
+                        .setStandardSlotBackground()
                         .addIngredients(ingredient);
             }
         }
     }
 
-    /**
-     * Render shapeless recipe ingredients in a flat 4×2 arrangement.
-     */
-    private void renderShapelessLayout(IRecipeLayoutBuilder builder, DriveCraftingRecipe recipe) {
-        int idx = 0;
-        for (Ingredient ingredient : recipe.getIngredients()) {
-            // Skip empty ingredients
+    /** Lay out shapeless ingredients left-to-right, wrapping every {@link #SHAPELESS_COLUMNS}. */
+    private void addShapelessSlots(IRecipeLayoutBuilder builder, List<Ingredient> ingredients) {
+        int placed = 0;
+        for (Ingredient ingredient : ingredients) {
             if (ingredient == null || ingredient.isEmpty()) {
-                idx++;
                 continue;
             }
-            int col = idx % 4;
-            int row = idx / 4;
-            builder.addSlot(RecipeIngredientRole.INPUT, 22 + col * 18, 1 + row * 18)
+            int col = placed % SHAPELESS_COLUMNS;
+            int row = placed / SHAPELESS_COLUMNS;
+            builder.addSlot(RecipeIngredientRole.INPUT,
+                            GRID_X + col * SLOT_STRIDE, GRID_Y + row * SLOT_STRIDE)
+                    .setStandardSlotBackground()
                     .addIngredients(ingredient);
-            idx++;
+            placed++;
         }
     }
 }

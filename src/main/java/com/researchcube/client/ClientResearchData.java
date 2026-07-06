@@ -20,6 +20,15 @@ public final class ClientResearchData {
 
     private ClientResearchData() {}
 
+    /**
+     * Reset all cached client research state. Called on logout so completed-research
+     * and active-HUD data from one world/server does not bleed into the next.
+     */
+    public static void clearAll() {
+        completedResearch = Set.of();
+        clearActiveResearch();
+    }
+
     // ── Completed Research ──
 
     public static void updateCompleted(Set<String> completed) {

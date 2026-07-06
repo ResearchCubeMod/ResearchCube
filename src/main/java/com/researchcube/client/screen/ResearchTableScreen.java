@@ -706,7 +706,7 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
 
         // Scroll indicators
         if (scrollOffset > 0) {
-            graphics.drawString(font, "▲", x + listW - 8, y - 12, 0xAAAAAAA, false);
+            graphics.drawString(font, "▲", x + listW - 8, y - 12, 0xAAAAAA, false);
         }
         if (scrollOffset + visibleRows < displayRows.size()) {
             graphics.drawString(font, "▼", x + listW - 8, y + visibleRows * rowH + 3, 0xAAAAAA, false);
@@ -789,7 +789,7 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
             boolean first = true;
             for (ResourceLocation recipeRl : def.getRecipePool()) {
                 if (!first) rewardLine.append(" or ");
-                rewardLine.append(RecipeOutputResolver.formatOutput(recipeRl.toString()));
+                rewardLine.append(RecipeOutputResolver.formatOutput(this.minecraft.level, recipeRl.toString()));
                 first = false;
             }
             tooltip.add(Component.literal(rewardLine.toString())
@@ -956,7 +956,9 @@ public class ResearchTableScreen extends AbstractContainerScreen<ResearchTableMe
             return true;
         }
         if (searchBox != null && searchBox.isFocused()) {
-            return searchBox.keyPressed(keyCode, scanCode, modifiers) || super.keyPressed(keyCode, scanCode, modifiers);
+            return searchBox.keyPressed(keyCode, scanCode, modifiers)
+                    || searchBox.canConsumeInput()
+                    || super.keyPressed(keyCode, scanCode, modifiers);
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
     }

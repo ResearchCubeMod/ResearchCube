@@ -2,15 +2,19 @@ package com.researchcube.menu;
 
 import com.researchcube.block.ProcessingStationBlockEntity;
 import com.researchcube.item.DriveItem;
+import com.researchcube.network.SyncTankPacket;
 import com.researchcube.registry.ModMenus;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.*;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.SlotItemHandler;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 /**
  * Menu for the Processing Station.
@@ -28,12 +32,26 @@ public class ProcessingStationMenu extends AbstractContainerMenu {
     private final ProcessingStationBlockEntity blockEntity;
     private final ContainerData data;
 
+    /** Number of fluid tanks synced to the client (input 1, input 2, output). */
+    public static final int TANK_COUNT = 3;
+
+    // ── Fluid sync ──
+    // Progress/processing state ride the vanilla ContainerData dataslots below. Fluid tank
+    // contents (type + amount) are synced separately as full FluidStacks via SyncTankPacket,
+    // because a 16-bit dataslot cannot carry a fluid's registry id and external inserts must
+    // show the real fluid, not just an amount.
+
+    /** Server-side snapshot of each tank, compared in broadcastChanges() to detect changes. */
+    private final FluidStack[] serverTankCache = { FluidStack.EMPTY, FluidStack.EMPTY, FluidStack.EMPTY };
+    /** Client-side received tank contents, read by the screen for rendering + tooltips. */
+    private final FluidStack[] clientTanks = { FluidStack.EMPTY, FluidStack.EMPTY, FluidStack.EMPTY };
+
+    /** Non-null on the server; used to push tank sync packets to the viewing player. */
+    private final ServerPlayer serverViewer;
+
     public static final int DATA_PROGRESS = 0;
     public static final int DATA_IS_PROCESSING = 1;
-    public static final int DATA_FLUID_IN1_AMOUNT = 2;
-    public static final int DATA_FLUID_IN2_AMOUNT = 3;
-    public static final int DATA_FLUID_OUT_AMOUNT = 4;
-    public static final int DATA_COUNT = 5;
+    public static final int DATA_COUNT = 2;
 
     // ══════════════════════════════════════════════════════════════
     // Layout coordinates (shared by screen + texture generator)
@@ -49,11 +67,12 @@ public class ProcessingStationMenu extends AbstractContainerMenu {
     public static final int INPUT_GRID_Y = 36;
     public static final int OUTPUT_GRID_X = 204;
     public static final int OUTPUT_GRID_Y = 36;
-    // Drive slot: control column, right of the progress bar / Start row —
-    // the drive "powers" the process. Clear of tanks (y36-68), flow arrows
-    // (y66-74), the output grid (x>=203) and the status line (y>=107).
-    public static final int DRIVE_SLOT_X = 180;
-    public static final int DRIVE_SLOT_Y = 80;
+    // Drive slot: centered on the control column (CONTROL_CENTER_X=142 in the screen),
+    // below the progress bar where the Start/Auto button row used to sit. An 18px slot
+    // centered on x=142 starts at x=142-9=133. Clear of the tanks (y36-68), the flow
+    // arrows (y66-74) and the status line (y>=107).
+    public static final int DRIVE_SLOT_X = 133;
+    public static final int DRIVE_SLOT_Y = 88;
     public static final int PLAYER_INV_X = 47;
     public static final int PLAYER_INV_Y = 140;
     public static final int HOTBAR_X = 47;
@@ -63,6 +82,9 @@ public class ProcessingStationMenu extends AbstractContainerMenu {
     public ProcessingStationMenu(int containerId, Inventory playerInv, ProcessingStationBlockEntity be) {
         super(ModMenus.PROCESSING_STATION.get(), containerId);
         this.blockEntity = be;
+        // The viewing player is a ServerPlayer only when this menu was built server-side; on the
+        // client it is a local player and tank sync is driven by incoming packets instead.
+        this.serverViewer = (playerInv.player instanceof ServerPlayer sp) ? sp : null;
 
         IItemHandler inventory = be.getInventory();
 
@@ -102,7 +124,7 @@ public class ProcessingStationMenu extends AbstractContainerMenu {
             addSlot(new Slot(playerInv, col, HOTBAR_X + col * 18, HOTBAR_Y));
         }
 
-        // ContainerData for syncing
+        // ContainerData for syncing progress / processing state (fluid tanks sync separately).
         SimpleContainerData storage = new SimpleContainerData(DATA_COUNT);
         this.data = new ContainerData() {
             @Override
@@ -111,9 +133,6 @@ public class ProcessingStationMenu extends AbstractContainerMenu {
                     return switch (index) {
                         case DATA_PROGRESS -> (int) (be.getProgress() * 1000);
                         case DATA_IS_PROCESSING -> be.isProcessing() ? 1 : 0;
-                        case DATA_FLUID_IN1_AMOUNT -> be.getFluidInput1().getFluidAmount();
-                        case DATA_FLUID_IN2_AMOUNT -> be.getFluidInput2().getFluidAmount();
-                        case DATA_FLUID_OUT_AMOUNT -> be.getFluidOutput().getFluidAmount();
                         default -> 0;
                     };
                 }
@@ -158,16 +177,92 @@ public class ProcessingStationMenu extends AbstractContainerMenu {
         return data.get(DATA_PROGRESS) / 1000f;
     }
 
+    // ── Client-visible tank contents (kept live by SyncTankPacket) ──
+
+    /**
+     * Client-side view of a tank's full contents (type + amount + components).
+     * Index 0 = input 1, 1 = input 2, 2 = output. Never returns null.
+     */
+    public FluidStack getClientTank(int tankIndex) {
+        if (tankIndex < 0 || tankIndex >= TANK_COUNT) return FluidStack.EMPTY;
+        return clientTanks[tankIndex];
+    }
+
+    public FluidStack getFluidInput1Stack() {
+        return clientTanks[0];
+    }
+
+    public FluidStack getFluidInput2Stack() {
+        return clientTanks[1];
+    }
+
+    public FluidStack getFluidOutputStack() {
+        return clientTanks[2];
+    }
+
     public int getFluidInput1Amount() {
-        return data.get(DATA_FLUID_IN1_AMOUNT);
+        return clientTanks[0].getAmount();
     }
 
     public int getFluidInput2Amount() {
-        return data.get(DATA_FLUID_IN2_AMOUNT);
+        return clientTanks[1].getAmount();
     }
 
     public int getFluidOutputAmount() {
-        return data.get(DATA_FLUID_OUT_AMOUNT);
+        return clientTanks[2].getAmount();
+    }
+
+    /** Client-side: store a tank's synced contents (called from the SyncTankPacket handler). */
+    public void setClientTank(int tankIndex, FluidStack stack) {
+        if (tankIndex < 0 || tankIndex >= TANK_COUNT) return;
+        clientTanks[tankIndex] = stack;
+    }
+
+    /** Live tank contents on the server, indexed as in {@link #getClientTank(int)}. */
+    private FluidStack serverTank(int tankIndex) {
+        return switch (tankIndex) {
+            case 0 -> blockEntity.getFluidInput1().getFluid();
+            case 1 -> blockEntity.getFluidInput2().getFluid();
+            case 2 -> blockEntity.getFluidOutput().getFluid();
+            default -> FluidStack.EMPTY;
+        };
+    }
+
+    /**
+     * Push fluid tanks to the viewing player alongside the usual slot/data sync. Runs every
+     * tick the menu is open; a per-tank cache keeps this to one packet only when a tank
+     * actually changes — however the fluid got there (GUI, recipe, or external pipe).
+     */
+    @Override
+    public void broadcastChanges() {
+        super.broadcastChanges();
+        if (serverViewer == null) return;
+
+        for (int i = 0; i < TANK_COUNT; i++) {
+            FluidStack current = serverTank(i);
+            if (!FluidStack.matches(serverTankCache[i], current)) {
+                serverTankCache[i] = current.copy();
+                PacketDistributor.sendToPlayer(serverViewer, new SyncTankPacket(containerId, i, current.copy()));
+            }
+        }
+    }
+
+    /**
+     * Send the initial tank state when a viewer starts watching. The client's tanks default to
+     * empty, so only non-empty tanks need an up-front packet; matching empty tanks stay in sync
+     * and subsequent changes flow through {@link #broadcastChanges()}.
+     */
+    @Override
+    public void addSlotListener(ContainerListener listener) {
+        super.addSlotListener(listener);
+        if (serverViewer == null) return;
+        for (int i = 0; i < TANK_COUNT; i++) {
+            FluidStack current = serverTank(i);
+            serverTankCache[i] = current.copy();
+            if (!current.isEmpty()) {
+                PacketDistributor.sendToPlayer(serverViewer, new SyncTankPacket(containerId, i, current.copy()));
+            }
+        }
     }
 
     @Override
@@ -207,6 +302,15 @@ public class ProcessingStationMenu extends AbstractContainerMenu {
             } else {
                 slot.setChanged();
             }
+
+            // Every branch above moves items into or out of a BE-backed slot. moveItemStackTo's
+            // in-place partial-merge path only calls Slot.setChanged() — a no-op for
+            // SlotItemHandler — so the handler's onContentsChanged never fires and the merge is
+            // neither persisted (rollback on crash) nor picked up by the auto-scan. Mark the BE
+            // dirty and flag a recheck here so partial shift-click merges behave like any other
+            // input change.
+            blockEntity.setChanged();
+            blockEntity.markRecheckNeeded();
         }
 
         return result;

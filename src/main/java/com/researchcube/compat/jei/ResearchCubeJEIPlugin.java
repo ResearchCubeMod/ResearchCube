@@ -106,45 +106,52 @@ public class ResearchCubeJEIPlugin implements IModPlugin {
 
         registration.addRecipes(ProcessingCategory.RECIPE_TYPE, processingRecipes);
 
-        // Multi-page info for the Research Station
+        // Multi-page info for the Research Station.
+        // The Research Station still has an explicit Start action (see ResearchTableScreen),
+        // so the "Click Start" step is intentionally retained.
         registration.addIngredientInfo(
                 new ItemStack(ModItems.RESEARCH_STATION_ITEM.get()),
                 VanillaTypes.ITEM_STACK,
-                Component.literal("Research Workflow"),
-                Component.literal("1. Place a Cube and Drive of matching tier."),
-                Component.literal("2. Add item costs to cost slots."),
-                Component.literal("3. Fill the tank with the required research fluid."),
-                Component.literal("4. Click Start — research progresses over time."),
-                Component.literal("5. On completion, a recipe is imprinted onto the Drive."),
-                Component.literal("6. Use the Drive in a Drive Crafting Table."),
-                Component.literal(""),
-                Component.literal("Fluid Tiers:"),
-                Component.literal("  Thinking (cyan) — Basic tier"),
-                Component.literal("  Pondering (purple) — Advanced tier"),
-                Component.literal("  Reasoning (gold) — Precise/Flawless tier"),
-                Component.literal("  Imagination (pink) — Self-Aware tier"),
-                Component.literal(""),
-                Component.literal("Drive Capacity (max recipes):"),
-                Component.literal("  Unstable: 2, Reclaimed: 4, Enhanced: 8"),
-                Component.literal("  Elaborate: 12, Cybernetic: 16"),
-                Component.literal("  Self-Aware: unlimited")
+                Component.translatable("jei.researchcube.research_station.title"),
+                Component.translatable("jei.researchcube.research_station.step1"),
+                Component.translatable("jei.researchcube.research_station.step2"),
+                Component.translatable("jei.researchcube.research_station.step3"),
+                Component.translatable("jei.researchcube.research_station.step4"),
+                Component.translatable("jei.researchcube.research_station.step5"),
+                Component.translatable("jei.researchcube.research_station.step6"),
+                Component.empty(),
+                Component.translatable("jei.researchcube.research_station.fluids_header"),
+                Component.translatable("jei.researchcube.research_station.fluid_thinking"),
+                Component.translatable("jei.researchcube.research_station.fluid_pondering"),
+                Component.translatable("jei.researchcube.research_station.fluid_reasoning"),
+                Component.translatable("jei.researchcube.research_station.fluid_imagination"),
+                Component.empty(),
+                Component.translatable("jei.researchcube.research_station.capacity_header"),
+                Component.translatable("jei.researchcube.research_station.capacity_line1"),
+                Component.translatable("jei.researchcube.research_station.capacity_line2"),
+                Component.translatable("jei.researchcube.research_station.capacity_line3")
         );
 
-        // Multi-page info for the Processing Station
+        // Multi-page info for the Processing Station.
+        // The station auto-starts once valid inputs and the unlocking drive are present
+        // (the old Start button and Auto toggle were removed), and item/fluid I/O is now
+        // configured per side via the in-GUI side-config panel.
         registration.addIngredientInfo(
                 new ItemStack(ModItems.PROCESSING_STATION_ITEM.get()),
                 VanillaTypes.ITEM_STACK,
-                Component.literal("Processing Station"),
-                Component.literal("A general-purpose machine for complex recipes."),
-                Component.literal(""),
-                Component.literal("Capacity:"),
-                Component.literal("  Up to 16 item inputs"),
-                Component.literal("  Up to 2 fluid inputs (8000 mB each)"),
-                Component.literal("  Up to 8 item outputs"),
-                Component.literal("  Up to 1 fluid output (8000 mB)"),
-                Component.literal(""),
-                Component.literal("Recipes are defined via datapack."),
-                Component.literal("Pipes can insert/extract fluids from any side.")
+                Component.translatable("jei.researchcube.processing_station.title"),
+                Component.translatable("jei.researchcube.processing_station.summary"),
+                Component.empty(),
+                Component.translatable("jei.researchcube.processing_station.capacity_header"),
+                Component.translatable("jei.researchcube.processing_station.capacity_item_in"),
+                Component.translatable("jei.researchcube.processing_station.capacity_fluid_in"),
+                Component.translatable("jei.researchcube.processing_station.capacity_item_out"),
+                Component.translatable("jei.researchcube.processing_station.capacity_fluid_out"),
+                Component.empty(),
+                Component.translatable("jei.researchcube.processing_station.drive"),
+                Component.translatable("jei.researchcube.processing_station.auto_start"),
+                Component.translatable("jei.researchcube.processing_station.side_io"),
+                Component.translatable("jei.researchcube.processing_station.datapack")
         );
     }
 
@@ -159,6 +166,12 @@ public class ResearchCubeJEIPlugin implements IModPlugin {
         // The Drive Crafting Table is the dedicated crafting station for drive recipes
         registration.addRecipeCatalyst(
                 new ItemStack(ModItems.DRIVE_CRAFTING_TABLE_ITEM.get()),
+                DriveCraftingCategory.RECIPE_TYPE
+        );
+
+        // The Auto Drive Crafting Table crafts the same drive recipes automatically
+        registration.addRecipeCatalyst(
+                new ItemStack(ModItems.AUTO_DRIVE_CRAFTING_TABLE_ITEM.get()),
                 DriveCraftingCategory.RECIPE_TYPE
         );
 
